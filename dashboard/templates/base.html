@@ -1,0 +1,71 @@
+{% from "_icons.html" import icon %}
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.label }} · Portflow coach dashboard</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="wordmark" href="{{ url_for('pages.overview') }}" aria-label="Portflow coach dashboard">
+      <span class="wordmark-name"><span class="wordmark-prompt">&gt;_</span> portflow</span>
+      <span class="wordmark-sub">coach dashboard</span>
+    </a>
+
+    <p class="eyebrow sidebar-eyebrow">Werkruimte</p>
+    <nav aria-label="Hoofdmenu">
+      <ul class="nav">
+        {% for item in pages %}
+        <li>
+          <a class="nav-item{% if item.endpoint == active %} is-active{% endif %}"
+             href="{{ url_for('pages.' + item.endpoint) }}"
+             {% if item.endpoint == active %}aria-current="page"{% endif %}>
+            {{ icon(item.icon) }}<span>{{ item.label }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <div class="sidebar-user">
+      <span class="avatar avatar-neutral">{{ icon("user") }}</span>
+      <span class="sidebar-user-name">Gebruiker</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="portflow-status" title="Portflow verbinden komt in een volgende versie">
+        <span class="status-dot"></span>
+        <span class="status-text">
+          <span class="status-label">Portflow</span>
+          <span class="status-value">Niet verbonden</span>
+        </span>
+      </div>
+      <span class="avatar avatar-neutral">{{ icon("user") }}</span>
+    </header>
+
+    {% if demo_active %}
+    <div class="demo-banner" role="status">
+      {{ icon("info") }}
+      <span>Je bekijkt demodata. Alle namen zijn verzonnen.</span>
+      {% if active != "settings" %}<a href="{{ url_for('pages.settings') }}">Naar Instellingen</a>{% endif %}
+    </div>
+    {% endif %}
+
+    <main class="content">
+      <header class="page-header">
+        <p class="eyebrow">{{ page.eyebrow }}</p>
+        <h1>{{ page.title }}</h1>
+        <p class="page-intro">{{ page.intro }}</p>
+      </header>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+</body>
+</html>

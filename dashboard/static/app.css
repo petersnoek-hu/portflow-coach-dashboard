@@ -1,0 +1,237 @@
+/* Portflow coach dashboard. Colours and sizes: docs/design-system.md */
+
+@font-face {
+  font-family: "DM Sans";
+  src: url("fonts/dm-sans-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Base colours */
+  --sidebar: #223b33;
+  --sidebar-active: #3b584e;
+  --sidebar-text: #c9d6d0;
+  --sidebar-text-strong: #ffffff;
+  --sidebar-muted: #8fa69c;
+  --page: #f5f6f2;
+  --card: #ffffff;
+  --border: #e6e8e2;
+  --text: #1d2723;
+  --text-muted: #6b7570;
+  --accent: #c17661;
+  --primary: #223b33;
+  --primary-hover: #3b584e;
+  --mint: #a7cbb1;
+  --demo-bg: #f2eac1;
+  --demo-text: #6b5a24;
+
+  --radius: 12px;
+  --radius-small: 8px;
+  --font: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  min-width: 1280px;             /* laptop and larger (spec 002, F15) */
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--page);
+}
+
+a { color: inherit; }
+
+.icon { width: 20px; height: 20px; flex: none; }
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Layout ---------------------------------------------------------------- */
+
+.shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  height: 100vh;
+  padding: 28px 18px 20px;
+  background: var(--sidebar);
+  color: var(--sidebar-text);
+}
+
+.main { flex: 1; min-width: 0; }
+
+.content { max-width: 1440px; padding: 40px 48px 64px; }
+
+/* Sidebar --------------------------------------------------------------- */
+
+.wordmark {
+  display: block;
+  padding: 0 10px 28px;
+  text-decoration: none;
+  font-family: var(--mono);
+}
+
+.wordmark-name { display: block; font-size: 21px; font-weight: 600; color: var(--sidebar-text-strong); }
+.wordmark-prompt { color: var(--mint); }
+.wordmark-sub { display: block; padding-left: 2.4ch; font-size: 13px; color: var(--sidebar-muted); }
+
+.sidebar-eyebrow { padding: 0 10px 10px; color: var(--sidebar-muted); }
+
+.nav { margin: 0; padding: 0; list-style: none; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-small);
+  text-decoration: none;
+  font-size: 16px;
+  color: var(--sidebar-text);
+}
+
+.nav-item:hover { background: rgba(255, 255, 255, 0.06); color: var(--sidebar-text-strong); }
+.nav-item.is-active { background: var(--sidebar-active); color: var(--sidebar-text-strong); }
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding: 16px 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--sidebar-text-strong);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+.avatar-neutral { background: #3d5048; color: #dfe7e3; }
+.topbar .avatar-neutral { background: var(--sidebar); }
+
+/* Top bar --------------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  height: 76px;
+  padding: 0 32px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.portflow-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+}
+
+.status-dot { width: 10px; height: 10px; border-radius: 50%; background: #b9bfbb; }
+.status-text { display: flex; flex-direction: column; line-height: 1.2; }
+.status-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.status-value { font-weight: 600; }
+
+/* Demo banner ------------------------------------------------------------ */
+
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 48px;
+  background: var(--demo-bg);
+  color: var(--demo-text);
+  font-size: 14px;
+}
+
+.demo-banner a { margin-left: auto; font-weight: 600; }
+
+/* Page header and cards -------------------------------------------------- */
+
+.page-header { margin-bottom: 32px; }
+.page-header h1 { margin: 6px 0 6px; font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.page-intro { margin: 0; font-size: 17px; color: var(--text-muted); }
+
+.card {
+  padding: 28px 32px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 600; }
+.muted { margin-top: 0; color: var(--text-muted); }
+
+.placeholder { color: var(--text-muted); }
+.placeholder p { margin: 0; }
+
+/* Settings ---------------------------------------------------------------- */
+
+.counts { margin: 20px 0 4px; border-collapse: collapse; }
+.counts th { padding: 4px 32px 4px 0; text-align: left; font-weight: 400; color: var(--text-muted); }
+.counts td { padding: 4px 0; font-weight: 600; text-align: right; }
+
+.actions { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+.actions form { margin: 0; }
+
+.confirm {
+  margin-top: 20px;
+  padding: 16px 20px;
+  border: 1px solid #ebd5cb;
+  border-radius: var(--radius-small);
+  background: #fbf5f2;
+}
+
+.confirm p { margin: 0; }
+.confirm .actions { margin-top: 14px; }
+
+/* Buttons ---------------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button-primary { background: var(--primary); color: #fff; }
+.button-primary:hover { background: var(--primary-hover); }
+.button-secondary { background: var(--card); border-color: var(--border); color: var(--text); }
+.button-secondary:hover { background: var(--page); }
+.button-danger { background: var(--accent); color: #fff; }
+.button-danger:hover { background: #a9604d; }
+.button:disabled { opacity: 0.45; cursor: not-allowed; }

@@ -69,7 +69,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | Nr | Functie | Status |
 |---|---|---|
 | 001 | [Studentenoverzicht](001-studentenoverzicht/spec.md) | `uitgewerkt` (bouwen na Portflow verbinden en Studenten toevoegen) |
-| 002 | [Basisapplicatie en schil](002-app-schil/spec.md) | `uitgewerkt` (als eerste bouwen) |
+| 002 | [Basisapplicatie en schil](002-app-schil/spec.md) | `klaar` |
 
 ## Kandidaten
 

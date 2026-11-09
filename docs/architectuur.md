@@ -26,12 +26,12 @@ Een dashboard voor coaches en gildemeesters dat de Portflow-voortgang van groepe
 - **Zo weinig mogelijk dependencies.** Een nieuwe dependency alleen als de standaardbibliotheek het redelijkerwijs niet kan; leg de reden vast in de tabel hierboven.
 - **Code in het Engels, interface in het Nederlands.** De vertaling van domeinbegrippen naar namen in de code staat in [begrippen.md](begrippen.md#begrippen-in-de-code).
 - **Geen externe bronnen in de browser:** geen CDN's, geen Google Fonts. Lettertype en iconen worden meegeleverd (zie [design-system.md](design-system.md#typografie)).
-- **Starten:** `python app.py` start de server op `http://127.0.0.1:5000` en opent de browser. De app luistert alleen op de eigen laptop (`127.0.0.1`), nooit op het netwerk; de debugmodus staat standaard uit.
+- **Starten:** `python app.py` start de server op `http://127.0.0.1:5050` en opent de browser; `--port` kiest een andere poort. Poort 5000 is op macOS bezet door de AirPlay-ontvanger. De app luistert alleen op de eigen laptop (`127.0.0.1`), nooit op het netwerk; de debugmodus staat standaard uit.
 
 ## Mappenstructuur van de code
 
 ```
-app.py                 ← start de app en opent de browser
+app.py                 ← start de app en opent de browser (--port, --no-browser)
 requirements.txt       ← Flask (en later Playwright, openpyxl)
 dashboard/
   __init__.py          ← maakt de Flask-app
@@ -41,10 +41,12 @@ dashboard/
   templates/           ← base.html (schil) + één template per pagina
   static/
     app.css            ← design tokens uit design-system.md als CSS-variabelen
-    app.js
-    fonts/             ← DM Sans
+    app.js             ← komt met de eerste interactieve functie (spec 001)
+    favicon.svg
+    fonts/             ← DM Sans + licentie (OFL.txt)
 tests/                 ← unittest
 data/                  ← database en lokale gegevens (niet in git)
+.claude/launch.json    ← startconfiguratie voor de preview in Claude Code
 ```
 
 Later komen er onder meer `progress.py` (voortgangsregels, op één plek en getest) en `portflow_api.py` (alle Portflow-aanroepen op één plek) bij. Houd de structuur zo plat mogelijk; splits pas als een bestand onoverzichtelijk wordt.

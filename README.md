@@ -4,6 +4,35 @@ Een dashboard voor coaches en gildemeesters van Open-ICT (Hogeschool Utrecht). H
 
 *A custom-built Portflow dashboard that shows Portflow progress for different groups of students, using the unofficial Portflow API.*
 
+## Installeren en starten
+
+Nodig: Python 3.14 (bijvoorbeeld via pyenv). Eenmalig, in de projectmap:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Starten (de browser opent vanzelf op http://127.0.0.1:5050):
+
+```bash
+source .venv/bin/activate
+python app.py
+```
+
+- Andere poort: `python app.py --port 8000`. Poort 5000 is op macOS bezet door de AirPlay-ontvanger.
+- Zonder automatisch openen van de browser: `python app.py --no-browser`.
+- Stoppen: Ctrl+C.
+- Demodata laden of verwijderen: via **Instellingen**.
+- Gegevens staan lokaal in `data/dashboard.sqlite3` (niet in git).
+
+Tests:
+
+```bash
+python -m unittest
+```
+
 ## Werkwijze
 
 Elke functie wordt eerst beschreven en daarna gebouwd. Zie [`features/README.md`](features/README.md).

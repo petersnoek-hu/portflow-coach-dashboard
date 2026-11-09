@@ -115,7 +115,7 @@ Kleuren van de tegels op [lef.hu.nl](https://lef.hu.nl) (zie [`screenshots/vaard
 - Lettertype: **DM Sans** (vrije licentie, SIL OFL), meegeleverd in de app als `woff2`. Het lettertype van het ontwerp is onbekend; DM Sans lijkt erop. Terugval: het systeemlettertype.
 - Logo: terminal-woordmerk in de monospace letter van het systeem.
 - Schermbreedte: laptop en groter (vanaf ongeveer 1280 pixels).
-- Iconen: losse **SVG-iconen** in de stijl van het ontwerp (Lucide, ISC-licentie), direct in de HTML; geen icoonbibliotheek.
+- Iconen: eenvoudige, zelfgetekende **SVG-lijniconen** in de stijl van het ontwerp, in `dashboard/templates/_icons.html`; geen icoonbibliotheek.
 - Kleine koppen in hoofdletters met extra letterafstand (zoals "WERKRUIMTE", "BEHEER" en kolomkoppen).
 
 ## Componenten

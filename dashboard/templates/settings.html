@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Demodata</h2>
+  <p class="muted">
+    Bekijk de app met verzonnen studenten, squads en evaluaties. Demodata staat los van je
+    echte gegevens: verwijderen raakt alleen de demodata.
+  </p>
+
+  {% if demo_active %}
+  <table class="counts">
+    <tbody>
+      {% for label, count in demo_counts %}
+      <tr><th scope="row">{{ label }}</th><td>{{ count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if confirm_remove and demo_active %}
+  <div class="confirm" role="alertdialog" aria-labelledby="confirm-title">
+    <p id="confirm-title"><strong>Alle demodata verwijderen?</strong> Echte gegevens blijven staan.</p>
+    <div class="actions">
+      <a class="button button-secondary" href="{{ url_for('pages.settings') }}">Annuleren</a>
+      <form method="post" action="{{ url_for('pages.remove_demo_data') }}">
+        <button class="button button-danger" type="submit">Verwijderen</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="actions">
+    <form method="post" action="{{ url_for('pages.load_demo_data') }}">
+      <button class="button button-primary" type="submit" {% if demo_active %}disabled{% endif %}>
+        Demodata laden
+      </button>
+    </form>
+    {% if demo_active %}
+    <a class="button button-secondary" href="{{ url_for('pages.settings', bevestig='demodata-verwijderen') }}">
+      Demodata verwijderen
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
