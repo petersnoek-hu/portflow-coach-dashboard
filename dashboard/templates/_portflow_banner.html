@@ -1,0 +1,10 @@
+{# Banner when the connection has expired (spec 003, F10). #}
+{% if portflow.state == "expired" %}
+<div class="banner banner-danger" role="alert">
+  <span>Je Portflow-verbinding is verlopen{% if portflow.sub %} ({{ portflow.sub }}){% endif %}. Log opnieuw in om weer actuele gegevens te zien.</span>
+  <form method="post" action="{{ url_for('portflow.connect') }}">
+    <input type="hidden" name="next" value="{{ next_path or request.path }}">
+    <button class="button button-small" type="submit">Opnieuw inloggen</button>
+  </form>
+</div>
+{% endif %}

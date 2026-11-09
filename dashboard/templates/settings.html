@@ -1,5 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
+<section class="card portflow-settings" id="portflow-koppeling">
+  <h2>Portflow-koppeling</h2>
+  {% include "_portflow_details.html" %}
+
+  {% if confirm_disconnect %}
+  <div class="confirm" role="alertdialog" aria-labelledby="disconnect-title">
+    <p id="disconnect-title"><strong>Verbinding met Portflow verbreken?</strong> Het token wordt verwijderd. Je kunt daarna opnieuw verbinden.</p>
+    <div class="actions">
+      <a class="button button-secondary" href="{{ url_for('pages.settings') }}">Annuleren</a>
+      <form method="post" action="{{ url_for('portflow.disconnect') }}">
+        <button class="button button-danger" type="submit">Verbreken</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('portflow.save_settings') }}" class="settings-form">
+    <label>Canvas-adres van de Portflow-tool
+      <input name="canvas_url" type="url" value="{{ canvas_url }}" required>
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="always_visible" value="1" {% if always_visible %}checked{% endif %}>
+      Zichtbaar verversen
+      <span class="muted">(aanbevolen: een uur voor het verlopen opent een Chrome-venster waarin je je account kiest. Uitgezet probeert de app het eerst onzichtbaar; dat blijft nu hangen op de accountkeuze van SURFconext.)</span>
+    </label>
+    <button class="button button-secondary" type="submit">Opslaan</button>
+  </form>
+</section>
+
 <section class="card">
   <h2>Demodata</h2>
   <p class="muted">

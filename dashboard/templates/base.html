@@ -31,23 +31,18 @@
       </ul>
     </nav>
 
-    <div class="sidebar-user">
-      <span class="avatar avatar-neutral">{{ icon("user") }}</span>
-      <span class="sidebar-user-name">Gebruiker</span>
+    <div class="sidebar-user" id="sidebar-user">
+      {% include "_sidebar_user.html" %}
     </div>
   </aside>
 
   <div class="main">
     <header class="topbar">
-      <div class="portflow-status" title="Portflow verbinden komt in een volgende versie">
-        <span class="status-dot"></span>
-        <span class="status-text">
-          <span class="status-label">Portflow</span>
-          <span class="status-value">Niet verbonden</span>
-        </span>
-      </div>
-      <span class="avatar avatar-neutral">{{ icon("user") }}</span>
+      {% include "_portflow_status.html" %}
+      <span id="topbar-avatar">{% include "_topbar_avatar.html" %}</span>
     </header>
+
+    <div id="portflow-banner">{% include "_portflow_banner.html" %}</div>
 
     {% if demo_active %}
     <div class="demo-banner" role="status">
@@ -67,5 +62,6 @@
     </main>
   </div>
 </div>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>

@@ -1,0 +1,70 @@
+{# Connection details and actions; used in the top-bar panel and in Instellingen (spec 003). #}
+{% set next_path = next_path or request.path %}
+{% set s = portflow.state %}
+
+<p class="panel-title">
+  <span class="status-dot dot-{{ portflow.dot }}{% if portflow.pulse %} is-pulsing{% endif %}"></span>
+  {% if s == "connected" %}Verbonden met Portflow
+  {% elif s == "logging_in" %}Inloggen bij Portflow…
+  {% elif s == "refreshing" %}Verbinding verversen…
+  {% elif s == "needs_login" %}Opnieuw inloggen nodig
+  {% elif s == "expired" %}Verbinding verlopen
+  {% else %}Niet verbonden met Portflow{% endif %}
+</p>
+
+{% if s == "disconnected" %}
+<p class="panel-text">Verbind met Portflow om de voortgang van je studenten op te halen. Er opent een Chrome-venster waarin je zo nodig inlogt met je HU-account.</p>
+{% elif s == "logging_in" %}
+<p class="panel-text">Log in in het Chrome-venster. Het venster sluit vanzelf zodra je bent ingelogd.</p>
+{% elif s == "needs_login" %}
+<p class="panel-text">Automatisch verversen is niet gelukt. Log opnieuw in voordat de verbinding {{ portflow.sub }}.</p>
+{% elif s == "expired" %}
+<p class="panel-text">Je verbinding met Portflow is verlopen. Log opnieuw in om weer actuele gegevens te zien.</p>
+{% endif %}
+
+{% if portflow.user_name or portflow.valid_until %}
+<dl class="panel-details">
+  {% if portflow.user_name %}<dt>Ingelogd als</dt><dd>{{ portflow.user_name }}</dd>{% endif %}
+  {% if portflow.portfolio_id %}<dt>Eigen portfolio</dt><dd>{{ portflow.portfolio_id }}</dd>{% endif %}
+  {% if portflow.valid_until %}<dt>Geldig tot</dt><dd>{{ portflow.valid_until }} ({{ portflow.remaining }})</dd>{% endif %}
+  {% if portflow.last_refresh %}<dt>Laatst ververst</dt><dd>{{ portflow.last_refresh }} · {{ portflow.last_refresh_kind }}</dd>{% endif %}
+</dl>
+{% endif %}
+
+{% if portflow.message %}<p class="panel-message" role="alert">{{ portflow.message }}</p>{% endif %}
+
+<div class="actions">
+  {% if s == "logging_in" %}
+  <form method="post" action="{{ url_for('portflow.cancel') }}">
+    <input type="hidden" name="next" value="{{ next_path }}">
+    <button class="button button-secondary" type="submit">Annuleren</button>
+  </form>
+  {% elif s != "refreshing" %}
+  <form method="post" action="{{ url_for('portflow.connect') }}">
+    <input type="hidden" name="next" value="{{ next_path }}">
+    <button class="button button-primary" type="submit">
+      {% if s == "disconnected" %}Verbinden met Portflow{% elif s == "connected" %}Opnieuw verbinden{% else %}Opnieuw inloggen{% endif %}
+    </button>
+  </form>
+  {% endif %}
+  {% if s in ("connected", "needs_login", "expired") %}
+  <a class="button button-secondary" href="{{ url_for('pages.settings', bevestig='verbinding-verbreken') }}">Verbinding verbreken</a>
+  {% endif %}
+</div>
+
+{% if not portflow.busy %}
+<details class="paste">
+  <summary>Lukt het niet? Token plakken</summary>
+  <form method="post" action="{{ url_for('portflow.paste_token') }}" class="paste-form" autocomplete="off">
+    <input type="hidden" name="next" value="{{ next_path }}">
+    <label>Token
+      <textarea name="token" rows="3" required spellcheck="false"
+                placeholder="eyJ… (uit de ontwikkelaarstools: Network → een verzoek naar drieam.app → Authorization)"></textarea>
+    </label>
+    <label>Eigen portfolio-id <span class="muted">(alleen nodig als de app het nog niet kent)</span>
+      <input name="portfolio_id" inputmode="numeric" placeholder="bijvoorbeeld 23588">
+    </label>
+    <button class="button button-secondary" type="submit">Token gebruiken</button>
+  </form>
+</details>
+{% endif %}

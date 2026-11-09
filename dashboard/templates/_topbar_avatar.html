@@ -1,0 +1,7 @@
+{# Avatar in the top bar (spec 003, F2). #}
+{% from "_icons.html" import icon %}
+{% if portflow.user_name %}
+<span class="avatar" title="{{ portflow.user_name }}">{{ portflow.user_initials }}</span>
+{% else %}
+<span class="avatar avatar-neutral">{{ icon("user") }}</span>
+{% endif %}

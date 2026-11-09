@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
 
 from . import demo
 from .db import get_db
@@ -65,7 +65,12 @@ def greeting(moment: datetime) -> str:
 @bp.app_context_processor
 def shell_context():
     """Values every page needs for the sidebar, top bar and demo banner."""
-    return {"pages": PAGES, "demo_active": demo.has_demo_data(get_db())}
+    return {
+        "pages": PAGES,
+        "demo_active": demo.has_demo_data(get_db()),
+        "portflow": current_app.extensions["portflow"].status(),
+        "portflow_open": request.args.get("portflow") == "open",
+    }
 
 
 def render_page(endpoint: str, **context):
@@ -115,10 +120,14 @@ def semesters():
 @bp.get("/instellingen")
 def settings():
     conn = get_db()
+    connection = current_app.extensions["portflow"]
     return render_page(
         "settings",
         demo_counts=demo.demo_counts(conn),
         confirm_remove=request.args.get("bevestig") == "demodata-verwijderen",
+        confirm_disconnect=request.args.get("bevestig") == "verbinding-verbreken",
+        canvas_url=connection.canvas_url,
+        always_visible=connection.always_visible,
     )
 
 

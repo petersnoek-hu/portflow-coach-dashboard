@@ -32,7 +32,7 @@ Een dashboard voor coaches en gildemeesters dat de Portflow-voortgang van groepe
 
 ```
 app.py                 ← start de app en opent de browser (--port, --no-browser)
-requirements.txt       ← Flask (en later Playwright, openpyxl)
+requirements.txt       ← Flask, playwright (later openpyxl)
 dashboard/
   __init__.py          ← maakt de Flask-app
   routes.py            ← de pagina's
@@ -41,15 +41,16 @@ dashboard/
   templates/           ← base.html (schil) + één template per pagina
   static/
     app.css            ← design tokens uit design-system.md als CSS-variabelen
-    app.js             ← komt met de eerste interactieve functie (spec 001)
+    app.js             ← paneel en live status (spec 003)
     favicon.svg
     fonts/             ← DM Sans + licentie (OFL.txt)
 tests/                 ← unittest
-data/                  ← database en lokale gegevens (niet in git)
+data/                  ← database en browserprofiel (niet in git)
+.env                   ← Portflow-token (niet in git)
 .claude/launch.json    ← startconfiguratie voor de preview in Claude Code
 ```
 
-Later komen er onder meer `progress.py` (voortgangsregels, op één plek en getest) en `portflow_api.py` (alle Portflow-aanroepen op één plek) bij. Houd de structuur zo plat mogelijk; splits pas als een bestand onoverzichtelijk wordt.
+Portflow (spec 003): `portflow_api.py` (alle API-aanroepen), `portflow_token.py` (token en `.env`), `portflow_login.py` (Chrome-venster, Playwright), `portflow_connection.py` (toestandsmachine), `portflow_routes.py`. Later komt er onder meer `progress.py` (voortgangsregels, op één plek en getest) bij. Houd de structuur zo plat mogelijk; splits pas als een bestand onoverzichtelijk wordt.
 
 ## Bestaande console-app
 
@@ -72,7 +73,7 @@ Portflow heeft geen login-endpoint. Net als in de console-app:
 2. De gebruiker logt zo nodig in via Canvas/HU-SSO; met een nog geldige HU-login in het profiel gaat dit vanzelf.
 3. De app vangt het bearer-token op uit de uitgaande verzoeken van Portflow en leest het eigen portfolio-id uit de pagina.
 4. Het token staat in `.env` (`PORTFLOW_BEARER_TOKEN`); het eigen portfolio-id in de database. Nooit in de repository, nooit in de browser-JavaScript of in logregels.
-5. Een token is **8 uur** geldig en bevat geen naam. De app ververst het stil (headless) 1 uur voor het verlopen; lukt dat niet, dan met een zichtbaar venster; lukt ook dat niet, dan vraagt de app de gebruiker opnieuw in te loggen.
+5. Een token is **8 uur** geldig en bevat geen naam. De app ververst het 1 uur voor het verlopen, standaard in een **zichtbaar** venster: onzichtbaar (headless) verversen blijft hangen op de accountkeuze van SURFconext, omdat de Canvas-sessiecookie het sluiten van de browser niet overleeft. Lukt verversen niet, dan vraagt de app de gebruiker opnieuw in te loggen.
 
 De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../features/003-portflow-verbinden/spec.md).
 
@@ -116,7 +117,7 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 | 2026-11-09 | Portflow levert alleen evaluaties; studenten, squads, semesters, beroepsrollen en eigen kolommen beheert het dashboard zelf | Indeling staat niet (betrouwbaar) in Portflow; de coach wil die zelf kunnen aanpassen |
 | 2026-11-09 | Studenten worden automatisch aan Portflow gekoppeld op naam, met controle door de gebruiker bij twijfel | Weinig handwerk, maar geen stille fouten |
 | 2026-11-09 | Inloggen zoals de console-app: Chrome-venster, token opvangen, lokaal bewaren | Enige bekende manier; gebruiker logt in via HU-SSO |
-| 2026-11-09 | Token stil verversen met headless Chrome en hetzelfde profiel, terugval op een zichtbaar venster | Portflow heeft geen refresh-endpoint; de HU-login in het profiel blijft langer geldig dan het token (8 uur) |
+| 2026-11-09 | Token verversen in een zichtbaar Chrome-venster met hetzelfde profiel (standaard); onzichtbaar verversen als instelling | Portflow heeft geen refresh-endpoint; headless blijft hangen op de accountkeuze van SURFconext |
 | 2026-11-09 | Portflow-gegevens lokaal bewaren; verversen bij openen en met een knop | Ophalen duurt even; de app moet direct openen |
 | 2026-11-09 | Flask + server-HTML + eigen JS/CSS + SQLite; venv; code in het Engels | Eenvoudigste codebase met de minste dependencies; geen build-stap |
 | 2026-11-09 | Alleen evaluaties van beoordelaars uit de eigen lijst tellen; de vaste uitzondering in de console-app vervalt | Evaluaties door bijvoorbeeld ouderejaars studenten onderscheiden van die door coaches en gildemeesters |

@@ -1,0 +1,9 @@
+{# User at the bottom of the sidebar: the Portflow name once known (spec 003, F2). #}
+{% from "_icons.html" import icon %}
+{% if portflow.user_name %}
+  <span class="avatar">{{ portflow.user_initials }}</span>
+  <span class="sidebar-user-name">{{ portflow.user_name }}</span>
+{% else %}
+  <span class="avatar avatar-neutral">{{ icon("user") }}</span>
+  <span class="sidebar-user-name">Gebruiker</span>
+{% endif %}

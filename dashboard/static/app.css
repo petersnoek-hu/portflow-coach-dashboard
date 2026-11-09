@@ -131,6 +131,7 @@ a { color: inherit; }
   font-weight: 600;
 }
 
+.avatar { background: #5e8c74; color: #fff; font-size: 14px; letter-spacing: 0.02em; }
 .avatar-neutral { background: #3d5048; color: #dfe7e3; }
 .topbar .avatar-neutral { background: var(--sidebar); }
 
@@ -235,3 +236,71 @@ a { color: inherit; }
 .button-danger { background: var(--accent); color: #fff; }
 .button-danger:hover { background: #a9604d; }
 .button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Portflow status and panel (spec 003) ------------------------------------- */
+
+.portflow { position: relative; }
+
+.portflow > summary { list-style: none; cursor: pointer; }
+.portflow > summary::-webkit-details-marker { display: none; }
+.portflow > summary:hover { background: var(--page); }
+.portflow[open] > summary { border-color: #cfd5cf; }
+
+.status-sub { font-size: 12px; color: var(--text-muted); }
+
+.dot-grey { background: #b9bfbb; }
+.dot-blue { background: #5b7fb8; }
+.dot-green { background: #4f9a6c; }
+.dot-orange { background: #d69a3c; }
+.dot-red { background: var(--accent); }
+.status-dot { flex: none; }
+.is-pulsing { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+.portflow-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  width: 400px;
+  padding: 20px 22px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(29, 39, 35, 0.12);
+}
+
+.panel-title { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-weight: 600; font-size: 16px; }
+.panel-text { margin: 0 0 12px; color: var(--text-muted); }
+.panel-details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 12px 0; }
+.panel-details dt { color: var(--text-muted); }
+.panel-details dd { margin: 0; font-weight: 600; }
+.panel-message { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--radius-small); background: #fbf5f2; color: #8e5a49; }
+.portflow-panel .actions, .portflow-settings .actions { margin-top: 16px; flex-wrap: wrap; }
+
+.paste { margin-top: 16px; font-size: 14px; }
+.paste > summary { cursor: pointer; color: var(--text-muted); }
+.paste-form, .settings-form { display: grid; gap: 12px; margin-top: 12px; }
+.paste-form label, .settings-form label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+.paste-form textarea, .paste-form input, .settings-form input[type="url"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  font: inherit;
+  font-weight: 400;
+}
+.paste-form textarea { font-family: var(--mono); font-size: 12px; }
+.settings-form { max-width: 640px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+.settings-form .checkbox { display: block; font-weight: 400; }
+.settings-form .button { justify-self: start; }
+.portflow-settings .panel-title { font-size: 15px; }
+
+/* Banners -------------------------------------------------------------------- */
+
+.banner { display: flex; align-items: center; gap: 16px; padding: 10px 48px; font-size: 14px; }
+.banner form { margin: 0 0 0 auto; }
+.banner-danger { background: #f6e3dc; color: #7a3f2f; }
+.button-small { padding: 6px 12px; font-size: 13px; background: var(--accent); color: #fff; }
+.button-small:hover { background: #a9604d; }
+.content > .card + .card { margin-top: 24px; }

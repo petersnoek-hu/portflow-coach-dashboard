@@ -103,6 +103,40 @@ def init_db(path: str) -> None:
     conn.close()
 
 
+def get_setting(path: str, key: str, default: str | None = None) -> str | None:
+    """Read a setting; usable outside a request (for example in a background thread)."""
+    conn = connect(path)
+    try:
+        row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    finally:
+        conn.close()
+    return row["value"] if row and row["value"] is not None else default
+
+
+def set_setting(path: str, key: str, value: str | None) -> None:
+    conn = connect(path)
+    try:
+        with conn:
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, value),
+            )
+    finally:
+        conn.close()
+
+
+def add_staff_name(path: str, name: str) -> None:
+    """Make sure a (real, non-demo) name is in the list of coaches and guild masters."""
+    conn = connect(path)
+    try:
+        with conn:
+            if not conn.execute("SELECT 1 FROM staff WHERE name = ?", (name,)).fetchone():
+                conn.execute("INSERT INTO staff (name, is_demo) VALUES (?, 0)", (name,))
+    finally:
+        conn.close()
+
+
 def get_db() -> sqlite3.Connection:
     if "db" not in g:
         g.db = connect(current_app.config["DATABASE"])

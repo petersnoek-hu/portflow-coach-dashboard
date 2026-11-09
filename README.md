@@ -24,6 +24,7 @@ python app.py
 - Andere poort: `python app.py --port 8000`. Poort 5000 is op macOS bezet door de AirPlay-ontvanger.
 - Zonder automatisch openen van de browser: `python app.py --no-browser`.
 - Stoppen: Ctrl+C.
+- Bij de eerste start opent een Chrome-venster om in te loggen bij Portflow (via Canvas/HU). Het venster sluit vanzelf. Het token staat daarna in `.env`, het browserprofiel in `data/`.
 - Demodata laden of verwijderen: via **Instellingen**.
 - Gegevens staan lokaal in `data/dashboard.sqlite3` (niet in git).
 

@@ -58,7 +58,7 @@ def main() -> None:
     print(f"  → {url}")
     print("  Stoppen: Ctrl+C\n")
 
-    app = create_app()
+    app = create_app(start_background=True)  # connects to Portflow (spec 003)
     if not args.no_browser:
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
     app.run(host=HOST, port=args.port, debug=False)
