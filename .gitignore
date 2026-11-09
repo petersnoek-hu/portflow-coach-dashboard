@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Ontwerpscreenshots met echte namen: niet committen tot ze geanonimiseerd zijn
+screenshots/kompas-dashboard-ontwerp.png
+screenshots/semesters-CRUD-met-studenten.png
+screenshots/projecten-CRUD-met-studenten.png
+screenshots/beroepsrollen-CRUD-met-studenten.png
+screenshots/leerdoelen-CRUD.png
+screenshots/portflow-console-app-1.png
+screenshots/portflow-console-app-2.png
