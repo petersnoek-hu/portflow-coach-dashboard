@@ -71,6 +71,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 001 | [Studentenoverzicht](001-studentenoverzicht/spec.md) | `uitgewerkt` (bouwen na Portflow verbinden en Studenten toevoegen) |
 | 002 | [Basisapplicatie en schil](002-app-schil/spec.md) | `klaar` |
 | 003 | [Portflow verbinden](003-portflow-verbinden/spec.md) | `klaar` (F17 niet getest) |
+| 004 | [Studenten toevoegen](004-studenten-toevoegen/spec.md) | `uitgewerkt` (dekt nu alleen de lege staat, het keuzescherm en "Uit Portflow kiezen") |
 
 ## Kandidaten
 
@@ -78,7 +79,7 @@ Deze onderdelen volgen uit de ontwerpen en de docs. Ze zijn nog géén spec; ze 
 
 - **Gegevens ophalen en verversen:** lokaal bewaren, verversen bij openen en met een knop ([architectuur](../docs/architectuur.md#verversen))
 - **Eerste start en instellingen:** gildes van de gebruiker (de naam komt uit Portflow), rollen bij de naam ("Coach · Gildemeester"), lijst met coaches en gildemeesters, semesterperiode, drempel "zonder recente update" ([gegevensmodel](../docs/gegevensmodel.md#gebruiker))
-- **Studenten toevoegen:** uit Portflow kiezen, Excel uploaden, namen plakken, CSV/cellen plakken, plus automatisch koppelen aan Portflow ([gegevensmodel](../docs/gegevensmodel.md#studenten-toevoegen))
+- **Studenten toevoegen (vervolg):** Excel uploaden, namen plakken, CSV/cellen plakken, plus automatisch koppelen op naam aan een gedeeld portfolio ([gegevensmodel](../docs/gegevensmodel.md#studenten-toevoegen)); "uit Portflow kiezen" staat al in [spec 004](004-studenten-toevoegen/spec.md)
 - **Studenten beheren:** velden van een student bewerken, inclusief coach en gildemeester
 - **Semesterstatus:** voldoet een student aan het toetsprogramma van zijn semester, en wat ontbreekt nog? (Volgt uit [voortgangsregels](../docs/voortgangsregels.md).)
 - **Projecten (squads)**, **Semesters**, **Beroepsrollen**, **Kolommen:** de beheerschermen

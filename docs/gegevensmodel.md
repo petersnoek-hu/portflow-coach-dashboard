@@ -37,7 +37,7 @@ Daarmee bepaalt de app de filters:
 - **Mijn gildestudenten:** studenten bij wie het veld *gildemeester* gelijk is aan de naam van de gebruiker, **of** wier gilde (primaire beroepsrol) bij de gildes van de gebruiker hoort.
 - **Alle gevolgde studenten:** alle studenten in het dashboard.
 
-Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach of gildemeester.
+Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach of gildemeester. **Uitzondering:** bij "Uit Portflow kiezen" staat het vinkje "Ik ben hun coach" standaard aan ([spec 004](../features/004-studenten-toevoegen/spec.md), F11). Voor de andere manieren bepaalt hun eigen spec dit.
 
 ## Student
 
@@ -78,6 +78,8 @@ Bij de eerste start zijn er **0 studenten**. De gebruiker kan studenten op vier 
 4. **CSV of Excel-cellen plakken:** een tekstveld waarin de gebruiker CSV of uit Excel gekopieerde cellen plakt. De app zoekt naar bruikbare velden: naam, studentnummer, semester, squad (projectgroep), invulling, gilde, coach en gildemeester.
 
 ### Koppelen aan Portflow
+
+Kiest de gebruiker bij manier 1 een portfolio van iemand die al als ongekoppelde student met dezelfde naam bestaat, dan koppelt de app die bestaande student in plaats van een nieuwe aan te maken ([spec 004](../features/004-studenten-toevoegen/spec.md), F10).
 
 Studenten die niet via Portflow zijn toegevoegd (manier 2 tot en met 4), koppelt de app **automatisch** aan een portfolio uit de lijst met gedeelde portfolio's: **op naam** (ongevoelig voor hoofdletters en extra spaties). Portflow levert voor zover bekend geen studentnummer. Twijfelgevallen en studenten die niet gevonden worden, legt de app ter controle aan de gebruiker voor.
 

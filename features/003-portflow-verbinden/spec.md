@@ -95,7 +95,7 @@ Inspiratie: de console-app ([`docs/portflow-console-app.py`](../../docs/portflow
 ### Buiten scope
 
 - Gegevens ophalen en verversen (studenten, evaluaties): eigen spec
-- Studenten kiezen uit "gedeeld met mij": spec *Studenten toevoegen*
+- Studenten kiezen uit "gedeeld met mij": [spec 004 – Studenten toevoegen](../004-studenten-toevoegen/spec.md)
 - Een browserextensie voor je eigen browser
 
 ## Schermen

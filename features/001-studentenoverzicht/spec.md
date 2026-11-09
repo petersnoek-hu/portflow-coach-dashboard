@@ -3,7 +3,7 @@
 **Status:** uitgewerkt <!-- idee | uitgewerkt | in bouw | klaar -->
 **Laatst bijgewerkt:** 2026-11-09
 
-> **Bouwvolgorde:** deze functie wordt gebouwd **na** de specs *003 Portflow verbinden* en *Studenten toevoegen*, zodat ze met echte gegevens werkt.
+> **Bouwvolgorde:** deze functie wordt gebouwd **na** [spec 003 – Portflow verbinden](../003-portflow-verbinden/spec.md) en [spec 004 – Studenten toevoegen](../004-studenten-toevoegen/spec.md), zodat ze met echte gegevens werkt.
 
 ## Doel
 
@@ -91,7 +91,7 @@ Dit is de kern van het dashboard en de opvolger van de tabel in de console-app (
 
 ### Toestanden
 
-- [ ] **F20 – Lege toestand.** Zonder gevolgde studenten: een uitleg en een knop naar Studenten toevoegen.
+- [ ] **F20 – Lege toestand.** Zonder gevolgde studenten: dezelfde lege staat als op Overzicht, met uitleg en de knop "Studenten toevoegen" ([spec 004](../004-studenten-toevoegen/spec.md), F1 en F2).
   - *Acceptatie:* 0 studenten → geen lege tabel, maar de uitleg en de knop.
 - [ ] **F21 – Niet verbonden.** Is Portflow niet verbonden, dan toont de tabel de laatst bewaarde gegevens met de tijd ervan ([architectuur.md](../../docs/architectuur.md#verversen)).
   - *Acceptatie:* bij een verlopen token blijft de tabel gevuld en toont de bovenbalk "Niet verbonden".
@@ -100,7 +100,7 @@ Dit is de kern van het dashboard en de opvolger van de tabel in de console-app (
 
 - Semesterstatus (voldoet de student aan het toetsprogramma?): eigen spec
 - Eigen kolommen aanmaken en beheren: spec *Kolommen*
-- Studenten toevoegen, bewerken en koppelen; Portflow verbinden en verversen: eigen specs
+- Studenten toevoegen ([spec 004](../004-studenten-toevoegen/spec.md)), bewerken en koppelen; Portflow verbinden ([spec 003](../003-portflow-verbinden/spec.md)) en verversen: eigen specs
 - Te beoordelen, signaalkaarten, weekgrafiek, detailpagina: eigen specs
 - Beroepstaken, BOKSA (semester 8)
 
@@ -138,7 +138,7 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - [x] Sorteren: standaard op naam; klikbare koppen; een vaardigheid sorteert op aantal, dan niveau.
 - [x] Pijl: weggelaten tot er een detailpagina is.
 - [x] Extra kolommen: Coach, Gildemeester, Invulling; standaard alleen Gildemeester.
-- [x] Bouwvolgorde: eerst Portflow verbinden en Studenten toevoegen.
+- [x] Bouwvolgorde: eerst [Portflow verbinden](../003-portflow-verbinden/spec.md) en [Studenten toevoegen](../004-studenten-toevoegen/spec.md).
 - [ ] Kleur van het `?`-accent en van de signaallabels (niet blokkerend; te kiezen tijdens het bouwen, daarna vastleggen in design-system.md).
 
 ## Logboek

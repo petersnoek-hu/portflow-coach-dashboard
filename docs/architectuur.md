@@ -26,6 +26,7 @@ Een dashboard voor coaches en gildemeesters dat de Portflow-voortgang van groepe
 - **Zo weinig mogelijk dependencies.** Een nieuwe dependency alleen als de standaardbibliotheek het redelijkerwijs niet kan; leg de reden vast in de tabel hierboven.
 - **Code in het Engels, interface in het Nederlands.** De vertaling van domeinbegrippen naar namen in de code staat in [begrippen.md](begrippen.md#begrippen-in-de-code).
 - **Geen externe bronnen in de browser:** geen CDN's, geen Google Fonts. Lettertype en iconen worden meegeleverd (zie [design-system.md](design-system.md#typografie)).
+- **Database-wijzigingen:** `CREATE TABLE IF NOT EXISTS` past een bestaande database niet aan. Een nieuwe kolom of tabel komt er bij het starten bij via een kleine migratie in `db.py` (bijvoorbeeld `ALTER TABLE … ADD COLUMN` als de kolom nog ontbreekt), zonder gegevensverlies.
 - **Starten:** `python app.py` start de server op `http://127.0.0.1:5050` en opent de browser; `--port` kiest een andere poort. Poort 5000 is op macOS bezet door de AirPlay-ontvanger. De app luistert alleen op de eigen laptop (`127.0.0.1`), nooit op het netwerk; de debugmodus staat standaard uit.
 
 ## Mappenstructuur van de code
@@ -90,7 +91,7 @@ De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../f
 - **Vaardigheidsnamen in Portflow** wijken soms in hoofdletters af van LEF ("Kwalitatief Product Maken", "Boodschap Delen"). Vergelijk zonder onderscheid tussen hoofd- en kleine letters.
 - **Niveau:** `evaluation.level` verwijst naar `level_set[].id`; het label `"Startniveau"` wordt `0` ([voortgangsregels.md](voortgangsregels.md#startniveau)).
 - **Onzeker** (zie §8 van het API-document): de naam van de beoordelaar en de datum van een evaluatie hebben geen vaste plek in de respons. De console-app probeert meerdere velden; de webapp neemt die aanpak over.
-- **Paginering:** doorgaan tot een pagina korter is dan de vorige of leeg; niet uitgaan van een vaste paginagrootte.
+- **Paginering:** doorgaan tot een **lege** pagina. Niet stoppen bij een pagina die korter is dan `per_page`: `/shares/shared-with-me` geeft altijd hooguit 20 per pagina, ook bij `per_page=50`.
 - **Fouten:** `401` betekent opnieuw verbinden; `404` betekent geen toegang, dus `n/b` ([voortgangsregels.md](voortgangsregels.md#geen-toegang)); andere fouten worden maximaal 3 keer opnieuw geprobeerd.
 - **Profielfoto's** (`profile_picture_url`) zijn tijdelijk geldige links; niet langdurig bewaren.
 
