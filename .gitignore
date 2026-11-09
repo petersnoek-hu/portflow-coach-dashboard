@@ -227,3 +227,6 @@ screenshots/beroepsrollen-CRUD-met-studenten.png
 screenshots/leerdoelen-CRUD.png
 screenshots/portflow-console-app-1.png
 screenshots/portflow-console-app-2.png
+
+# Lokale gegevens van het dashboard (database, Portflow-kopie, token)
+data/

@@ -90,6 +90,40 @@ De negen beroepsrollen met hun codes (UX, BIT, CS, CI, FE, BE, AI, GD, TI) staan
 | **Beoordelaar** | Wie een evaluatie geeft. Telt alleen mee als die in de lijst met coaches en gildemeesters staat ([voortgangsregels.md](voortgangsregels.md#welke-evaluaties-tellen)) |
 | **Bewijsstuk (evidence)** | Bestand dat de student in een toelichting noemt ("@bestand"); te downloaden via de API |
 
+<a id="begrippen-in-de-code"></a>
+## Begrippen in de code
+
+De code is Engelstalig, de interface Nederlands. Gebruik deze vertalingen, zodat een begrip overal hetzelfde heet. Vaardigheidscodes (OC … RE), `squad` en `tribe` blijven ongewijzigd.
+
+| Begrip (NL) | In de code |
+|---|---|
+| Student | `student` |
+| Coach | `coach` |
+| Gildemeester | `guild_master` |
+| Gilde | `guild` |
+| Gebruiker | `user` |
+| Beroepsrol (primair, secundair) | `professional_role` (`primary_role`, `secondary_roles`) |
+| Rol in de squad (PO, SM, …) | `squad_role` |
+| Squad (in de interface "project") | `squad` |
+| Invulling | `track` |
+| Semester, fase | `semester`, `phase` |
+| Semesterperiode, startdatum | `semester_period`, `start_date` |
+| Vaardigheid | `skill` |
+| Niveau, startniveau | `level`, `start_level` (weergave `0`) |
+| Evaluatie | `evaluation` |
+| Evaluatieverzoek | `review_request` |
+| Zelfevaluatie | `self_evaluation` |
+| Beoordelaar | `assessor` |
+| Openstaande evaluatie (`?`) | `pending_evaluation` |
+| Eindassessment | `full_assessment` |
+| Toetsprogramma | `assessment_program` |
+| Semester behaald | `semester_passed` |
+| Signaal | `signal` |
+| Kolom, eigen kolom | `column`, `custom_column` |
+| Beroepstaak | `professional_task` |
+| Portfolio, doel | `portfolio`, `goal` |
+| Demodata | `demo_data` (records met `is_demo`) |
+
 ## Open vragen
 
 - [x] **Te beoordelen:** openstaande evaluatieverzoeken aan de gebruiker, uit Portflow; beoordelen gebeurt in Portflow.

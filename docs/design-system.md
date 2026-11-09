@@ -12,8 +12,8 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
 
 ### Schil (alle schermen)
 
-- **Zijbalk** (donkergroen) met het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), Projecten, Kolommen (in het ontwerp nog "Leerdoelen"), Beroepsrollen, Semesters, Instellingen. Onderaan een hulpkaart ("Hulp nodig?", "Open handleiding") en de gebruiker met naam en rollen ("Coach · Gildemeester").
-- **Bovenbalk** met de verbindingsstatus van Portflow ("Portflow · Verbonden", of "Niet verbonden" als het token verlopen is, met een knop om opnieuw te verbinden), een belletje voor meldingen en de avatar van de gebruiker. Wat het belletje meldt, wordt later bepaald.
+- **Zijbalk** (donkergroen) met bovenaan het terminal-woordmerk `>_ portflow` / "coach dashboard" (in plaats van het Kompas-logo), het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), Projecten, Kolommen (in het ontwerp nog "Leerdoelen"), Beroepsrollen, Semesters, Instellingen. Onderaan de gebruiker met naam en rollen ("Coach · Gildemeester"). De hulpkaart uit het ontwerp ("Hulp nodig?", "Open handleiding") komt pas als er een handleiding is.
+- **Bovenbalk** met de verbindingsstatus van Portflow ("Portflow · Verbonden", of "Niet verbonden" als het token verlopen is, met een knop om opnieuw te verbinden) en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
 - **Paginakop:** klein kopje in hoofdletters (bijvoorbeeld "Beheer", "Studievoortgang"), titel, één zin uitleg, en rechts de primaire knop (bijvoorbeeld "+ Nieuw project").
 
 <a id="overzicht"></a>
@@ -112,7 +112,10 @@ Kleuren van de tegels op [lef.hu.nl](https://lef.hu.nl) (zie [`screenshots/vaard
 
 ## Typografie
 
-- Lettertype: *nog bepalen*. Het ontwerp gebruikt een moderne schreefloze letter.
+- Lettertype: **DM Sans** (vrije licentie, SIL OFL), meegeleverd in de app als `woff2`. Het lettertype van het ontwerp is onbekend; DM Sans lijkt erop. Terugval: het systeemlettertype.
+- Logo: terminal-woordmerk in de monospace letter van het systeem.
+- Schermbreedte: laptop en groter (vanaf ongeveer 1280 pixels).
+- Iconen: losse **SVG-iconen** in de stijl van het ontwerp (Lucide, ISC-licentie), direct in de HTML; geen icoonbibliotheek.
 - Kleine koppen in hoofdletters met extra letterafstand (zoals "WERKRUIMTE", "BEHEER" en kolomkoppen).
 
 ## Componenten

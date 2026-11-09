@@ -42,10 +42,12 @@ Volg dit bij **elke** functie, ook als de gebruiker alleen "bouw X" zegt:
 - `SW` en `RE` zijn vaardigheden (Samenwerken, Reflecteren) én onderdeel van HBO-i-codes (Software, Realiseren). Gebruik voor beroepstaken altijd de volledige code, bijvoorbeeld `SW-RE`.
 - LEF-teksten letterlijk overnemen; niet herformuleren.
 - Interface in het Nederlands, ontwikkelingsgericht geformuleerd (niet beoordelend).
+- Code (namen, commentaar) in het Engels; gebruik de vertalingen uit `docs/begrippen.md` ("Begrippen in de code"). Vaardigheidscodes (OC … RE) blijven ongewijzigd.
 
 ## Regels
 
 - Code staat niet in `features/`; die map bevat alleen specs en ontwerpen.
+- Zo weinig mogelijk dependencies (zie `docs/architectuur.md`); geen CDN's of externe fonts.
 - Geheimen (Portflow-tokens, wachtwoorden) alleen in `.env`, nooit in code, specs of commits.
 - Geen echte studentgegevens in testdata, screenshots of de repository. Gebruik verzonnen namen in testdata. De huidige ontwerpscreenshots bevatten echte namen en staan in `.gitignore`; haal ze daar pas uit als ze geanonimiseerd zijn.
 - Waar ontwerp en docs verschillen, gelden de docs (bekende afwijkingen staan in `docs/design-system.md`).

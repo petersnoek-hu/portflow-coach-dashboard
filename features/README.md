@@ -69,6 +69,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | Nr | Functie | Status |
 |---|---|---|
 | 001 | [Studentenoverzicht](001-studentenoverzicht/spec.md) | `uitgewerkt` (bouwen na Portflow verbinden en Studenten toevoegen) |
+| 002 | [Basisapplicatie en schil](002-app-schil/spec.md) | `uitgewerkt` (als eerste bouwen) |
 
 ## Kandidaten
 
@@ -84,5 +85,4 @@ Deze onderdelen volgen uit de ontwerpen en de docs. Ze zijn nog géén spec; ze 
 - **Signaalkaarten:** evaluaties te beoordelen, studenten zonder recente update, actieve coachstudenten
 - **Te beoordelen:** openstaande evaluatieverzoeken aan de gebruiker, met link naar Portflow
 - **Weekgrafiek:** evaluaties per week, behaald en ingediend
-- **Navigatie en schil:** zijbalk, bovenbalk met Portflow-status, gebruiker met rollen, hulp
 - **Detailpagina van een student** (later ook met HBO-i-beroepstaken)

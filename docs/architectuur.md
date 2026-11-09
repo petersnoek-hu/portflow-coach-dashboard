@@ -10,15 +10,44 @@ Een dashboard voor coaches en gildemeesters dat de Portflow-voortgang van groepe
 
 | Onderdeel | Keuze | Reden |
 |---|---|---|
-| Taal backend | Python | De bestaande console-app is in Python geschreven |
-| Webframework / UI | *nog kiezen* | Webapp in de browser |
-| Opslag / cache | *nog kiezen* (lokaal, bijvoorbeeld SQLite) | Gegevens blijven op de laptop van de gebruiker |
+| Taal backend | Python 3.14 | De bestaande console-app is in Python geschreven |
+| Webframework | **Flask** (enige dependency) | Eén dependency, leesbare code, templates met automatische escaping |
+| Interface | Server-HTML (Jinja-templates) + **één eigen CSS-bestand en één eigen JS-bestand** | Geen npm en geen build-stap; filteren, sorteren en zoeken gebeuren in de browser |
+| Opslag / cache | **SQLite** (`sqlite3`, standaardbibliotheek), bestand `data/dashboard.sqlite3` | Eén bestand, robuust, geen dependency; staat niet in git |
+| Installatie | **venv + requirements.txt** | Standaard Python, geen extra tools; overstappen op uv kan later |
+| Tests | **unittest** (standaardbibliotheek), `python -m unittest` | Geen extra dependency |
+| HTTP naar Portflow | `urllib` (standaardbibliotheek) | Geen extra dependency nodig |
+| Excel-import (later) | openpyxl | Excel lezen kan niet met de standaardbibliotheek |
 | Portflow-login | Playwright (Chrome) | Er is geen login-endpoint; het token wordt uit een browsersessie opgevangen, zoals in de console-app |
 | Draaien | **Lokaal op de laptop** van de gebruiker, te openen via localhost | Elke coach heeft eigen gegevens; geen gedeelde server nodig |
 
+## Afspraken voor de code
+
+- **Zo weinig mogelijk dependencies.** Een nieuwe dependency alleen als de standaardbibliotheek het redelijkerwijs niet kan; leg de reden vast in de tabel hierboven.
+- **Code in het Engels, interface in het Nederlands.** De vertaling van domeinbegrippen naar namen in de code staat in [begrippen.md](begrippen.md#begrippen-in-de-code).
+- **Geen externe bronnen in de browser:** geen CDN's, geen Google Fonts. Lettertype en iconen worden meegeleverd (zie [design-system.md](design-system.md#typografie)).
+- **Starten:** `python app.py` start de server op `http://127.0.0.1:5000` en opent de browser. De app luistert alleen op de eigen laptop (`127.0.0.1`), nooit op het netwerk; de debugmodus staat standaard uit.
+
 ## Mappenstructuur van de code
 
-*(aanvullen zodra de eerste code er is)*
+```
+app.py                 ← start de app en opent de browser
+requirements.txt       ← Flask (en later Playwright, openpyxl)
+dashboard/
+  __init__.py          ← maakt de Flask-app
+  routes.py            ← de pagina's
+  db.py                ← SQLite: verbinding en tabellen
+  demo.py              ← demodata laden en verwijderen
+  templates/           ← base.html (schil) + één template per pagina
+  static/
+    app.css            ← design tokens uit design-system.md als CSS-variabelen
+    app.js
+    fonts/             ← DM Sans
+tests/                 ← unittest
+data/                  ← database en lokale gegevens (niet in git)
+```
+
+Later komen er onder meer `progress.py` (voortgangsregels, op één plek en getest) en `portflow_api.py` (alle Portflow-aanroepen op één plek) bij. Houd de structuur zo plat mogelijk; splits pas als een bestand onoverzichtelijk wordt.
 
 ## Bestaande console-app
 
@@ -84,4 +113,5 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 | 2026-11-09 | Studenten worden automatisch aan Portflow gekoppeld op naam, met controle door de gebruiker bij twijfel | Weinig handwerk, maar geen stille fouten |
 | 2026-11-09 | Inloggen zoals de console-app: Chrome-venster, token opvangen, lokaal bewaren | Enige bekende manier; gebruiker logt in via HU-SSO |
 | 2026-11-09 | Portflow-gegevens lokaal bewaren; verversen bij openen en met een knop | Ophalen duurt even; de app moet direct openen |
+| 2026-11-09 | Flask + server-HTML + eigen JS/CSS + SQLite; venv; code in het Engels | Eenvoudigste codebase met de minste dependencies; geen build-stap |
 | 2026-11-09 | Alleen evaluaties van beoordelaars uit de eigen lijst tellen; de vaste uitzondering in de console-app vervalt | Evaluaties door bijvoorbeeld ouderejaars studenten onderscheiden van die door coaches en gildemeesters |
