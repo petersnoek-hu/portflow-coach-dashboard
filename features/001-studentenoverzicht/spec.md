@@ -3,7 +3,7 @@
 **Status:** uitgewerkt <!-- idee | uitgewerkt | in bouw | klaar -->
 **Laatst bijgewerkt:** 2026-11-09
 
-> **Bouwvolgorde:** deze functie wordt gebouwd **na** de specs *Portflow verbinden* en *Studenten toevoegen*, zodat ze met echte gegevens werkt.
+> **Bouwvolgorde:** deze functie wordt gebouwd **na** de specs *003 Portflow verbinden* en *Studenten toevoegen*, zodat ze met echte gegevens werkt.
 
 ## Doel
 

@@ -13,7 +13,7 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
 ### Schil (alle schermen)
 
 - **Zijbalk** (donkergroen) met bovenaan het terminal-woordmerk `>_ portflow` / "coach dashboard" (in plaats van het Kompas-logo), het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), Projecten, Kolommen (in het ontwerp nog "Leerdoelen"), Beroepsrollen, Semesters, Instellingen. Onderaan de gebruiker met naam en rollen ("Coach · Gildemeester"). De hulpkaart uit het ontwerp ("Hulp nodig?", "Open handleiding") komt pas als er een handleiding is.
-- **Bovenbalk** met de verbindingsstatus van Portflow ("Portflow · Verbonden", of "Niet verbonden" als het token verlopen is, met een knop om opnieuw te verbinden) en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
+- **Bovenbalk** met de verbindingsstatus van Portflow (een statusknop met gekleurde stip: grijs, blauw, groen, oranje of rood, en een paneel met details; zie [spec 003](../features/003-portflow-verbinden/spec.md)) en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
 - **Paginakop:** klein kopje in hoofdletters (bijvoorbeeld "Beheer", "Studievoortgang"), titel, één zin uitleg, en rechts de primaire knop (bijvoorbeeld "+ Nieuw project").
 
 <a id="overzicht"></a>
@@ -123,7 +123,9 @@ Kleuren van de tegels op [lef.hu.nl](https://lef.hu.nl) (zie [`screenshots/vaard
 Herbruikbare onderdelen uit de ontwerpen:
 
 - **Zijbalknavigatie** met tellerbadge
-- **Bovenbalk** met Portflow-status, meldingen en avatar
+- **Bovenbalk** met Portflow-status en avatar
+- **Statusknop + paneel**: knop met gekleurde stip, tekst en subtekst; een klik opent een paneel met details en acties (sluit met Escape of een klik ernaast)
+- **Banner**: smalle balk onder de bovenbalk voor demodata (geel) of een verlopen verbinding (rood), met één actie
 - **Paginakop** met kopje, titel, uitleg en primaire knop
 - **Samenvattingsbalk** met kerngetallen bovenaan een beheerscherm
 - **Beheerkaart**: gekleurd vlak met initialen of code, naam, subregel, avatars, aantal, Bewerken / Verwijderen

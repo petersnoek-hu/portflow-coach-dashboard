@@ -19,7 +19,7 @@ Bij de **eerste start** vult de gebruiker in:
 
 | Veld | Toelichting |
 |---|---|
-| Naam | Wordt vergeleken met de velden *coach* en *gildemeester* van elke student |
+| Naam | Komt uit Portflow na het verbinden ([spec 003](../features/003-portflow-verbinden/spec.md)). Wordt vergeleken met de velden *coach* en *gildemeester* van elke student |
 | Gildes | De gildes waarvan de gebruiker gildemeester is; mag leeg zijn (niet elke gebruiker is gildemeester) |
 
 In **Instellingen** beheert de gebruiker daarnaast:
@@ -29,7 +29,7 @@ In **Instellingen** beheert de gebruiker daarnaast:
 | **Lijst met coaches en gildemeesters** | Namen. Alleen namen uit die lijst zijn te kiezen in de velden *coach* en *gildemeester* van een student. De naam van de gebruiker staat er automatisch in. Dezelfde lijst bepaalt welke beoordelaars meetellen: evaluaties van beoordelaars die er niet in staan, worden verborgen ([voortgangsregels.md](voortgangsregels.md#welke-evaluaties-tellen)). De namen moeten dus overeenkomen met de namen in Portflow |
 | **Semesterperiode** | Begin- en einddatum van het huidige semester, bijvoorbeeld 01-09-2026 t/m 31-01-2027. Alleen evaluaties in deze periode tellen |
 | **Drempel "zonder recente update"** | Aantal dagen, standaard 14 |
-| **Portflow-verbinding** | Verbinden en opnieuw verbinden; zie [architectuur.md](architectuur.md#portflow-api) |
+| **Portflow-koppeling** | Verbinden, opnieuw verbinden en verbreken; het Canvas-adres van de Portflow-tool; "Altijd zichtbaar verversen". Zie [spec 003](../features/003-portflow-verbinden/spec.md) |
 
 Daarmee bepaalt de app de filters:
 

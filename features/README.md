@@ -70,14 +70,14 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 |---|---|---|
 | 001 | [Studentenoverzicht](001-studentenoverzicht/spec.md) | `uitgewerkt` (bouwen na Portflow verbinden en Studenten toevoegen) |
 | 002 | [Basisapplicatie en schil](002-app-schil/spec.md) | `klaar` |
+| 003 | [Portflow verbinden](003-portflow-verbinden/spec.md) | `uitgewerkt` |
 
 ## Kandidaten
 
 Deze onderdelen volgen uit de ontwerpen en de docs. Ze zijn nog géén spec; ze kunnen er een worden:
 
-- **Portflow verbinden:** inloggen via een Chrome-venster, token lokaal bewaren, status in de bovenbalk ([architectuur](../docs/architectuur.md#inloggen))
 - **Gegevens ophalen en verversen:** lokaal bewaren, verversen bij openen en met een knop ([architectuur](../docs/architectuur.md#verversen))
-- **Eerste start en instellingen:** naam en gildes van de gebruiker, lijst met coaches en gildemeesters, semesterperiode, drempel "zonder recente update" ([gegevensmodel](../docs/gegevensmodel.md#gebruiker))
+- **Eerste start en instellingen:** gildes van de gebruiker (de naam komt uit Portflow), rollen bij de naam ("Coach · Gildemeester"), lijst met coaches en gildemeesters, semesterperiode, drempel "zonder recente update" ([gegevensmodel](../docs/gegevensmodel.md#gebruiker))
 - **Studenten toevoegen:** uit Portflow kiezen, Excel uploaden, namen plakken, CSV/cellen plakken, plus automatisch koppelen aan Portflow ([gegevensmodel](../docs/gegevensmodel.md#studenten-toevoegen))
 - **Studenten beheren:** velden van een student bewerken, inclusief coach en gildemeester
 - **Semesterstatus:** voldoet een student aan het toetsprogramma van zijn semester, en wat ontbreekt nog? (Volgt uit [voortgangsregels](../docs/voortgangsregels.md).)

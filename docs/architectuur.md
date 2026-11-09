@@ -18,7 +18,7 @@ Een dashboard voor coaches en gildemeesters dat de Portflow-voortgang van groepe
 | Tests | **unittest** (standaardbibliotheek), `python -m unittest` | Geen extra dependency |
 | HTTP naar Portflow | `urllib` (standaardbibliotheek) | Geen extra dependency nodig |
 | Excel-import (later) | openpyxl | Excel lezen kan niet met de standaardbibliotheek |
-| Portflow-login | Playwright (Chrome) | Er is geen login-endpoint; het token wordt uit een browsersessie opgevangen, zoals in de console-app |
+| Portflow-login | **playwright** (circa 43 MB), met de geïnstalleerde Google Chrome | Er is geen login-endpoint; het token wordt uit een browsersessie opgevangen, zoals in de console-app |
 | Draaien | **Lokaal op de laptop** van de gebruiker, te openen via localhost | Elke coach heeft eigen gegevens; geen gedeelde server nodig |
 
 ## Afspraken voor de code
@@ -68,11 +68,13 @@ De volledige, gereverse-engineerde beschrijving staat in [portflow-API-reverse-e
 
 Portflow heeft geen login-endpoint. Net als in de console-app:
 
-1. De gebruiker klikt op **Verbinden met Portflow**. De app opent een Chrome-venster (Playwright, met een eigen browserprofiel) op de Portflow-tool in Canvas.
-2. De gebruiker logt in via Canvas/HU-SSO.
-3. De app vangt het bearer-token op uit de uitgaande verzoeken van Portflow, en leest het eigen portfolio-id uit de pagina.
-4. Het token (een JWT met vervaldatum) en het eigen portfolio-id worden **lokaal** bewaard, nooit in de repository.
-5. Is het token verlopen (te zien aan de `exp`-claim, of aan een `401`), dan toont de bovenbalk "Niet verbonden" en kan de gebruiker opnieuw verbinden.
+1. De app opent een Chrome-venster (Playwright, met een blijvend browserprofiel in `data/browser-profile/`) op de Portflow-tool in Canvas.
+2. De gebruiker logt zo nodig in via Canvas/HU-SSO; met een nog geldige HU-login in het profiel gaat dit vanzelf.
+3. De app vangt het bearer-token op uit de uitgaande verzoeken van Portflow en leest het eigen portfolio-id uit de pagina.
+4. Het token staat in `.env` (`PORTFLOW_BEARER_TOKEN`); het eigen portfolio-id in de database. Nooit in de repository, nooit in de browser-JavaScript of in logregels.
+5. Een token is **8 uur** geldig en bevat geen naam. De app ververst het stil (headless) 1 uur voor het verlopen; lukt dat niet, dan met een zichtbaar venster; lukt ook dat niet, dan vraagt de app de gebruiker opnieuw in te loggen.
+
+De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../features/003-portflow-verbinden/spec.md).
 
 ### Endpoints die het dashboard gebruikt
 
@@ -114,6 +116,7 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 | 2026-11-09 | Portflow levert alleen evaluaties; studenten, squads, semesters, beroepsrollen en eigen kolommen beheert het dashboard zelf | Indeling staat niet (betrouwbaar) in Portflow; de coach wil die zelf kunnen aanpassen |
 | 2026-11-09 | Studenten worden automatisch aan Portflow gekoppeld op naam, met controle door de gebruiker bij twijfel | Weinig handwerk, maar geen stille fouten |
 | 2026-11-09 | Inloggen zoals de console-app: Chrome-venster, token opvangen, lokaal bewaren | Enige bekende manier; gebruiker logt in via HU-SSO |
+| 2026-11-09 | Token stil verversen met headless Chrome en hetzelfde profiel, terugval op een zichtbaar venster | Portflow heeft geen refresh-endpoint; de HU-login in het profiel blijft langer geldig dan het token (8 uur) |
 | 2026-11-09 | Portflow-gegevens lokaal bewaren; verversen bij openen en met een knop | Ophalen duurt even; de app moet direct openen |
 | 2026-11-09 | Flask + server-HTML + eigen JS/CSS + SQLite; venv; code in het Engels | Eenvoudigste codebase met de minste dependencies; geen build-stap |
 | 2026-11-09 | Alleen evaluaties van beoordelaars uit de eigen lijst tellen; de vaste uitzondering in de console-app vervalt | Evaluaties door bijvoorbeeld ouderejaars studenten onderscheiden van die door coaches en gildemeesters |
