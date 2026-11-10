@@ -27,7 +27,7 @@ Als **coach** of **gildemeester** wil ik de projecten (squads) beheren: zelf aan
   - *Acceptatie:* de pagina toont deze kop en de knop opent de pagina van F5.
 - [x] **F2 – Samenvattingsbalk.** "N actieve projecten" (projecten met minstens één student), "M studenten" (met een project) en "K zonder project".
   - *Acceptatie:* 3 projecten met studenten, 7 studenten met en 2 zonder project → "3 actieve projecten", "7 studenten", "2 zonder project".
-- [x] **F3 – Kaarten.** Per project een kaart, op nummer (projecten zonder nummer daarna, op naam): de initialen van de naam in een vlak met de kleur van het project, de naam, de volledige naam ("02 Gamified Learning", of alleen de naam zonder nummer), de opdrachtgever (als die er is), de avatars van de studenten en "N studenten", en de knoppen Bewerken en Verwijderen. Na de kaarten een kaart met stippellijn **"Project toevoegen"** ("Maak een nieuwe groep voor studenten") die naar F5 leidt.
+- [x] **F3 – Kaarten.** Per project een kaart, op nummer (projecten zonder nummer daarna, op naam): de initialen van de naam in een neutraal grijs vlak en de weergavenaam (F10; *aangepast 2026-11-10:* geen kleur, projectnaam, volledige naam of opdrachtgever meer op de kaart), de avatars van de studenten en "N studenten", en de knoppen Bewerken en Verwijderen. Na de kaarten een kaart met stippellijn **"Project toevoegen"** ("Maak een nieuwe groep voor studenten") die naar F5 leidt.
   - *Acceptatie:* project 02 "Gamified Learning" van "Condor Arnhem OT" met 2 studenten toont "GL", "02 Gamified Learning", "Condor Arnhem OT" en "2 studenten".
 - [x] **F4 – Zonder project en lege toestand.** Onder de kaarten een balk **"Zonder project"** ("Studenten blijven hier zichtbaar nadat een project is verwijderd.") met het aantal studenten zonder project en hun avatars. Zonder projecten toont de pagina uitleg ("Nog geen projecten.") en de knop "+ Nieuw project".
   - *Acceptatie:* 0 projecten → uitleg en knop; 2 studenten zonder project → de balk toont "2 studenten".
@@ -38,15 +38,13 @@ Als **coach** of **gildemeester** wil ik de projecten (squads) beheren: zelf aan
   - **"Handmatig toevoegen"**: een formulier met
     - **nummer** (niet verplicht; 1 of 2 cijfers, opgeslagen als twee cijfers: "2" → "02"),
     - **naam** (verplicht),
-    - **opdrachtgever** (niet verplicht),
-    - **kleur** (een kleurkiezer, vooringevuld met de volgende kleur uit de reeks van F6);
+    - **opdrachtgever** (niet verplicht);
   - **"Open-ICT-projecten (sept 2026) toevoegen"**: voegt in één keer de projecten uit [`docs/openict-projecten.md`](../../docs/openict-projecten.md) toe, met nummer, naam en opdrachtgever. Een project waarvan het nummer al bestaat, wordt overgeslagen. Daarna terug naar Projecten met de bevestiging hoeveel er zijn toegevoegd.
   - *Acceptatie:* 0 projecten + "Open-ICT-projecten (sept 2026) toevoegen" → 19 projecten (01 tot en met 20, zonder 09); nog een keer klikken voegt er 0 toe.
-- [x] **F6 – Kleuren.** De Open-ICT-projecten krijgen om de beurt een kleur uit een vaste reeks van acht ontwerpkleuren ([design-system.md](../../docs/design-system.md#projecten)), zodat ze in de tabellen van elkaar te onderscheiden zijn. De kleur is daarna per project aan te passen (F8).
-  - *Acceptatie:* na het toevoegen hebben project 01 en 02 een verschillende kleur; de kleuren volgen de reeks in de volgorde van de tabel.
+- ~~**F6 – Kleuren.**~~ *Vervallen op 2026-11-10:* projecten hebben geen kleur meer. De groepskop van een project in de tabellen krijgt dezelfde neutrale streep (`#909DB9`) als bij groeperen op invulling.
 - [x] **F7 – Controle.** De naam is verplicht. Een nummer bestaat uit 1 of 2 cijfers en is uniek. Bij een fout blijft het formulier ingevuld en staat de uitleg erbij.
   - *Acceptatie:* een lege naam, nummer "123" of "a1" en een tweede project 02 worden geweigerd.
-- [x] **F8 – Bewerken.** Nummer, naam, opdrachtgever en kleur zijn te wijzigen, met dezelfde controle als F7. De studenten blijven in het project.
+- [x] **F8 – Bewerken.** Nummer, naam, opdrachtgever en weergavenaam zijn te wijzigen, met dezelfde controle als F7. De studenten blijven in het project.
   - *Acceptatie:* de naam van 02 wijzigen in "Gamified Learning 2" → de kaart, het studentenoverzicht (groepskop, filter) en de studentenlijst tonen de nieuwe naam.
 - [x] **F9 – Verwijderen.** Na bevestiging ("In 02 Gamified Learning zitten 3 studenten; zij komen bij Zonder project.") verdwijnt het project. De studenten blijven bestaan, zonder project ([gegevensmodel.md](../../docs/gegevensmodel.md#squad-project)).
   - *Acceptatie:* na verwijderen staan de 3 studenten in de balk "Zonder project" en in het studentenoverzicht onder "Zonder project".
@@ -80,7 +78,7 @@ Nieuw project en het formulier volgen de pagina's van de beroepsrollen ([spec 00
 ## Data
 
 - **Bron:** eigen opslag; de lijst van F5 komt uit de tabel in [`docs/openict-projecten.md`](../../docs/openict-projecten.md). Deze functie roept Portflow niet aan.
-- **Benodigde velden:** nummer, naam, opdrachtgever, kleur. De initialen en de volledige naam ("NN naam") volgen daaruit.
+- **Benodigde velden:** nummer, naam, opdrachtgever, weergavenaam. De initialen en de volledige naam ("NN naam") volgen daaruit.
 - **Privacy:** alleen avatars met initialen van studenten; lokaal.
 
 ## Technische eisen
@@ -94,8 +92,8 @@ Nieuw project en het formulier volgen de pagina's van de beroepsrollen ([spec 00
 
 - [x] **Bestand:** omgezet naar een tabel `| Nr | Projectnaam | Opdrachtgever |`; dubbele spaties opgeschoond.
 - [x] **Inhoud:** "Beveligingstest team" verbeterd in "Beveiligingstest team". Nummers hoeven niet oplopend te zijn (een project kan op het laatste moment niet doorgaan); zie de uitleg in het bestand.
-- [x] **Velden:** nummer (niet verplicht), naam, opdrachtgever (niet verplicht) en kleur; initialen en volledige naam volgen daaruit.
-- [x] **Kleur:** de Open-ICT-projecten krijgen om de beurt een kleur uit een vaste reeks (F6).
+- [x] **Velden:** nummer (niet verplicht), naam, opdrachtgever (niet verplicht) en weergavenaam (kleur vervallen op 2026-11-10); initialen en volledige naam volgen daaruit.
+- [x] **Kleur:** vervallen op verzoek van de gebruiker (2026-11-10); eerder kregen de Open-ICT-projecten om de beurt een kleur uit een vaste reeks.
 
 ## Logboek
 
@@ -103,3 +101,4 @@ Nieuw project en het formulier volgen de pagina's van de beroepsrollen ([spec 00
 - 2026-11-09 – gebouwd en getest (unit tests en in de browser); status klaar. Initialen: eerste en laatste woord, bij één woord de eerste twee letters ("Beheerteam" → BE)
 - 2026-11-10 – F10–F12 toegevoegd op verzoek van de gebruiker: een weergavenaam per project (standaard met het nummer tussen haakjes) die in de overzichten de projectnaam vervangt
 - 2026-11-10 – F10–F12 gebouwd en getest (unit tests en in de browser met de echte projecten); status klaar
+- 2026-11-10 – op verzoek van de gebruiker: projecten hebben geen kleur meer (F6 vervallen), en de kaart toont alleen de initialen en de weergavenaam (F3)

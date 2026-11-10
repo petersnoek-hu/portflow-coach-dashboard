@@ -17,10 +17,10 @@ STAFF = ["Marieke Ploeg", "Joost Hendriks", "Femke Bos", "Ruben Smit"]
 UNKNOWN_ASSESSOR = "Kevin Brandsma"
 
 SQUADS = [
-    # (number, name, client, colour); spec 012. All invented.
-    ("04", "Horizon", "Stichting Verzonnen Zorg", "#7D6BA8"),
-    ("11", "Lantaarn", "Gemeente Denkbeeldig", "#C17661"),
-    ("15", "Noorderlicht", "Fictief Logistiek BV", "#5E8C74"),
+    # (number, name, client); spec 012. All invented.
+    ("04", "Horizon", "Stichting Verzonnen Zorg"),
+    ("11", "Lantaarn", "Gemeente Denkbeeldig"),
+    ("15", "Noorderlicht", "Fictief Logistiek BV"),
 ]
 
 
@@ -254,13 +254,13 @@ def load_demo_data(conn: sqlite3.Connection) -> bool:
         for position, (code, name, description, kind) in enumerate(CUSTOM_COLUMNS):
             conn.execute("INSERT INTO custom_columns (code, name, description, type, position, is_demo) "
                          "VALUES (?, ?, ?, ?, ?, 1)", (code, name, description, kind, position))
-        for number, name, client, color in SQUADS:
+        for number, name, client in SQUADS:
             # Skip a demo project whose number is already used by a real one (numbers are unique).
             if conn.execute("SELECT 1 FROM squads WHERE number = ?", (number,)).fetchone():
                 number = None
             conn.execute(
-                "INSERT INTO squads (number, name, client, full_name, display_name, color, is_demo) VALUES (?, ?, ?, ?, ?, ?, 1)",
-                (number, name, client, projects.full_name(number, name), projects.default_display(number, name, client), color),
+                "INSERT INTO squads (number, name, client, full_name, display_name, is_demo) VALUES (?, ?, ?, ?, ?, 1)",
+                (number, name, client, projects.full_name(number, name), projects.default_display(number, name, client)),
             )
         for student in STUDENTS:
             _insert_student(conn, student)

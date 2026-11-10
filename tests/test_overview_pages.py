@@ -686,16 +686,14 @@ class TestProjects(PagesTestCase):  # spec 012
         self.assertIn("Zonder project", html)
         self.assertIn("1 student</strong>", html)
 
-    def test_open_ict_projects_twice_and_colours(self):  # F5, F6
+    def test_open_ict_projects_twice(self):  # F5
         self.assertIn("toegevoegd=19", self.client.post("/projecten/nieuw/open-ict").headers["Location"])
         self.assertIn("toegevoegd=0", self.client.post("/projecten/nieuw/open-ict").headers["Location"])
         with self.db() as conn:
             numbers = [r[0] for r in conn.execute("SELECT number FROM squads ORDER BY number")]
-            colours = [r[0] for r in conn.execute("SELECT color FROM squads ORDER BY number")]
             two = dict(conn.execute("SELECT * FROM squads WHERE number = '02'").fetchone())
         self.assertNotIn("09", numbers)
         self.assertEqual((numbers[0], numbers[-1], len(numbers)), ("01", "20", 19))
-        self.assertNotEqual(colours[0], colours[1])
         self.assertEqual((two["name"], two["client"], two["full_name"]),
                          ("Gamified Learning", "Condor Arnhem OT", "02 Gamified Learning"))
 
@@ -711,8 +709,11 @@ class TestProjects(PagesTestCase):  # spec 012
         self.assertIn("<strong>1</strong> zonder project", html)
         self.assertIn(">GL</span>", html)
         self.assertIn(">BE</span>", html)  # one word: "Beheerteam"
-        self.assertIn("02 Gamified Learning", html)
-        self.assertIn("Condor Arnhem OT", html)
+        # F3 (2026-11-10): only the initials and the display name; no colour, project name or client.
+        self.assertIn('<span class="code-block project-block">GL</span>\n      <h2>Condor - Gamified learning (02)</h2>', html)
+        self.assertNotIn("02 Gamified Learning", html)
+        self.assertNotIn("Condor Arnhem OT", html)
+        self.assertNotIn("style=\"background", html.split('class="staff-cards"')[1])
         self.assertIn("Project toevoegen", html)
 
     def test_validation_and_number_padding(self):  # F5, F7
@@ -720,13 +721,14 @@ class TestProjects(PagesTestCase):  # spec 012
             html = self.client.post("/projecten/handmatig", data={"nummer": number, "naam": "X"}).get_data(as_text=True)
             self.assertIn("1 of 2 cijfers", html)
         self.assertIn("Vul een naam in.", self.client.post("/projecten/handmatig", data={"naam": " "}).get_data(as_text=True))
-        self.client.post("/projecten/handmatig", data={"nummer": "2", "naam": "Gamified Learning", "kleur": "#123456"})
+        self.client.post("/projecten/handmatig", data={"nummer": "2", "naam": "Gamified Learning"})
         html = self.client.post("/projecten/handmatig", data={"nummer": "02", "naam": "Ander"}).get_data(as_text=True)
         self.assertIn("al een project met nummer 02", html)
         self.client.post("/projecten/handmatig", data={"naam": "Stage"})  # no number is fine
         with self.db() as conn:
-            rows = [tuple(r) for r in conn.execute("SELECT number, full_name, color FROM squads ORDER BY id")]
-        self.assertEqual(rows[0], ("02", "02 Gamified Learning", "#123456"))
+            rows = [tuple(r) for r in conn.execute("SELECT number, full_name FROM squads ORDER BY id")]
+        self.assertEqual(rows[0], ("02", "02 Gamified Learning"))
+        self.assertNotIn('name="kleur"', self.html("/projecten/handmatig"))   # no colour any more
         self.assertEqual(rows[1][:2], (None, "Stage"))
 
     def test_edit_shows_everywhere(self):  # F8
@@ -735,9 +737,11 @@ class TestProjects(PagesTestCase):  # spec 012
         with self.db() as conn:
             conn.execute("UPDATE students SET squad_id = ? WHERE name = 'Iris Bouma'", (self.project_id("02"),))
         self.client.post(f"/projecten/{self.project_id('02')}/bewerken",
-                         data={"nummer": "02", "naam": "Gamified Learning 2", "opdrachtgever": "Condor", "kleur": "#123456",
+                         data={"nummer": "02", "naam": "Gamified Learning 2", "opdrachtgever": "Condor",
                                "weergavenaam": "Condor (spel)"})
-        self.assertIn("02 Gamified Learning 2", self.html("/projecten"))
+        with self.db() as conn:
+            self.assertEqual(conn.execute("SELECT full_name FROM squads WHERE number = '02'").fetchone()[0],
+                             "02 Gamified Learning 2")
         for path in ("/projecten", "/", "/studenten"):   # F12: the display name in the overviews
             self.assertIn("Condor (spel)", self.html(path), path)
         self.assertNotIn("02 Gamified Learning 2", self.html("/studenten"))
@@ -777,6 +781,8 @@ class TestProjects(PagesTestCase):  # spec 012
         with self.db() as conn:
             rows = [r[0] for r in conn.execute("SELECT display_name FROM squads ORDER BY number")]
         self.assertEqual(rows, ["Condor - Gamified learning (02)", "Acme - Spel (21)"])
+        with self.db() as conn:   # spec 012: the colour column is gone
+            self.assertNotIn("color", {r["name"] for r in conn.execute("PRAGMA table_info(squads)")})
 
     def test_delete_moves_students_without_project(self):  # F9
         self.client.post("/projecten/nieuw/open-ict")

@@ -57,7 +57,14 @@
     </select>
   </label>
 
-  <label>Rol
+  <label>Coach
+    <select name="coach_id">
+      <option value="">Geen</option>
+      {% for c in options.coaches %}<option value="{{ c.id }}" {% if form.coach_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </label>
+
+  <label>Teamrol
     <select name="squad_role">
       <option value="">Geen</option>
       {% for code, name in options.squad_roles %}<option value="{{ code }}" {% if form.squad_role == code %}selected{% endif %}>{{ code }} · {{ name }}</option>{% endfor %}
@@ -82,13 +89,6 @@
     <button type="button" class="button button-secondary button-compact js-only" id="guild-add">+ Gilde toevoegen</button>
     <p class="muted noscript-hint">Kies "–" bij een gilde om het te verwijderen; de lege regel onderaan is voor een nieuw gilde.</p>
   </fieldset>
-
-  <label>Coach
-    <select name="coach_id">
-      <option value="">Geen</option>
-      {% for c in options.coaches %}<option value="{{ c.id }}" {% if form.coach_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-    </select>
-  </label>
 
   <label class="form-wide">Notities
     <textarea name="notes" rows="5">{{ form.notes }}</textarea>

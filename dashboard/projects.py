@@ -7,9 +7,6 @@ from pathlib import Path
 from .portflow_connection import initials
 
 PRESET_FILE = Path(__file__).resolve().parent.parent / "docs" / "openict-projecten.md"
-# F6: colours from the designs (docs/design-system.md#projecten), used in turn.
-PALETTE = ["#7D6BA8", "#C17661", "#5E8C74", "#5B76A8", "#B58A4A", "#A86B8A", "#4F8FA8", "#6B8F3F"]
-_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
 def full_name(number: str | None, name: str) -> str:
@@ -51,12 +48,6 @@ def fill_display_names(conn: sqlite3.Connection) -> None:
         conn.execute("UPDATE squads SET display_name = ? WHERE id = ?", (display, row["id"]))
 
 
-def next_color(conn: sqlite3.Connection) -> str:
-    """The next colour of the palette, after the projects that exist (F5, F6)."""
-    count = conn.execute("SELECT COUNT(*) FROM squads").fetchone()[0]
-    return PALETTE[count % len(PALETTE)]
-
-
 def _students(conn, squad_id):
     sql = "SELECT id, name FROM students WHERE squad_id IS ? ORDER BY name"
     return [dict(r) for r in conn.execute(sql, (squad_id,))]
@@ -83,7 +74,7 @@ def find(conn: sqlite3.Connection, squad_id: int) -> sqlite3.Row | None:
     return conn.execute("SELECT * FROM squads WHERE id = ?", (squad_id,)).fetchone()
 
 
-def validate(conn: sqlite3.Connection, number: str, name: str, client: str, color: str,
+def validate(conn: sqlite3.Connection, number: str, name: str, client: str,
              squad_id: int | None = None, display_name: str = "") -> tuple[dict | None, str | None]:
     """F7, F10: returns (clean values, None) or (None, Dutch error message)."""
     number, name, client = number.strip(), " ".join(name.split()), " ".join(client.split())
@@ -95,17 +86,15 @@ def validate(conn: sqlite3.Connection, number: str, name: str, client: str, colo
     number = number.zfill(2) if number else None
     if number and conn.execute("SELECT 1 FROM squads WHERE number = ? AND id != ?", (number, squad_id or -1)).fetchone():
         return None, f"Er is al een project met nummer {number}."
-    if not _COLOR.match(color.strip()):
-        color = next_color(conn)
-    return {"number": number, "name": name, "client": client, "color": color.strip(),
+    return {"number": number, "name": name, "client": client,
             "full_name": full_name(number, name),
             "display_name": display_name or default_display(number, name, client)}, None
 
 
 def create(conn: sqlite3.Connection, values: dict, *, is_demo: bool = False) -> int:
     with conn:
-        return conn.execute("INSERT INTO squads (number, name, client, full_name, display_name, color, is_demo) "
-                            "VALUES (:number, :name, :client, :full_name, :display_name, :color, :is_demo)",
+        return conn.execute("INSERT INTO squads (number, name, client, full_name, display_name, is_demo) "
+                            "VALUES (:number, :name, :client, :full_name, :display_name, :is_demo)",
                             dict(values, is_demo=int(is_demo))).lastrowid
 
 
@@ -113,7 +102,7 @@ def update(conn: sqlite3.Connection, squad_id: int, values: dict) -> None:
     """F8: the students stay in the project."""
     with conn:
         conn.execute("UPDATE squads SET number = :number, name = :name, client = :client, full_name = :full_name, "
-                     "display_name = :display_name, color = :color WHERE id = :id", dict(values, id=squad_id))
+                     "display_name = :display_name WHERE id = :id", dict(values, id=squad_id))
 
 
 def delete(conn: sqlite3.Connection, squad_id: int) -> None:
@@ -128,6 +117,6 @@ def add_preset(conn: sqlite3.Connection) -> int:
     for project in read_preset():
         if conn.execute("SELECT 1 FROM squads WHERE number = ?", (project["number"],)).fetchone():
             continue
-        create(conn, dict(project, color=next_color(conn), full_name=full_name(project["number"], project["name"])))  # F11
+        create(conn, dict(project, full_name=full_name(project["number"], project["name"])))  # F11
         added += 1
     return added

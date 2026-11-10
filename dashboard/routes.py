@@ -958,7 +958,7 @@ def _project_form(project=None):
     conn = get_db()
     project_id = project["id"] if project else None
     error = None
-    fields = ("nummer", "naam", "opdrachtgever", "kleur")
+    fields = ("nummer", "naam", "opdrachtgever")
     if request.method == "POST":
         form = {f: request.form.get(f, "") for f in fields + ("weergavenaam",)}
         values, error = projects.validate(conn, *(form[f] for f in fields), project_id, form["weergavenaam"])
@@ -970,11 +970,11 @@ def _project_form(project=None):
             return redirect(url_for("pages.squads"))
     elif project:
         form = {"nummer": project["number"] or "", "naam": project["name"], "opdrachtgever": project["client"],
-                "kleur": project["color"], "weergavenaam": project["display_name"]}
+                "weergavenaam": project["display_name"]}
     else:
-        form = {"nummer": "", "naam": "", "opdrachtgever": "", "kleur": projects.next_color(conn), "weergavenaam": ""}
+        form = {"nummer": "", "naam": "", "opdrachtgever": "", "weergavenaam": ""}
     title = "Project bewerken" if project else "Handmatig toevoegen"
-    intro = project["full_name"] if project else "Nummer, naam, opdrachtgever en kleur van het project."
+    intro = project["full_name"] if project else "Nummer, naam, opdrachtgever en weergavenaam van het project."
     return render_template("project_form.html", active="squads", form=form, error=error, page=_project_page(title, intro))
 
 

@@ -105,8 +105,8 @@ Studenten die niet via Portflow zijn toegevoegd (manier 2 tot en met 4), koppelt
 | Naam | Verplicht, bijvoorbeeld "Gamified Learning" |
 | Opdrachtgever | Niet verplicht, bijvoorbeeld "Condor Arnhem OT" |
 | Weergavenaam | Vrij veld, bijvoorbeeld "Condor - Gamified learning (02)": de ingekorte opdrachtgever en projectnaam met het nummer tussen haakjes. Wordt in de overzichten getoond in plaats van de projectnaam ([spec 012](../features/012-projecten/spec.md), F10–F12) |
-| Kleur | Voor de weergave; de initialen volgen uit de naam |
 
+- Een project heeft geen kleur; de **initialen** volgen uit de naam.
 - De **volledige naam** is nummer en naam samen, bijvoorbeeld "02 Gamified Learning"; zonder nummer alleen de naam.
 - Het dashboard start **zonder projecten**. De Open-ICT-projecten van september 2026 ([openict-projecten.md](openict-projecten.md)) zijn met één knop toe te voegen. De gebruiker kan projecten toevoegen, bewerken en verwijderen ([spec 012](../features/012-projecten/spec.md)).
 

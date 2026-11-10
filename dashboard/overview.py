@@ -154,7 +154,7 @@ def save_custom_value(conn: sqlite3.Connection, student_id: int, column_id: int,
 # Rows -----------------------------------------------------------------------------------
 
 STUDENT_SQL = """
-SELECT s.*, sq.name AS squad_name, sq.full_name AS squad_full_name, sq.display_name AS squad_display, sq.color AS squad_color,
+SELECT s.*, sq.name AS squad_name, sq.full_name AS squad_full_name, sq.display_name AS squad_display,
        c.name AS coach_name, c.first_name AS coach_first
 FROM students s
 LEFT JOIN squads sq ON sq.id = s.squad_id
@@ -192,7 +192,6 @@ def student_rows(conn: sqlite3.Connection, today: date) -> list[dict]:
             "squad": s["squad_display"] or s["squad_name"],
             "squad_full_name": s["squad_display"] or s["squad_full_name"],
             "squad_sort": s["squad_full_name"] or "",
-            "squad_color": s["squad_color"],
             "squad_role": s["squad_role"],
             "track": s["track"],
             "guilds": guilds_of.get(s["id"], []),
@@ -281,7 +280,7 @@ def group_rows(rows: list[dict], grouping: str) -> list[dict]:
                     guild["guild_color"] or "#909DB9", row)
         else:  # squad
             if row["squad_id"]:
-                put((1, row["squad_sort"].casefold()), row["squad"], "", row["squad_color"], row)
+                put((1, row["squad_sort"].casefold()), row["squad"], "", "#909DB9", row)   # spec 012: no project colours
             else:
                 put((2, ""), "Zonder project", "", "#B9BFBB", row)
     return [groups[key] for key in sorted(groups, key=lambda k: tuple(str(p) for p in k))]

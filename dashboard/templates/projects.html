@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{# Projecten (spec 012, F1-F4, F9). #}
+{# Projecten (spec 012, F1-F4, F9): de kaart toont alleen initialen en weergavenaam. #}
 {% block page_actions %}
 <a class="button button-primary" href="{{ url_for('pages.projects_add') }}">+ Nieuw project</a>
 {% endblock %}
@@ -43,14 +43,9 @@
   {% for p in items %}
   <article class="card staff-card">
     <div class="staff-card-head">
-      <span class="code-block" style="background: {{ p.color }}">{{ p.initials }}</span>
-      <div>
-        <h2>{{ p.name }}</h2>
-        <p class="muted staff-sub">{{ p.full_name }}</p>
-        {% if p.display_name %}<p class="staff-sub project-display">Weergave: <strong>{{ p.display_name }}</strong></p>{% endif %}
-      </div>
+      <span class="code-block project-block">{{ p.initials }}</span>
+      <h2>{{ p.display_name or p.full_name }}</h2>
     </div>
-    {% if p.client %}<p class="staff-sub">{{ p.client }}</p>{% endif %}
     <div class="project-footer">
       <div class="avatar-stack" aria-label="Studenten">
         {% for s in p.students[:8] %}<span class="avatar avatar-tiny" title="{{ s.name }}">{{ s.name|initials }}</span>{% endfor %}

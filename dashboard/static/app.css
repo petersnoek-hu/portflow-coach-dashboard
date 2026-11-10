@@ -615,6 +615,8 @@ thead th.col-student { display: table-cell; }
 .without-project { display: flex; align-items: center; gap: 16px; margin-top: 24px; background: #f0f1ed; }
 .without-project h2 { margin: 0; font-size: 18px; }
 .without-block { background: #dfe2dc; color: var(--text-muted); }
+/* Spec 012: projects have no colour; the initials sit in a neutral block. */
+.project-block { background: #909DB9; }
 
 .student-form textarea { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
 

@@ -15,9 +15,6 @@
   <label>Weergavenaam <span class="muted">(in de overzichten; standaard "Opdrachtgever - Projectnaam (nummer)", in te korten)</span>
     <input name="weergavenaam" value="{{ form.weergavenaam }}" id="project-display" data-edited="{{ '1' if form.weergavenaam else '' }}">
   </label>
-  <label>Kleur
-    <input type="color" name="kleur" value="{{ form.kleur }}">
-  </label>
   <div class="actions">
     <a class="button button-secondary" href="{{ url_for('pages.squads') }}">Annuleren</a>
     <button class="button button-primary" type="submit">Opslaan</button>
