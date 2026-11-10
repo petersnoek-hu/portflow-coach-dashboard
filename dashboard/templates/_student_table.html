@@ -78,6 +78,7 @@
           data-search="{{ (row.name ~ ' ' ~ (row.squad or '') ~ ' ' ~ (row.squad_full_name or '') ~ ' ' ~ row.guild_codes ~ ' ' ~ row.guild_names)|lower }}"
           data-sort-name="{{ row.name|lower }}" data-sort-profile="{{ (row.guild_codes or '~')|lower }}"
           data-sort-coach="{{ (row.coach or '~')|lower }}" data-sort-guild-master="{{ (row.guild_master or '~')|lower }}"
+          data-sort-coach-full="{{ (row.coach_full or '~')|lower }}" data-sort-guild-master-full="{{ (row.guild_master_full or '~')|lower }}"
           data-sort-track="{{ (row.track or '~')|lower }}">
         <th scope="row" class="col-student">
           <span class="avatar avatar-small">{{ row.initials }}</span>
@@ -131,7 +132,11 @@
         </td>
         {% endfor %}
         {% for key, label in t.extra_columns %}
+        {% if key in t.name_columns and row[key] %}
+        <td class="col-extra col-names">{% for n in row[key].split(", ") %}<span class="name">{{ n }}</span>{{ ", " if not loop.last }}{% endfor %}</td>
+        {% else %}
         <td class="col-extra">{{ row[key] or "–" }}</td>
+        {% endif %}
         {% endfor %}
       </tr>
       {% endfor %}

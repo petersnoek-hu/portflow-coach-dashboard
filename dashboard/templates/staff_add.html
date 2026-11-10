@@ -16,7 +16,7 @@
   <article class="card add-method">
     <h2>Open-ICT-gildemeesters toevoegen</h2>
     <p class="muted">Voegt in één keer {{ preset|length }} gildemeesters toe, elk met hun gilde:
-      {% for name, code in preset %}{{ name }} ({{ code }}){% if not loop.last %}, {% endif %}{% endfor %}.
+      {% for first, last, code in preset %}{{ first }} {{ last }} ({{ code }}){% if not loop.last %}, {% endif %}{% endfor %}.
       Wie er al staat, krijgt alleen de rol en het gilde erbij.</p>
     <form method="post" action="{{ url_for('pages.guild_masters_add_preset') }}">
       <button class="button button-primary" type="submit">Open-ICT-gildemeesters toevoegen</button>

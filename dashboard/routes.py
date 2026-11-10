@@ -160,6 +160,7 @@ def _table_context() -> dict:
             "options": overview_data.filter_options(conn),
             "extra_columns": [(key, label) for key, label in overview_data.EXTRA_COLUMNS if key in visible],
             "all_extra_columns": overview_data.EXTRA_COLUMNS,
+            "name_columns": overview_data.NAME_COLUMNS,
             "custom_columns": [c for c in custom if f"custom:{c['id']}" in visible],
             "all_custom_columns": custom,
             "visible": visible,
@@ -554,7 +555,7 @@ def staff_add_names(kind: str):
 
 @bp.route("/<any(coaches, gildemeesters):kind>/<int:staff_id>/bewerken", methods=["GET", "POST"])
 def staff_edit(kind: str, staff_id: int):
-    """F7: name, and for a guild master the guilds."""
+    """F7, F20: first and last name, and for a guild master the guilds."""
     role = _role_from_path(kind)
     words = ROLE_PAGES[role]
     conn = get_db()
@@ -563,7 +564,7 @@ def staff_edit(kind: str, staff_id: int):
         abort(404)
     error = None
     if request.method == "POST":
-        error = staff.rename(conn, staff_id, request.form.get("naam", ""))
+        error = staff.update_name(conn, staff_id, request.form.get("voornaam", ""), request.form.get("achternaam", ""))
         if not error:
             if role == "guild_master":
                 staff.set_guilds(conn, staff_id, [int(v) for v in request.form.getlist("gilde") if v.isdigit()])
@@ -572,7 +573,8 @@ def staff_edit(kind: str, staff_id: int):
     page = _role_page(role, f"{words['Single']} bewerken", person["name"])
     return render_template("staff_edit.html", page=page, active=words["endpoint"], role=role, kind=kind,
                            words=words, person=person, error=error,
-                           name=request.form.get("naam", person["name"]),
+                           first_name=request.form.get("voornaam", person["first_name"]),
+                           last_name=request.form.get("achternaam", person["last_name"]),
                            guild_options=[dict(r) for r in conn.execute("SELECT id, code, name FROM guilds ORDER BY code")],
                            chosen=chosen)
 

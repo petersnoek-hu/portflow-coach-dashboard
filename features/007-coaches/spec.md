@@ -63,3 +63,4 @@ Als [spec 006](../006-gildemeesters/spec.md).
 - 2026-11-09 – antwoorden verwerkt (zie spec 006); status uitgewerkt
 - 2026-11-09 – gebouwd en getest; status klaar
 - 2026-11-09 – het menu-item Coaches staat nu onder Beheer ([spec 002](../002-app-schil/spec.md), F17); de volgorde in F1 is daarmee vervangen
+- 2026-11-10 – een coach heeft voornaam en achternaam, en de kolom Coach toont standaard de voornaam ([spec 006](../006-gildemeesters/spec.md), F20–F21)

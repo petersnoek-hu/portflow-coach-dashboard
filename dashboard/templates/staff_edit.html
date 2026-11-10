@@ -1,11 +1,17 @@
 {% extends "base.html" %}
-{# Bewerken (spec 006 F7, spec 007 F2): naam, en bij een gildemeester de gildes. #}
+{# Bewerken (spec 006 F7, F20, spec 007 F2): voornaam en achternaam, en bij een gildemeester de gildes. #}
 {% block content %}
 <form method="post" class="card names-form">
   {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
-  <label>Naam <span class="muted">(precies zoals in Portflow)</span>
-    <input name="naam" value="{{ name }}" required>
-  </label>
+  <div class="name-fields">
+    <label>Voornaam
+      <input name="voornaam" value="{{ first_name }}" required>
+    </label>
+    <label>Achternaam
+      <input name="achternaam" value="{{ last_name }}">
+    </label>
+  </div>
+  <p class="muted">Voornaam en achternaam samen precies zoals in Portflow; een tussenvoegsel hoort bij de achternaam.</p>
   {% if role == "guild_master" %}
   <fieldset class="guild-choice">
     <legend>Gilde(s)</legend>

@@ -223,17 +223,67 @@ class TestStaffPages(PagesTestCase):
             role = conn.execute("SELECT id FROM professional_roles WHERE code = 'FE'").fetchone()["id"]
             frontend = conn.execute("INSERT INTO guilds (code, name, role_id) VALUES ('FE', 'Front-end gilde', ?) "
                                     "RETURNING id", (role,)).fetchone()["id"]
-        html = self.client.post(f"/gildemeesters/{person}/bewerken", data={"naam": "B. Ander"}).get_data(as_text=True)
+        html = self.client.post(f"/gildemeesters/{person}/bewerken",
+                                data={"voornaam": "B.", "achternaam": "Ander"}).get_data(as_text=True)
         self.assertIn("staat al iemand", html)
-        self.client.post(f"/gildemeesters/{person}/bewerken", data={"naam": "A. Gilde", "gilde": [str(frontend)]})
+        html = self.client.post(f"/gildemeesters/{person}/bewerken", data={"voornaam": " ", "achternaam": "X"}).get_data(as_text=True)
+        self.assertIn("Vul een voornaam in.", html)
+        self.client.post(f"/gildemeesters/{person}/bewerken",
+                         data={"voornaam": "A.", "achternaam": " Gilde ", "gilde": [str(frontend)]})
         html = self.html("/gildemeesters")
         self.assertIn("A. Gilde", html)
+        with self.db() as conn:
+            row = conn.execute("SELECT name, first_name, last_name FROM staff WHERE id = ?", (person,)).fetchone()
+        self.assertEqual(tuple(row), ("A. Gilde", "A.", "Gilde"))
         self.assertIn('tag-guild" title="Front-end gilde"', html)
+
+    def test_first_and_last_name_split_at_first_space(self):  # 006 F20
+        with self.db() as conn:
+            staff.add(conn, ["Rosa van Ree", "Balsam"], "guild_master")
+            conn.execute("INSERT INTO staff (name, is_coach) VALUES ('Anna de Coach', 1)")   # e.g. the user
+            rows = {r["name"]: (r["first_name"], r["last_name"]) for r in conn.execute("SELECT * FROM staff")}
+        self.assertEqual(rows, {"Rosa van Ree": ("Rosa", "van Ree"), "Balsam": ("Balsam", ""),
+                                "Anna de Coach": ("Anna", "de Coach")})
+
+    def test_existing_names_are_split_by_migration(self):  # 006 F20
+        old = Path(self.tmp.name) / "old.sqlite3"
+        conn = sqlite3.connect(old)
+        conn.execute("CREATE TABLE staff (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, is_coach INTEGER NOT NULL DEFAULT 0, "
+                     "is_guild_master INTEGER NOT NULL DEFAULT 0, is_demo INTEGER NOT NULL DEFAULT 0)")
+        conn.execute("INSERT INTO staff (name, is_guild_master) VALUES ('Robert van Seeters', 1)")
+        conn.commit()
+        conn.close()
+        create_app(old)
+        conn = sqlite3.connect(old)
+        try:
+            self.assertEqual(conn.execute("SELECT first_name, last_name FROM staff").fetchone(), ("Robert", "van Seeters"))
+        finally:
+            conn.close()
+
+    def test_tables_show_first_names_that_may_wrap(self):  # 006 F21
+        with self.db() as conn:
+            staff.add(conn, ["Roland Middelweerd", "Laura Rademaker"], "guild_master")
+            staff.add(conn, ["Marieke Ploeg"], "coach")
+            ids = {r["name"]: r["id"] for r in conn.execute("SELECT id, name FROM staff")}
+            student = conn.execute("INSERT INTO students (name, semester, coach_id) VALUES ('Sem Bakker', 3, ?) RETURNING id",
+                                   (ids["Marieke Ploeg"],)).fetchone()["id"]
+            for code, person in (("CS", "Roland Middelweerd"), ("UX", "Laura Rademaker")):
+                role = conn.execute("SELECT id FROM professional_roles WHERE code = ?", (code,)).fetchone()["id"]
+                conn.execute("INSERT INTO student_guilds (student_id, role_id, guild_master_id) VALUES (?, ?, ?)",
+                             (student, role, ids[person]))
+        html = self.html("/")
+        self.assertIn("Gildemeester (voornaam)", html)
+        self.assertIn('<td class="col-extra col-names"><span class="name">Roland</span>, <span class="name">Laura</span></td>', html)
+        self.client.post("/studenten/kolommen", data={"kolom": ["guild_master_full", "coach"], "next": "/"})
+        html = self.html("/")
+        self.assertIn('<span class="name">Roland Middelweerd</span>, <span class="name">Laura Rademaker</span>', html)
+        self.assertIn('<span class="name">Marieke</span>', html)
 
     def test_open_ict_guild_masters_preset(self):  # 006 F11
         preset = staff.read_preset()
         self.assertEqual(len(preset), 16)
-        self.assertIn(("Peter Snoek", "FE"), preset)
+        self.assertIn(("Peter", "Snoek", "FE"), preset)
+        self.assertIn(("Rosa", "van Ree", "AI"), preset)   # F22
         self.assertIn("<h2>Open-ICT-gildemeesters toevoegen</h2>", self.html("/gildemeesters/toevoegen"))
         self.assertNotIn("Open-ICT-gildemeesters", self.html("/coaches/toevoegen"))
         with self.db() as conn:
@@ -246,13 +296,15 @@ class TestStaffPages(PagesTestCase):
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM staff_guilds").fetchone()[0], 16)
             # F11 with guilds: the missing Open-ICT guilds were added first (all 9 codes occur).
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM guilds").fetchone()[0], 9)
+            rosa = conn.execute("SELECT first_name, last_name FROM staff WHERE name = 'Rosa van Ree'").fetchone()
+            self.assertEqual(tuple(rosa), ("Rosa", "van Ree"))
             peter = conn.execute("SELECT s.is_coach, g.code FROM staff s JOIN staff_guilds sg ON sg.staff_id = s.id "
                                  "JOIN guilds g ON g.id = sg.guild_id WHERE s.name = 'Peter Snoek'").fetchone()
         self.assertEqual((peter["is_coach"], peter["code"]), (1, "FE"))
 
     def test_preset_skips_unknown_guild_code(self):  # 006 F11
         with self.db() as conn:
-            staff.add_guild_masters_with_guilds(conn, [("A. Gilde", "XX")])
+            staff.add_guild_masters_with_guilds(conn, [("A.", "Gilde", "XX")])
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM staff_guilds").fetchone()[0], 0)
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM staff WHERE is_guild_master = 1").fetchone()[0], 1)
 
@@ -490,13 +542,14 @@ class TestStudentList(PagesTestCase):  # spec 010
         self.assertIn("Alle studenten die je volgt, met hun indeling.", html)
         heads = re.findall(r'<button type="button">([^<]+)</button></th>', html.split("</thead>")[0])
         self.assertEqual(heads, ["Student", "Semester", "Project", "Invulling", "Rol", "Gilde",
-                                 "Coach", "Gildemeester", "Portflow"])
+                                 "Coach (voornaam)", "Coach (volledige naam)", "Gildemeester (voornaam)",
+                                 "Gildemeester (volledige naam)", "Portflow"])
         self.assertNotIn('class="level level-', html)
         self.assertNotIn("Product nog leeg</span>", html.split("</thead>")[1])
         row = re.search(r'data-sort-name="lieke jansen">(.*?)</tr>', html, re.S).group(1)
         cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
         self.assertEqual(cells, ["3", "Stichting Verzonnen Zorg - Horizon (04)", "Open projecten", "SM", "FE",
-                                 "Marieke Ploeg", "Joost Hendriks", "Niet gekoppeld"])
+                                 "Marieke", "Marieke Ploeg", "Joost", "Joost Hendriks", "Niet gekoppeld"])
         self.assertIn('title="scrum master">SM<', row)
         julia = re.search(r'data-sort-name="julia meijer">(.*?)</tr>', html, re.S).group(1)
         self.assertIn(">CI, CS<", julia)                     # spec 016: all guild codes
@@ -506,7 +559,9 @@ class TestStudentList(PagesTestCase):  # spec 010
         html = self.html("/studenten")
         self.assertIn('aria-label="Kolommen kiezen"', html)
         self.assertEqual(len(re.findall(r'name="kolom" value="(\w+)" checked', html)), 8)
-        self.assertNotIn("hide-col-", html)
+        # Spec 006, F21: the full-name columns are off by default.
+        self.assertIn("hide-col-coachfull hide-col-guildmasterfull", html)
+        self.assertNotIn("hide-col-track", html)
         keep = ["semester", "project", "squadrole", "guild", "coach", "guildmaster"]   # not track and portflow
         self.client.post("/studenten/lijstkolommen", data={"kolom": keep, "next": "/studenten"})
         html = create_app(self.db_path).test_client().get("/studenten").get_data(as_text=True)   # after a restart
@@ -514,6 +569,18 @@ class TestStudentList(PagesTestCase):  # spec 010
         self.assertIn("hide-col-portflow", html)
         self.assertNotIn('value="track" checked', html)
         self.assertIn('value="coach" checked', html)
+        self.assertIn("hide-col-guildmasterfull", html)
+        keep.append("guildmasterfull")
+        self.client.post("/studenten/lijstkolommen", data={"kolom": keep, "next": "/studenten"})
+        self.assertNotIn("hide-col-guildmasterfull", self.html("/studenten"))
+
+    def test_list_choice_saved_before_full_name_columns(self):  # spec 006, F21
+        self.load_demo()
+        from dashboard import db as db_module
+        db_module.set_setting(str(self.db_path), "list_hidden_columns", '["track"]')
+        html = self.html("/studenten")
+        self.assertIn("hide-col-track", html)
+        self.assertIn("hide-col-coachfull", html)
 
     def test_portflow_column(self):  # F1
         with self.db() as conn:

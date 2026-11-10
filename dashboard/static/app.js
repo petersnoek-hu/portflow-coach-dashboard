@@ -243,12 +243,12 @@
       table.querySelectorAll("thead th").forEach((other) => other.removeAttribute("aria-sort"));
       th.setAttribute("aria-sort", ascending ? "ascending" : "descending");
       const key = th.dataset.sort.replace(/[-_]([a-z])/g, (_, c) => c.toUpperCase());
-      const byData = ["name", "profile", "coach", "guildMaster", "track"].includes(key);
+      const byData = ["name", "profile", "coach", "coachFull", "guildMaster", "guildMasterFull", "track"].includes(key);
       table.querySelectorAll(".table-group").forEach((group) => {
         const rows = Array.from(group.querySelectorAll(".student-row"));
         rows.sort((a, b) => {
-          const va = byData ? sortValue(a, key) : sortValue(a, "", index);
-          const vb = byData ? sortValue(b, key) : sortValue(b, "", index);
+          const va = sortValue(a, byData ? key : "", index);
+          const vb = sortValue(b, byData ? key : "", index);
           const order = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb), "nl");
           return (ascending ? order : -order) || a.dataset.sortName.localeCompare(b.dataset.sortName, "nl");
         });

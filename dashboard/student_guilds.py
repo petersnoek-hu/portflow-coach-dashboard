@@ -4,7 +4,7 @@ import sqlite3
 
 SQL = """
 SELECT sg.student_id, sg.role_id, sg.guild_master_id, r.code, r.name,
-       g.code AS guild_code, g.name AS guild_name, g.color AS guild_color, s.name AS guild_master
+       g.code AS guild_code, g.name AS guild_name, g.color AS guild_color, s.name AS guild_master, s.first_name AS guild_master_first
 FROM student_guilds sg
 JOIN professional_roles r ON r.id = sg.role_id
 LEFT JOIN guilds g ON g.role_id = sg.role_id

@@ -166,3 +166,4 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): de kolom Profiel heet Gilde en toont alle codes; filter, groeperen en "Mijn gildestudenten" kijken naar alle gildes; "Groeperen: Beroepsrol" vervalt
 - 2026-11-10 – projecten worden getoond met hun weergavenaam ([spec 012](../012-projecten/spec.md), F12)
 - 2026-11-10 – het filter Invulling toont de opties met uitleg ("Open Projecten (jaar 2)", …; [gegevensmodel.md](../../docs/gegevensmodel.md#student))
+- 2026-11-10 – de extra kolommen Coach en Gildemeester tonen de voornaam; kolommen met de volledige naam zijn erbij te kiezen ([spec 006](../006-gildemeesters/spec.md), F21)

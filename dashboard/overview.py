@@ -18,10 +18,17 @@ S_VISIBLE_COLUMNS = "overview_visible_columns"
 S_COLOURS_OFF = "overview_colours_off"      # spec 001, F23
 S_LIST_HIDDEN = "list_hidden_columns"       # spec 010, F5
 LIST_COLUMNS = [("semester", "Semester"), ("project", "Project"), ("track", "Invulling"), ("squadrole", "Rol"),
-                ("guild", "Gilde"), ("coach", "Coach"), ("guildmaster", "Gildemeester"), ("portflow", "Portflow")]
+                ("guild", "Gilde"), ("coach", "Coach (voornaam)"), ("coachfull", "Coach (volledige naam)"),
+                ("guildmaster", "Gildemeester (voornaam)"), ("guildmasterfull", "Gildemeester (volledige naam)"),
+                ("portflow", "Portflow")]
+LIST_DEFAULT_HIDDEN = ["coachfull", "guildmasterfull"]   # spec 006, F21
 COLOUR_KINDS = ["n0", "n1", "n2", "pending"]
 
-EXTRA_COLUMNS = [("coach", "Coach"), ("guild_master", "Gildemeester"), ("track", "Invulling")]
+# Spec 006, F21: coach and guild master show the first name; the full name is a column of its own.
+EXTRA_COLUMNS = [("coach", "Coach (voornaam)"), ("coach_full", "Coach (volledige naam)"),
+                 ("guild_master", "Gildemeester (voornaam)"), ("guild_master_full", "Gildemeester (volledige naam)"),
+                 ("track", "Invulling")]
+NAME_COLUMNS = {"coach", "coach_full", "guild_master", "guild_master_full"}
 DEFAULT_VISIBLE = ["guild_master"]      # F3
 
 WHO = [("alle", "Alle gevolgde studenten"), ("coach", "Mijn coachstudenten"), ("gilde", "Mijn gildestudenten")]
@@ -95,17 +102,20 @@ def list_hidden(conn: sqlite3.Connection) -> list[str]:
     """Spec 010, F5: columns of the student list that the user switched off."""
     row = conn.execute("SELECT value FROM settings WHERE key = ?", (S_LIST_HIDDEN,)).fetchone()
     try:
-        keys = {k for k, _ in LIST_COLUMNS}
-        return [k for k in json.loads(row["value"]) if k in keys] if row and row["value"] else []
+        data = json.loads(row["value"]) if row and row["value"] else {"hidden": LIST_DEFAULT_HIDDEN}
     except ValueError:
-        return []
+        data = {"hidden": LIST_DEFAULT_HIDDEN}
+    # A plain list was saved before the full-name columns existed; those stay off (spec 006, F21).
+    hidden = data.get("hidden", []) if isinstance(data, dict) else list(data) + LIST_DEFAULT_HIDDEN
+    keys = {k for k, _ in LIST_COLUMNS}
+    return [k for k in dict.fromkeys(hidden) if k in keys]
 
 
 def save_list_visible(conn: sqlite3.Connection, visible: list[str]) -> None:
     with conn:
         conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
                      "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                     (S_LIST_HIDDEN, json.dumps([k for k, _ in LIST_COLUMNS if k not in visible])))
+                     (S_LIST_HIDDEN, json.dumps({"hidden": [k for k, _ in LIST_COLUMNS if k not in visible]})))
 
 
 def save_visible_columns(conn: sqlite3.Connection, keys: list[str]) -> None:
@@ -145,7 +155,7 @@ def save_custom_value(conn: sqlite3.Connection, student_id: int, column_id: int,
 
 STUDENT_SQL = """
 SELECT s.*, sq.name AS squad_name, sq.full_name AS squad_full_name, sq.display_name AS squad_display, sq.color AS squad_color,
-       c.name AS coach_name
+       c.name AS coach_name, c.first_name AS coach_first
 FROM students s
 LEFT JOIN squads sq ON sq.id = s.squad_id
 LEFT JOIN staff c ON c.id = s.coach_id
@@ -189,9 +199,13 @@ def student_rows(conn: sqlite3.Connection, today: date) -> list[dict]:
             "guild_codes": ", ".join(g["code"] for g in guilds_of.get(s["id"], [])),
             "guild_names": ", ".join(g["guild_name"] or g["name"] for g in guilds_of.get(s["id"], [])),
             "guild_masters": [g["guild_master"] for g in guilds_of.get(s["id"], []) if g["guild_master"]],
-            "guild_master": ", ".join(dict.fromkeys(g["guild_master"] for g in guilds_of.get(s["id"], [])
+            # Spec 006, F21: the columns show first names; the full names have their own columns.
+            "guild_master": ", ".join(dict.fromkeys(g["guild_master_first"] for g in guilds_of.get(s["id"], [])
                                                      if g["guild_master"])) or None,
-            "coach": s["coach_name"],
+            "guild_master_full": ", ".join(dict.fromkeys(g["guild_master"] for g in guilds_of.get(s["id"], [])
+                                                          if g["guild_master"])) or None,
+            "coach": s["coach_first"],
+            "coach_full": s["coach_name"],
             "has_access": bool(s["has_access"]),
             "linked": s["portflow_user_id"] is not None,
             "unassigned": s["semester"] is None or not guilds_of.get(s["id"]),   # spec 016, F2
@@ -219,7 +233,7 @@ def apply_filters(rows: list[dict], args: dict, user_name: str | None) -> list[d
     me = normalize_name(user_name)
     result = []
     for row in rows:
-        if who == "coach" and (not me or normalize_name(row["coach"]) != me):
+        if who == "coach" and (not me or normalize_name(row["coach_full"]) != me):
             continue
         # Spec 016, F6: the user is guild master at one of the student's guilds.
         if who == "gilde" and (not me or me not in {normalize_name(n) for n in row["guild_masters"]}):

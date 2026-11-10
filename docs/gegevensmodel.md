@@ -37,7 +37,7 @@ De **lijst met coaches en gildemeesters** heeft twee eigen pagina's in het menu:
 
 | Veld | Toelichting |
 |---|---|
-| Naam | Precies zoals in Portflow, want de lijst bepaalt welke beoordelaars meetellen |
+| Voornaam, achternaam | Een tussenvoegsel hoort bij de achternaam. Voornaam + spatie + achternaam is de volledige naam, precies zoals in Portflow, want de lijst bepaalt welke beoordelaars meetellen. Tabellen tonen standaard de voornaam ([spec 006](../features/006-gildemeesters/spec.md), F20–F21) |
 | Rollen | Coach, gildemeester of beide. Een persoon staat één keer opgeslagen; verwijderen op een van de twee pagina's haalt alleen die rol weg |
 | Gildes | Alleen bij een gildemeester: nul of meer gildes ([Gilde](#gilde)) |
 

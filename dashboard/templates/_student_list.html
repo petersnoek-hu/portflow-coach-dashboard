@@ -42,7 +42,7 @@
     <tbody class="table-group">
       {% if group.title %}
       <tr class="group-header">
-        <th colspan="9" scope="rowgroup">
+        <th colspan="{{ t.list_columns|length + 1 }}" scope="rowgroup">
           <span class="group-stripe" style="background: {{ group.colour }}"></span>
           <span class="group-title">{{ group.title }}</span>
           {% if group.full_name %}<span class="muted">{{ group.full_name }}</span>{% endif %}
@@ -64,8 +64,9 @@
         <td data-col="track" data-sort-value="{{ (row.track or '~')|lower }}">{{ row.track or "–" }}</td>
         <td data-col="squadrole" data-sort-value="{{ row.squad_role or '~' }}">{% if row.squad_role %}<span class="role-label" title="{{ squad_roles.get(row.squad_role, '') }}">{{ row.squad_role }}</span>{% else %}–{% endif %}</td>
         <td data-col="guild" data-sort-value="{{ row.guild_codes or '~' }}">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}–{% endif %}</td>
-        <td data-col="coach" class="col-extra" data-sort-value="{{ (row.coach or '~')|lower }}">{{ row.coach or "–" }}</td>
-        <td data-col="guildmaster" class="col-extra" data-sort-value="{{ (row.guild_master or '~')|lower }}">{{ row.guild_master or "–" }}</td>
+        {% for col, field in [("coach", "coach"), ("coachfull", "coach_full"), ("guildmaster", "guild_master"), ("guildmasterfull", "guild_master_full")] %}
+        <td data-col="{{ col }}" class="col-extra col-names" data-sort-value="{{ (row[field] or '~')|lower }}">{% if row[field] %}{% for n in row[field].split(", ") %}<span class="name">{{ n }}</span>{{ ", " if not loop.last }}{% endfor %}{% else %}–{% endif %}</td>
+        {% endfor %}
         <td data-col="portflow" class="col-extra{% if portflow != 'Gekoppeld' %} muted{% endif %}" data-sort-value="{{ portflow }}">{{ portflow }}</td>
       </tr>
       {% endfor %}

@@ -1,7 +1,7 @@
 # 006 – Gildemeesters en gildes
 
 **Status:** klaar <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-09
+**Laatst bijgewerkt:** 2026-11-10
 
 > **Bouwvolgorde:** na [spec 005 – Gegevens ophalen](../005-gegevens-ophalen/spec.md), want de keuzelijst van F5 gebruikt de opgehaalde evaluaties. [Spec 007 – Coaches](../007-coaches/spec.md) werkt op dezelfde manier en kan in één keer mee.
 
@@ -87,6 +87,15 @@ Een **gilde** heeft een korte **code** (2 of 3 hoofdletters, bijvoorbeeld BIT of
 - [x] **F19 – Groeperen op gilde.** In het studentenoverzicht groepeert "Groeperen: Gilde" ([spec 001](../001-studentenoverzicht/spec.md), F16) op het gilde van de primaire beroepsrol, met de naam van het gilde in de groepskop. Studenten wier beroepsrol (nog) geen gilde heeft, komen onder **"Zonder gilde"**, vóór "Nog in te delen".
   - *Acceptatie:* met gilde FE bij Front-end developer staan studenten met primaire rol FE onder "FE · Front-end gilde"; zonder gildes staan ze allemaal onder "Zonder gilde".
 
+### Voornaam en achternaam (F20–F22)
+
+- [x] **F20 – Voornaam en achternaam.** Een persoon (gildemeester of coach, het is één persoon, F10) heeft de velden **Voornaam** en **Achternaam** in plaats van één veld Naam. Een tussenvoegsel hoort bij de achternaam ("Rosa" + "van Ree"). De volledige naam is voornaam + spatie + achternaam; die moet precies zo in Portflow staan en wordt gebruikt om beoordelaars te herkennen. Het formulier Bewerken (F7) heeft beide velden; de voornaam is verplicht. Bij toevoegen (F5, F6, F11 voor zover het bestand geen splitsing geeft) en bij de migratie van bestaande personen splitst de app de naam bij de **eerste spatie**: eerste woord = voornaam, de rest = achternaam. Daarna is dat bij Bewerken aan te passen. Kaarten en keuzelijsten tonen de volledige naam.
+  - *Acceptatie:* "Rosa van Ree" toevoegen → voornaam "Rosa", achternaam "van Ree"; voornaam wijzigen in "Ros" → de volledige naam is "Ros van Ree" en alleen evaluaties van "Ros van Ree" tellen nog mee.
+- [x] **F21 – Voornaam in de tabellen.** De kolommen Gildemeester en Coach in het studentenoverzicht ([spec 001](../001-studentenoverzicht/spec.md), kolomkeuze) en in de studentenlijst ([spec 010](../010-studentenlijst/spec.md), F5) heten **"Gildemeester (voornaam)"** en **"Coach (voornaam)"** en tonen alleen de voornaam. Daarnaast zijn er de kolommen **"Gildemeester (volledige naam)"** en **"Coach (volledige naam)"**, die standaard uit staan. Heeft een student meer gildemeesters, dan staan ze met komma's gescheiden en mag de cel **over meer regels lopen** (wrappen), zoals "Roland Middelweerd, Laura Rademaker".
+  - *Acceptatie:* een student met gildemeesters Roland Middelweerd en Laura Rademaker toont "Roland, Laura"; na het aanzetten van "Gildemeester (volledige naam)" ook "Roland Middelweerd, Laura Rademaker", over twee regels als de kolom te smal is.
+- [x] **F22 – Bestand met Open-ICT-gildemeesters.** [`docs/gildemeesters-sept2026.md`](../../docs/gildemeesters-sept2026.md) is een tabel `| Voornaam | Achternaam | Gilde |`. F11 neemt voornaam en achternaam uit het bestand over.
+  - *Acceptatie:* na F11 heeft Rosa van Ree voornaam "Rosa" en achternaam "van Ree".
+
 ### Buiten scope
 
 - De gildes van de **gebruiker** voor het filter "Mijn gildestudenten": die worden apart ingesteld (kandidaat-spec *Eerste start en instellingen*), los van de gildes op deze pagina
@@ -126,6 +135,7 @@ Geen eigen ontwerp. Volgt het patroon van de beheerschermen Projecten en Beroeps
 - [x] **Bestaande koppelingen:** vervallen bij de migratie. Gildemeesters houden hun rol, maar de gebruiker kent hun gildes opnieuw toe (of gebruikt F11 opnieuw).
 - [x] **Open-ICT-gildemeesters (F11) zonder gildes:** de knop voegt eerst de ontbrekende Open-ICT-gildes toe, dan de gildemeesters met hun gilde.
 - [x] **Kleur van een gilde:** de gebruiker kiest die (F14, F16).
+- [x] **Voornaam en achternaam (F20–F22):** geldt ook voor coaches (één persoon); de kolom Coach toont ook standaard de voornaam. Een tussenvoegsel hoort bij de achternaam. Naast de voornaamkolommen zijn er kolommen met de volledige naam, standaard uit. Bestaande en nieuwe namen worden gesplitst bij de eerste spatie. Het bestand met Open-ICT-gildemeesters krijgt aparte kolommen voor voornaam en achternaam.
 
 ## Logboek
 
@@ -140,3 +150,5 @@ Geen eigen ontwerp. Volgt het patroon van de beheerschermen Projecten en Beroeps
 - 2026-11-09 – titel van de kaart in F11 ingekort tot "Open-ICT-gildemeesters toevoegen" op verzoek van de gebruiker
 - 2026-11-09 – de menu-items Gildemeesters en Gildes staan nu onder Beheer ([spec 002](../002-app-schil/spec.md), F17); de volgorde in F1 en F12 is daarmee vervangen
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): een gildemeester hoort per gilde bij een student; de kaart telt die studenten en de rol verwijderen maakt die gildemeester bij de gildes leeg
+- 2026-11-10 – F20–F22 toegevoegd op verzoek van de gebruiker: voornaam en achternaam, voornaam in de tabellen, bestand met gescheiden namen
+- 2026-11-10 – F20–F22 gebouwd en getest; status klaar

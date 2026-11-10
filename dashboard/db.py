@@ -14,7 +14,9 @@ CREATE TABLE IF NOT EXISTS settings (
 -- Coaches and guild masters: one person, one or both roles (specs 006, 007).
 CREATE TABLE IF NOT EXISTS staff (
     id              INTEGER PRIMARY KEY,
-    name            TEXT NOT NULL UNIQUE,
+    name            TEXT NOT NULL UNIQUE,   -- full name: first_name + ' ' + last_name, as in Portflow
+    first_name      TEXT NOT NULL DEFAULT '',
+    last_name       TEXT NOT NULL DEFAULT '',
     is_coach        INTEGER NOT NULL DEFAULT 0,
     is_guild_master INTEGER NOT NULL DEFAULT 0,
     is_demo         INTEGER NOT NULL DEFAULT 0
@@ -154,6 +156,10 @@ def init_db(path: str) -> None:
     conn.close()
 
 
+_SPLIT_NAME = ("first_name = CASE WHEN instr(name, ' ') > 0 THEN substr(name, 1, instr(name, ' ') - 1) ELSE name END, "
+               "last_name = CASE WHEN instr(name, ' ') > 0 THEN substr(name, instr(name, ' ') + 1) ELSE '' END")
+
+
 def _migrate(conn: sqlite3.Connection) -> None:
     """Add columns introduced after a table already existed (there is no migration tool)."""
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(students)")}
@@ -188,6 +194,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE staff ADD COLUMN is_coach INTEGER NOT NULL DEFAULT 0")
         conn.execute("ALTER TABLE staff ADD COLUMN is_guild_master INTEGER NOT NULL DEFAULT 0")
         conn.execute("UPDATE staff SET is_coach = 1")
+    if "first_name" not in staff_columns:
+        # Spec 006, F20: split existing names at the first space.
+        conn.execute("ALTER TABLE staff ADD COLUMN first_name TEXT NOT NULL DEFAULT ''")
+        conn.execute("ALTER TABLE staff ADD COLUMN last_name TEXT NOT NULL DEFAULT ''")
+        conn.execute(f"UPDATE staff SET {_SPLIT_NAME}")
+    # Any insert with only a full name gets it split at the first space (spec 006, F20).
+    conn.execute("CREATE TRIGGER IF NOT EXISTS staff_split_name AFTER INSERT ON staff "
+                 f"WHEN NEW.first_name = '' BEGIN UPDATE staff SET {_SPLIT_NAME} WHERE id = NEW.id; END")
     guild_link_columns = {row["name"] for row in conn.execute("PRAGMA table_info(staff_guilds)")}
     if "role_id" in guild_link_columns:
         # Before guilds had their own list, a guild master's guilds were professional roles.

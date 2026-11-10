@@ -47,6 +47,8 @@ def people(conn: sqlite3.Connection, role: str, user_name: str | None) -> list[d
         result.append({
             "id": row["id"],
             "name": row["name"],
+            "first_name": row["first_name"],
+            "last_name": row["last_name"],
             "is_coach": bool(row["is_coach"]),
             "is_guild_master": bool(row["is_guild_master"]),
             "is_user": bool(user_name) and normalize_name(row["name"]) == normalize_name(user_name),
@@ -70,8 +72,15 @@ def _by_name(conn: sqlite3.Connection, name: str) -> sqlite3.Row | None:
     return None
 
 
-def add(conn: sqlite3.Connection, names: list[str], role: str) -> int:
-    """Add names with a role (F5, F6, F10). Existing people get the role; returns the number added."""
+def full_name(first: str, last: str) -> str:
+    """F20: the name as in Portflow."""
+    return " ".join(f"{first} {last}".split())
+
+
+def add(conn: sqlite3.Connection, names: list[str], role: str,
+        split: dict[str, tuple[str, str]] | None = None) -> int:
+    """Add names with a role (F5, F6, F10). Existing people get the role; returns the number added.
+    New people are split at the first space (F20), unless `split` gives first and last name."""
     _check(role)
     added, seen = 0, set()
     with conn:
@@ -86,7 +95,9 @@ def add(conn: sqlite3.Connection, names: list[str], role: str) -> int:
                     conn.execute(f"UPDATE staff SET {ROLE_COLUMN[role]} = 1 WHERE id = ?", (existing["id"],))
                     added += 1
             else:
-                conn.execute(f"INSERT INTO staff (name, {ROLE_COLUMN[role]}) VALUES (?, 1)", (name,))
+                first, last = (split or {}).get(name, ("", ""))
+                conn.execute(f"INSERT INTO staff (name, first_name, last_name, {ROLE_COLUMN[role]}) "
+                             "VALUES (?, ?, ?, 1)", (name, first, last))
                 added += 1
     return added
 
@@ -135,16 +146,18 @@ def candidates(conn: sqlite3.Connection, role: str) -> list[dict]:
     return result
 
 
-def rename(conn: sqlite3.Connection, staff_id: int, new_name: str) -> str | None:
-    """F7: returns an error message (Dutch) or None."""
-    name = " ".join(new_name.split())
-    if not name:
-        return "Vul een naam in."
+def update_name(conn: sqlite3.Connection, staff_id: int, first: str, last: str) -> str | None:
+    """F7, F20: returns an error message (Dutch) or None."""
+    first, last = " ".join(first.split()), " ".join(last.split())
+    if not first:
+        return "Vul een voornaam in."
+    name = full_name(first, last)
     other = _by_name(conn, name)
     if other and other["id"] != staff_id:
         return f"Er staat al iemand met de naam {other['name']} in de lijst."
     with conn:
-        conn.execute("UPDATE staff SET name = ? WHERE id = ?", (name, staff_id))
+        conn.execute("UPDATE staff SET name = ?, first_name = ?, last_name = ? WHERE id = ?",
+                     (name, first, last, staff_id))
     return None
 
 
@@ -174,28 +187,33 @@ def remove_role(conn: sqlite3.Connection, staff_id: int, role: str) -> None:
 # Open-ICT guild masters, September 2026 (spec 006, F11) -------------------------------------
 
 PRESET_FILE = Path(__file__).resolve().parent.parent / "docs" / "gildemeesters-sept2026.md"
-_PRESET_LINE = re.compile(r"^\s*[*-]\s+(.+?)\s*\(\s*([A-Za-z]+)\s*\)\s*$")
+_PRESET_ROW = re.compile(r"^\|([^|]*)\|([^|]*)\|\s*([A-Za-z]+)\s*\|\s*$")
 
 
-def read_preset(path: Path = PRESET_FILE) -> list[tuple[str, str]]:
-    """Lines '* Naam (CODE)' from docs/gildemeesters-sept2026.md, the one source of the list."""
+def read_preset(path: Path = PRESET_FILE) -> list[tuple[str, str, str]]:
+    """Rows '| Voornaam | Achternaam | Gilde |' from docs/gildemeesters-sept2026.md (F22)."""
     if not path.exists():
         return []
-    return [(m.group(1), m.group(2).upper())
-            for m in map(_PRESET_LINE.match, path.read_text(encoding="utf-8").splitlines()) if m]
+    result = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        m = _PRESET_ROW.match(line)
+        if m and m.group(1).strip() and m.group(1).strip() != "Voornaam":
+            result.append((" ".join(m.group(1).split()), " ".join(m.group(2).split()), m.group(3).upper()))
+    return result
 
 
-def add_guild_masters_with_guilds(conn: sqlite3.Connection, pairs: list[tuple[str, str]]) -> int:
+def add_guild_masters_with_guilds(conn: sqlite3.Connection, rows: list[tuple[str, str, str]]) -> int:
     """F11: missing Open-ICT guilds are added first; then each name becomes guild master with
     the guild of that code (existing guilds stay). A code that is no Open-ICT guild either is
     skipped. Returns the number of guild masters added."""
     from . import guilds
 
-    guilds.add_preset(conn, {code for _, code in pairs})
-    added = add(conn, [name for name, _ in pairs], "guild_master")
+    guilds.add_preset(conn, {code for _, _, code in rows})
+    split = {full_name(first, last): (first, last) for first, last, _ in rows}
+    added = add(conn, list(split), "guild_master", split)
     with conn:
-        for name, code in pairs:
-            person = _by_name(conn, name)
+        for first, last, code in rows:
+            person = _by_name(conn, full_name(first, last))
             guild = conn.execute("SELECT id FROM guilds WHERE code = ?", (code,)).fetchone()
             if person and guild:
                 conn.execute("INSERT OR IGNORE INTO staff_guilds (staff_id, guild_id) VALUES (?, ?)",

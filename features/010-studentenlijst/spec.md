@@ -81,3 +81,4 @@ Geen eigen ontwerp. Volgt de tabel van het studentenoverzicht ([design-system.md
 - 2026-11-10 – F5 toegevoegd op verzoek van de gebruiker: kolommen aan- en uitzetten met een tandwielmenu (keuze wordt bewaard)
 - 2026-11-10 – F5 gebouwd en getest (unit test en in de browser); status klaar
 - 2026-11-10 – projecten worden getoond met hun weergavenaam ([spec 012](../012-projecten/spec.md), F12)
+- 2026-11-10 – aangepast door [spec 006](../006-gildemeesters/spec.md), F21: Coach en Gildemeester tonen de voornaam; de kolommen met de volledige naam staan standaard uit
