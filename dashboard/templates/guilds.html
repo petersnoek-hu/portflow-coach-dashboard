@@ -14,11 +14,13 @@
 <div class="confirm" role="alertdialog" aria-labelledby="remove-title">
   <p id="remove-title">
     <strong>{{ confirm.name }} verwijderen?</strong>
+    {# Spec 018, F5: the guild goes at the students too. #}
+    {% if confirm.student_list %}Bij {{ confirm.students }} student{{ "en" if confirm.students != 1 }} verdwijnt dit gilde{% if confirm.only_guild %}; {{ confirm.only_guild|length }} van hen {{ "hebben" if confirm.only_guild|length != 1 else "heeft" }} geen ander gilde en {{ "komen" if confirm.only_guild|length != 1 else "komt" }} bij Nog in te delen{% endif %}.{% endif %}
     {% if confirm.guild_masters %}
-    {{ confirm.name }} heeft {{ confirm.guild_masters|length }} gildemeester{{ "s" if confirm.guild_masters|length != 1 }}.
-    {{ "Zij houden" if confirm.guild_masters|length != 1 else "Die houdt" }} {{ "hun" if confirm.guild_masters|length != 1 else "de" }} rol, maar niet meer dit gilde.
+    Het gilde heeft {{ confirm.guild_masters|length }} gildemeester{{ "s" if confirm.guild_masters|length != 1 }};
+    {{ "zij houden" if confirm.guild_masters|length != 1 else "die houdt" }} {{ "hun" if confirm.guild_masters|length != 1 else "de" }} rol, maar niet meer dit gilde.
     {% endif %}
-    Studenten en beroepsrollen blijven ongewijzigd.
+    {% if not confirm.student_list and not confirm.guild_masters %}Er zijn geen studenten of gildemeesters aan gekoppeld.{% endif %}
   </p>
   <div class="actions">
     <a class="button button-secondary" href="{{ url_for('pages.guilds') }}">Annuleren</a>
@@ -32,7 +34,7 @@
 {% if not items %}
 <section class="card empty-state">
   <h2>Nog geen gildes.</h2>
-  <p class="muted">Bij elke beroepsrol hoort hoogstens één gilde. Voeg de gildes van Open-ICT in één keer toe, of maak er zelf een.</p>
+  <p class="muted">Elk gilde hoort bij één beroepsrol. Voeg de gildes van Open-ICT in één keer toe, of maak er zelf een.</p>
   <a class="button button-primary" href="{{ url_for('pages.guilds_add') }}">+ Gilde toevoegen</a>
 </section>
 {% else %}
@@ -43,7 +45,7 @@
       <span class="code-block" style="background: {{ g.color }}">{{ g.code }}</span>
       <div>
         <h2>{{ g.name }}</h2>
-        <p class="muted staff-sub">{{ g.role_name }}</p>
+        <p class="muted staff-sub"{% if g.description %} title="{{ g.description }}"{% endif %}>{{ g.role_name }}</p>
       </div>
     </div>
     <p class="muted staff-sub">{{ g.guild_masters|length }} gildemeester{{ "s" if g.guild_masters|length != 1 }} · {{ g.students }} student{{ "en" if g.students != 1 }}</p>

@@ -12,7 +12,7 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
 
 ### Schil (alle schermen)
 
-- **Zijbalk** (donkergroen) met bovenaan het terminal-woordmerk `>_ portflow` / "coach dashboard" (in plaats van het Kompas-logo), het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), **Beheer** (een uitklapbare groep met Semesters, Beroepsrollen, Gildes, Gildemeesters, Coaches, Projecten en Kolommen, in het ontwerp nog "Leerdoelen"; dicht, behalve op een pagina daarbinnen; [spec 002](../features/002-app-schil/spec.md), F17), Instellingen. De groep Beheer en Coaches, Gildemeesters en Gildes staan niet in het ontwerp ([spec 007](../features/007-coaches/spec.md), [spec 006](../features/006-gildemeesters/spec.md)). Onderaan de gebruiker met naam en rollen ("Coach · Gildemeester"). De hulpkaart uit het ontwerp ("Hulp nodig?", "Open handleiding") komt pas als er een handleiding is.
+- **Zijbalk** (donkergroen) met bovenaan het terminal-woordmerk `>_ portflow` / "coach dashboard" (in plaats van het Kompas-logo), het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), **Beheer** (een uitklapbare groep met Semesters, Gildes, Gildemeesters, Coaches, Projecten en Kolommen, in het ontwerp nog "Leerdoelen"; dicht, behalve op een pagina daarbinnen; [spec 002](../features/002-app-schil/spec.md), F17), Instellingen. De groep Beheer en Coaches, Gildemeesters en Gildes staan niet in het ontwerp ([spec 007](../features/007-coaches/spec.md), [spec 006](../features/006-gildemeesters/spec.md)). Onderaan de gebruiker met naam en rollen ("Coach · Gildemeester"). De hulpkaart uit het ontwerp ("Hulp nodig?", "Open handleiding") komt pas als er een handleiding is.
 - **Bovenbalk** met de verbindingsstatus van Portflow (een statusknop met gekleurde stip: grijs, blauw, groen, oranje of rood, en een paneel met details; zie [spec 003](../features/003-portflow-verbinden/spec.md)), daarnaast de knop **"Verversen"**, even hoog en even breed als de statusknop (260 × 52 pixels; een te lange onderregel wordt afgekapt met "…", de volledige tekst staat bij hover) en met dezelfde opbouw: "Verversen" met daaronder "Bijgewerkt om …" of de voortgang van het ophalen ([spec 005](../features/005-gegevens-ophalen/spec.md)), en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
 - **Paginakop:** klein kopje in hoofdletters (bijvoorbeeld "Beheer", "Studievoortgang"), titel, één zin uitleg, en rechts de primaire knop (bijvoorbeeld "+ Nieuw project").
 
@@ -28,8 +28,8 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
   - Extra kolommen Coach, Gildemeester en Invulling, aan en uit te zetten; standaard alleen Gildemeester. De pijl naar de detailpagina komt pas met die pagina.
   - De uitgewerkte eisen staan in [spec 001](../features/001-studentenoverzicht/spec.md).
 - **Weekgrafiek** (uit de console-app): een staafgrafiek met per week van de semesterperiode het aantal evaluaties, gestapeld als *behaald* (groen) en *ingediend, nog te beoordelen* (`?`, blauw). Plaats in het ontwerp nog bepalen.
-  - Filter: Mijn coachstudenten, Mijn gildestudenten, Alle gevolgde studenten, plus filters op semester, invulling, squad en beroepsrol.
-  - Groeperen: standaard per squad; ook te kiezen per invulling, semester, gilde of beroepsrol.
+  - Filter: Mijn coachstudenten, Mijn gildestudenten, Alle gevolgde studenten, plus filters op semester, invulling, squad en gilde.
+  - Groeperen: standaard per squad; ook te kiezen per invulling, semester of gilde.
   - **Afwijking:** het ontwerp toont één getal per cel. De cel toont alle behaalde niveaus volgens [voortgangsregels.md](voortgangsregels.md#weergave-per-vaardigheid), bijvoorbeeld `1/2`.
 - **Zijpaneel "Te beoordelen"** met openstaande evaluatieverzoeken aan de gebruiker: student, titel van het verzoek (door de student gekozen, bijvoorbeeld "OC & KO 1ste evaluatie"), inleverdatum en gewenste datum ("Vandaag", "Morgen", datum), plus "Alle evaluaties bekijken →". Een klik opent het verzoek in Portflow; beoordelen gebeurt daar.
 
@@ -49,6 +49,8 @@ Beheer van squads ("Beheer de projectgroepen waarin je studenten zijn ingedeeld.
 
 <a id="beroepsrollen"></a>
 ### Beroepsrollen ([`beroepsrollen-CRUD-met-studenten.png`](../screenshots/beroepsrollen-CRUD-met-studenten.png))
+
+> **Vervallen (2026-11-10):** het dashboard heeft geen pagina Beroepsrollen meer; de beroepsrol is een veld van het gilde en staat op de gildekaart ([spec 018](../features/018-beroepsrol-in-gilde/spec.md)). Hieronder de oude beschrijving.
 
 "Beheer rollen en zie direct welke studenten primair of secundair gekoppeld zijn." **Afwijking** ([spec 016](../features/016-gildes-van-een-student/spec.md)): er is geen primair of secundair meer; de kaart toont "N studenten" en de samenvattingsbalk "Een student kan een of meer gildes hebben, elk met een eigen gildemeester." Een samenvattingsbalk en een kaart per rol: code, naam, korte beschrijving, aantal primair en secundair, avatars, "Studenten beheren →", Bewerken en Verwijderen.
 

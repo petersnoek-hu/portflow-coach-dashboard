@@ -1,5 +1,6 @@
 """SQLite storage. The tables follow docs/gegevensmodel.md, as far as needed so far."""
 
+import re
 import sqlite3
 from pathlib import Path
 
@@ -20,15 +21,6 @@ CREATE TABLE IF NOT EXISTS staff (
     is_coach        INTEGER NOT NULL DEFAULT 0,
     is_guild_master INTEGER NOT NULL DEFAULT 0,
     is_demo         INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS professional_roles (
-    id          INTEGER PRIMARY KEY,
-    code        TEXT NOT NULL UNIQUE,
-    name        TEXT NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    color       TEXT NOT NULL DEFAULT '#909DB9',   -- spec 008
-    is_demo     INTEGER NOT NULL DEFAULT 0
 );
 
 -- Projects (squads), spec 012. full_name is derived: "NN name", or the name without a number.
@@ -66,23 +58,24 @@ CREATE TABLE IF NOT EXISTS student_portfolios (
     PRIMARY KEY (student_id, portfolio_id)
 );
 
--- The guilds of a student (spec 016): zero or more professional roles, each with its own
+-- Guilds, each with its professional role (spec 006, F12-F19; spec 018; docs/gegevensmodel.md#gilde).
+CREATE TABLE IF NOT EXISTS guilds (
+    id          INTEGER PRIMARY KEY,
+    code        TEXT NOT NULL UNIQUE,
+    name        TEXT NOT NULL,
+    role_name   TEXT NOT NULL DEFAULT '',       -- beroepsrol, e.g. "Front-end developer"
+    description TEXT NOT NULL DEFAULT '',       -- of the professional role
+    color       TEXT NOT NULL DEFAULT '#909DB9',
+    is_demo     INTEGER NOT NULL DEFAULT 0
+);
+
+-- The guilds of a student (spec 016, spec 018): zero or more guilds, each with its own
 -- guild master. No order and no "primary" guild.
 CREATE TABLE IF NOT EXISTS student_guilds (
     student_id      INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    role_id         INTEGER NOT NULL REFERENCES professional_roles(id) ON DELETE CASCADE,
+    guild_id        INTEGER NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
     guild_master_id INTEGER REFERENCES staff(id) ON DELETE SET NULL,
-    PRIMARY KEY (student_id, role_id)
-);
-
--- Guilds: one per professional role at most (spec 006, F12-F19; docs/gegevensmodel.md#gilde).
-CREATE TABLE IF NOT EXISTS guilds (
-    id      INTEGER PRIMARY KEY,
-    code    TEXT NOT NULL UNIQUE,
-    name    TEXT NOT NULL,
-    role_id INTEGER NOT NULL UNIQUE REFERENCES professional_roles(id) ON DELETE CASCADE,
-    color   TEXT NOT NULL DEFAULT '#909DB9',
-    is_demo INTEGER NOT NULL DEFAULT 0
+    PRIMARY KEY (student_id, guild_id)
 );
 
 -- The guilds of a guild master (spec 006, F7, F18).
@@ -139,6 +132,10 @@ CREATE TABLE IF NOT EXISTS evaluations (
 );
 """
 
+# The students table on its own, to rebuild it without old columns (spec 018, F9).
+STUDENTS_TABLE = re.search(r"CREATE TABLE IF NOT EXISTS students \(.*?\n\);", SCHEMA, re.S).group(0)
+STUDENT_COLUMNS = [line.split()[0] for line in STUDENTS_TABLE.splitlines()[1:-1] if line.strip()]
+
 def connect(path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
@@ -168,8 +165,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE students ADD COLUMN fetched_at TEXT")
     if "notes" not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN notes TEXT")
+    has_roles = _table_exists(conn, "professional_roles")   # before spec 018
     role_columns = {row["name"] for row in conn.execute("PRAGMA table_info(professional_roles)")}
-    if "color" not in role_columns:
+    if has_roles and "color" not in role_columns:
         conn.execute("ALTER TABLE professional_roles ADD COLUMN color TEXT NOT NULL DEFAULT '#909DB9'")
         conn.execute("ALTER TABLE professional_roles ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
     squad_columns = {row["name"] for row in conn.execute("PRAGMA table_info(squads)")}
@@ -181,7 +179,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
             first, _, rest = (row["full_name"] or "").partition(" ")
             if first.isdigit() and len(first) <= 2 and rest:
                 conn.execute("UPDATE squads SET number = ?, name = ? WHERE id = ?", (first.zfill(2), rest, row["id"]))
-    _migrate_student_guilds(conn, columns)
+    if has_roles:
+        _migrate_student_guilds(conn, columns)
     squad_columns = {row["name"] for row in conn.execute("PRAGMA table_info(squads)")}
     if "display_name" not in squad_columns:
         conn.execute("ALTER TABLE squads ADD COLUMN display_name TEXT NOT NULL DEFAULT ''")
@@ -212,10 +211,79 @@ def _migrate(conn: sqlite3.Connection) -> None:
                      "staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE, "
                      "guild_id INTEGER NOT NULL REFERENCES guilds(id) ON DELETE CASCADE, "
                      "PRIMARY KEY (staff_id, guild_id))")
+    if has_roles:
+        _merge_roles_into_guilds(conn)
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_students_portflow_user "
         "ON students(portflow_user_id) WHERE portflow_user_id IS NOT NULL"
     )
+
+
+def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone() is not None
+
+
+def _merge_roles_into_guilds(conn: sqlite3.Connection) -> None:
+    """Spec 018, F9: the professional role becomes a field of its guild; a role without a guild
+    becomes a guild; the guilds of students point to the guild; the list of roles goes."""
+    from .guilds import read_preset
+
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys = OFF")   # tables are rebuilt; ids stay the same
+    try:
+        preset_names = {code: name for code, name, _ in read_preset()}
+        guild_columns = {row["name"] for row in conn.execute("PRAGMA table_info(guilds)")}
+        conn.execute("CREATE TABLE guilds_new (id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, "
+                     "role_name TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '', "
+                     "color TEXT NOT NULL DEFAULT '#909DB9', is_demo INTEGER NOT NULL DEFAULT 0)")
+        guild_of_role: dict[int, int] = {}
+        if "role_id" in guild_columns:
+            for g in conn.execute("SELECT g.*, r.name AS role_name, r.description FROM guilds g "
+                                  "JOIN professional_roles r ON r.id = g.role_id").fetchall():
+                conn.execute("INSERT INTO guilds_new (id, code, name, role_name, description, color, is_demo) "
+                             "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                             (g["id"], g["code"], g["name"], g["role_name"], g["description"], g["color"], g["is_demo"]))
+                guild_of_role[g["role_id"]] = g["id"]
+        else:
+            conn.execute("INSERT INTO guilds_new SELECT id, code, name, role_name, description, color, is_demo FROM guilds")
+        for r in conn.execute("SELECT * FROM professional_roles").fetchall():
+            if r["id"] in guild_of_role:
+                continue
+            same_code = conn.execute("SELECT id FROM guilds_new WHERE code = ?", (r["code"],)).fetchone()
+            if same_code:
+                guild_of_role[r["id"]] = same_code["id"]
+                continue
+            guild_of_role[r["id"]] = conn.execute(
+                "INSERT INTO guilds_new (code, name, role_name, description, color, is_demo) VALUES (?, ?, ?, ?, ?, ?)",
+                (r["code"], preset_names.get(r["code"], r["name"]), r["name"], r["description"], r["color"], r["is_demo"]),
+            ).lastrowid
+        conn.execute("DROP TABLE guilds")
+        conn.execute("ALTER TABLE guilds_new RENAME TO guilds")
+
+        links = conn.execute("SELECT student_id, role_id, guild_master_id FROM student_guilds").fetchall()
+        conn.execute("DROP TABLE student_guilds")
+        conn.execute("CREATE TABLE student_guilds ("
+                     "student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE, "
+                     "guild_id INTEGER NOT NULL REFERENCES guilds(id) ON DELETE CASCADE, "
+                     "guild_master_id INTEGER REFERENCES staff(id) ON DELETE SET NULL, "
+                     "PRIMARY KEY (student_id, guild_id))")
+        conn.executemany("INSERT OR IGNORE INTO student_guilds (student_id, guild_id, guild_master_id) VALUES (?, ?, ?)",
+                         [(l["student_id"], guild_of_role[l["role_id"]], l["guild_master_id"])
+                          for l in links if l["role_id"] in guild_of_role])
+
+        # The old columns primary_role_id and guild_master_id (spec 016) refer to the role list;
+        # rebuild students without them, or every change to a student would fail.
+        student_columns = [row["name"] for row in conn.execute("PRAGMA table_info(students)")]
+        if "primary_role_id" in student_columns:
+            keep = [c for c in STUDENT_COLUMNS if c in student_columns]
+            conn.execute(STUDENTS_TABLE.replace("CREATE TABLE IF NOT EXISTS students", "CREATE TABLE students_new"))
+            conn.execute(f"INSERT INTO students_new ({', '.join(keep)}) SELECT {', '.join(keep)} FROM students")
+            conn.execute("DROP TABLE students")
+            conn.execute("ALTER TABLE students_new RENAME TO students")
+        conn.execute("DROP TABLE professional_roles")
+        conn.commit()
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")
 
 
 def _migrate_student_guilds(conn: sqlite3.Connection, student_columns: set[str]) -> None:

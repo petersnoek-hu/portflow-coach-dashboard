@@ -1,4 +1,4 @@
-"""Tests for the guilds of a student (spec 016). All names are invented."""
+"""Tests for the guilds of a student (spec 016, spec 018). All names are invented."""
 
 import re
 import sqlite3
@@ -16,11 +16,11 @@ class GuildsTestCase(unittest.TestCase):
         self.db_path = Path(self.tmp.name) / "data" / "test.sqlite3"
         self.app = create_app(self.db_path, env_file=Path(self.tmp.name) / ".env")
         self.client = self.app.test_client()
-        self.client.post("/beroepsrollen/toevoegen/open-ict")
+        self.client.post("/gildes/toevoegen/open-ict")
         self.client.post("/semesters/toevoegen/open-ict")
         with self.db() as conn:
             staff.add(conn, ["Anna Gilde", "Bas Gilde"], "guild_master")
-            self.fe, self.ux = (conn.execute("SELECT id FROM professional_roles WHERE code = ?", (c,)).fetchone()[0]
+            self.fe, self.ux = (conn.execute("SELECT id FROM guilds WHERE code = ?", (c,)).fetchone()[0]
                                 for c in ("FE", "UX"))
             self.anna, self.bas = (conn.execute("SELECT id FROM staff WHERE name = ?", (n,)).fetchone()[0]
                                    for n in ("Anna Gilde", "Bas Gilde"))
@@ -43,11 +43,11 @@ class GuildsTestCase(unittest.TestCase):
     def guilds(self):
         with self.db() as conn:
             return sorted(tuple(r) for r in conn.execute(
-                "SELECT role_id, guild_master_id FROM student_guilds WHERE student_id = ?", (self.student,)))
+                "SELECT guild_id, guild_master_id FROM student_guilds WHERE student_id = ?", (self.student,)))
 
     def save(self, roles, masters):
         return self.client.post(f"/studenten/{self.student}/bewerken",
-                                data={"name": "Eva Kok", "semester": "3", "guild_role": roles, "guild_master": masters})
+                                data={"name": "Eva Kok", "semester": "3", "guild": roles, "guild_master": masters})
 
 
 class TestGuilds(GuildsTestCase):
@@ -78,7 +78,7 @@ class TestGuilds(GuildsTestCase):
         html = self.client.get("/studenten?wie=gilde").get_data(as_text=True)
         self.assertIn("Eva Kok", html)
         self.assertIn(">FE, UX<", html)
-        self.assertIn(f'Eva Kok', self.client.get(f"/studenten?rol={self.ux}").get_data(as_text=True))
+        self.assertIn(f'Eva Kok', self.client.get(f"/studenten?gilde={self.ux}").get_data(as_text=True))
         grouped = self.client.get("/?groep=guild").get_data(as_text=True)
         self.assertEqual(grouped.count('data-sort-name="eva kok"'), 2)
         self.assertNotIn('value="role"', grouped)        # "Groeperen: Beroepsrol" is gone
@@ -89,19 +89,52 @@ class TestGuilds(GuildsTestCase):
         self.client.post(f"/gildemeesters/{self.anna}/verwijderen")
         self.assertEqual(self.guilds(), sorted([(self.fe, None), (self.ux, None)]))
 
-    def test_migration_of_old_fields(self):  # F3
-        with self.db() as conn:
-            conn.execute("ALTER TABLE students ADD COLUMN primary_role_id INTEGER")
-            conn.execute("ALTER TABLE students ADD COLUMN guild_master_id INTEGER")
-            conn.execute("CREATE TABLE student_secondary_roles (student_id INTEGER, role_id INTEGER)")
-            conn.execute("UPDATE students SET primary_role_id = ?, guild_master_id = ? WHERE id = ?",
-                         (self.fe, self.anna, self.student))
-            conn.execute("INSERT INTO student_secondary_roles VALUES (?, ?)", (self.student, self.ux))
-        create_app(self.db_path)
-        self.assertEqual(self.guilds(), sorted([(self.fe, self.anna), (self.ux, None)]))
-        with self.db() as conn:
-            self.assertIsNone(conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'student_secondary_roles'").fetchone())
-            self.assertIsNone(conn.execute("SELECT primary_role_id FROM students").fetchone()[0])
+    def test_migration_of_old_fields(self):  # spec 016 F3, spec 018 F9
+        """A database from before spec 016 and 018: roles, guilds per role, primary and secondary roles."""
+        old = Path(self.tmp.name) / "old.sqlite3"
+        conn = sqlite3.connect(old)
+        conn.executescript("""
+            CREATE TABLE professional_roles (id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT '#909DB9', is_demo INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE guilds (id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+                role_id INTEGER NOT NULL UNIQUE REFERENCES professional_roles(id) ON DELETE CASCADE,
+                color TEXT NOT NULL DEFAULT '#909DB9', is_demo INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE staff (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE);
+            CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT NOT NULL, semester INTEGER,
+                primary_role_id INTEGER REFERENCES professional_roles(id) ON DELETE SET NULL,
+                guild_master_id INTEGER REFERENCES staff(id) ON DELETE SET NULL,
+                has_access INTEGER NOT NULL DEFAULT 1, is_demo INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE student_guilds (student_id INTEGER NOT NULL, role_id INTEGER NOT NULL
+                REFERENCES professional_roles(id) ON DELETE CASCADE, guild_master_id INTEGER, PRIMARY KEY (student_id, role_id));
+            CREATE TABLE student_secondary_roles (student_id INTEGER, role_id INTEGER);
+            INSERT INTO professional_roles (id, code, name, description, color) VALUES
+                (1, 'FE', 'Front-end developer', 'Bouwt interfaces', '#7D6BA8'), (2, 'GD', 'Game developer', '', '#B58A4A');
+            INSERT INTO guilds (id, code, name, role_id, color) VALUES (7, 'FE', 'Front-end gilde', 1, '#123456');
+            INSERT INTO staff (id, name) VALUES (5, 'Anna Gilde');
+            INSERT INTO students (id, name, semester, primary_role_id, guild_master_id) VALUES (1, 'Eva Kok', 3, 1, 5);
+            INSERT INTO student_secondary_roles VALUES (1, 2);
+        """)
+        conn.commit()
+        conn.close()
+        create_app(old)
+        conn = sqlite3.connect(old)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        try:
+            rows = {r["code"]: tuple(r)[1:] for r in conn.execute(
+                "SELECT code, id, name, role_name, description, color FROM guilds ORDER BY code")}
+            self.assertEqual(rows["FE"], (7, "Front-end gilde", "Front-end developer", "Bouwt interfaces", "#123456"))
+            gd = rows["GD"]   # a role without a guild becomes a guild, named after the Open-ICT list
+            self.assertEqual(gd[1:], ("Game development gilde", "Game developer", "", "#B58A4A"))
+            links = sorted(tuple(r) for r in conn.execute("SELECT guild_id, guild_master_id FROM student_guilds"))
+            self.assertEqual(links, sorted([(7, 5), (gd[0], None)]))
+            for table in ("professional_roles", "student_secondary_roles"):
+                self.assertIsNone(conn.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (table,)).fetchone())
+            self.assertNotIn("primary_role_id", {r["name"] for r in conn.execute("PRAGMA table_info(students)")})
+            conn.execute("UPDATE students SET semester = 4")   # students can be changed again
+            conn.commit()
+        finally:
+            conn.close()
 
 
 if __name__ == "__main__":
@@ -114,7 +147,7 @@ class TestManualAdd(GuildsTestCase):  # spec 017
         self.assertIn('href="/studenten/toevoegen/handmatig"', html)
         self.assertEqual(html.count("Binnenkort beschikbaar"), 2)
         form = self.client.get("/studenten/toevoegen/handmatig").get_data(as_text=True)
-        for field in ('name="name"', 'name="student_number"', 'name="semester"', 'name="guild_role"', 'name="coach_id"', 'name="notes"'):
+        for field in ('name="name"', 'name="student_number"', 'name="semester"', 'name="guild"', 'name="coach_id"', 'name="notes"'):
             self.assertIn(field, form)
         self.assertNotIn("Student niet meer volgen", form)
         self.assertNotIn('name="portflow"', form)
@@ -126,12 +159,12 @@ class TestManualAdd(GuildsTestCase):  # spec 017
 
     def test_add_with_guild_and_message(self):  # F4
         response = self.client.post("/studenten/toevoegen/handmatig", data={
-            "name": "Tim Vos", "semester": "3", "guild_role": [str(self.fe), ""], "guild_master": [str(self.anna), ""]})
+            "name": "Tim Vos", "semester": "3", "guild": [str(self.fe), ""], "guild_master": [str(self.anna), ""]})
         self.assertIn("Tim+Vos+toegevoegd", response.headers["Location"])
         self.assertIn("Klik+op+Verversen", response.headers["Location"])   # not connected
         with self.db() as conn:
             sid = conn.execute("SELECT id FROM students WHERE name = 'Tim Vos'").fetchone()[0]
-            guilds = [tuple(r) for r in conn.execute("SELECT role_id, guild_master_id FROM student_guilds WHERE student_id = ?", (sid,))]
+            guilds = [tuple(r) for r in conn.execute("SELECT guild_id, guild_master_id FROM student_guilds WHERE student_id = ?", (sid,))]
         self.assertEqual(guilds, [(self.fe, self.anna)])
         titles = re.findall(r'class="group-title">([^<]+)<', self.client.get("/studenten").get_data(as_text=True))
         self.assertIn("Zonder project", titles)       # Tim is assigned (semester + guild), Eva is not

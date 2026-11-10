@@ -152,3 +152,4 @@ Geen eigen ontwerp. Volgt het patroon van de beheerschermen Projecten en Beroeps
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): een gildemeester hoort per gilde bij een student; de kaart telt die studenten en de rol verwijderen maakt die gildemeester bij de gildes leeg
 - 2026-11-10 – F20–F22 toegevoegd op verzoek van de gebruiker: voornaam en achternaam, voornaam in de tabellen, bestand met gescheiden namen
 - 2026-11-10 – F20–F22 gebouwd en getest; status klaar
+- 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): een gilde heeft zelf een beroepsrol (naam en beschrijving) in plaats van een keuze uit de beroepsrollen (F13–F16); de Open-ICT-gildes nemen de beroepsrol mee (F14); verwijderen haalt het gilde ook bij de studenten weg (F17)

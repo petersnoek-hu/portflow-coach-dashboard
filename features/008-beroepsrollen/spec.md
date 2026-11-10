@@ -1,9 +1,11 @@
 # 008 – Beroepsrollen
 
-**Status:** klaar <!-- idee | uitgewerkt | in bouw | klaar -->
+**Status:** klaar (vervangen door [spec 018](../018-beroepsrol-in-gilde/spec.md)) <!-- idee | uitgewerkt | in bouw | klaar -->
 **Laatst bijgewerkt:** 2026-11-09
 
 > **Bouwvolgorde:** na [spec 006 – Gildemeesters en gildes](../006-gildemeesters/spec.md); een gilde hoort bij een beroepsrol, en deze spec werkt op dezelfde manier als de gildes daar (F12–F17).
+
+> **Vervangen (2026-11-10):** de pagina's Beroepsrollen zijn verdwenen. De beroepsrol is nu een veld van het gilde ([spec 018](../018-beroepsrol-in-gilde/spec.md)). Deze spec beschrijft de oude situatie.
 
 ## Doel
 
@@ -94,3 +96,4 @@ Toevoegen en het formulier volgen de pagina's van de gildes ([spec 006](../006-g
 - 2026-11-09 – spec aangemaakt op verzoek van de gebruiker; antwoorden verwerkt; status uitgewerkt
 - 2026-11-09 – gebouwd en getest (unit tests en in de browser); status klaar
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): de kaart toont "N studenten" (geen primair/secundair meer); verwijderen haalt het gilde bij de studenten weg
+- 2026-11-10 – vervangen door [spec 018](../018-beroepsrol-in-gilde/spec.md): de beroepsrol is een veld van het gilde; de pagina's Beroepsrollen verdwijnen

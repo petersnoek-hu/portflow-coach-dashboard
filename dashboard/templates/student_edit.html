@@ -72,12 +72,12 @@
   </label>
   <fieldset class="guild-rows form-wide" id="guild-rows">
     <legend>Gildes</legend>
-    {% if not options.roles %}<p class="muted">Er zijn nog geen beroepsrollen. <a href="{{ url_for('pages.roles_add') }}">Beroepsrol toevoegen</a></p>{% endif %}
-    {% for g in form.guilds + [{"role_id": "", "guild_master_id": ""}] %}
-    <div class="guild-row{% if not g.role_id %} is-empty{% endif %}">
-      <select name="guild_role" aria-label="Gilde">
+    {% if not options.guilds %}<p class="muted">Er zijn nog geen gildes. <a href="{{ url_for('pages.guilds_add') }}">Gilde toevoegen</a></p>{% endif %}
+    {% for g in form.guilds + [{"guild_id": "", "guild_master_id": ""}] %}
+    <div class="guild-row{% if not g.guild_id %} is-empty{% endif %}">
+      <select name="guild" aria-label="Gilde">
         <option value="">–</option>
-        {% for r in options.roles %}<option value="{{ r.id }}" {% if g.role_id == r.id|string %}selected{% endif %}>{{ r.code }} · {{ r.guild_name or r.name }}</option>{% endfor %}
+        {% for r in options.guilds %}<option value="{{ r.id }}" {% if g.guild_id == r.id|string %}selected{% endif %}>{{ r.code }} · {{ r.name }}</option>{% endfor %}
       </select>
       <select name="guild_master" aria-label="Gildemeester">
         <option value="">Geen gildemeester</option>

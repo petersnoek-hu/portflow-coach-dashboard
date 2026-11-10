@@ -88,3 +88,4 @@ Geen eigen ontwerp. Het formulier volgt de formulieren van de beheerpagina's ([s
 - 2026-11-10 – labels ingekort op verzoek van de gebruiker: "Studentnummer" en "Startdatum" op één regel (de uitleg staat bij hover), "Rol in de squad" werd "Rol", en de uitleg bij Notities is weg
 - 2026-11-10 – op verzoek van de gebruiker: de toelichting bij Gildes is weg en "Startdatum" heet "Afwijkende semester startdatum"
 - 2026-11-10 – op verzoek van de gebruiker staat Coach op de plaats van Rol, met Rol in dezelfde regel in de tweede kolom, hernoemd tot "Teamrol"
+- 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): bij de gildes kies je een gilde in plaats van een beroepsrol

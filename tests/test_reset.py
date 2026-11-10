@@ -59,7 +59,7 @@ class TestReset(ResetTestCase):
     def test_reset_with_backup_and_start_state(self):  # F4, F5, F6
         response = self.client.post("/instellingen/alles-verwijderen", data={"bevestiging": " verwijderen "})
         self.assertIn("melding=", response.headers["Location"])
-        for table in ("students", "evaluations", "squads", "semesters", "professional_roles", "guilds", "staff",
+        for table in ("students", "evaluations", "squads", "semesters", "guilds", "staff",
                       "custom_columns", "settings"):
             self.assertEqual(self.count(table), 0, table)
         backups = list((self.db_path.parent / "reservekopieen").glob("dashboard-*.sqlite3"))

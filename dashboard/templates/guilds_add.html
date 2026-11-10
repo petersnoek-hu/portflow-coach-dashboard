@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {# Gilde toevoegen (spec 006, F14). #}
 {% block content %}
-{% include "_no_roles_hint.html" %}
 <section class="add-methods">
   <article class="card add-method">
     <h2>Zelf een gilde aanmaken</h2>
@@ -11,8 +10,8 @@
   {% if preset %}
   <article class="card add-method">
     <h2>Open-ICT-gildes toevoegen</h2>
-    <p class="muted">Voegt in één keer {{ preset|length }} gildes toe, elk bij de beroepsrol met dezelfde code:
-      {% for code, name in preset %}{{ code }} ({{ name }}){% if not loop.last %}, {% endif %}{% endfor %}.
+    <p class="muted">Voegt in één keer {{ preset|length }} gildes toe, elk met zijn beroepsrol:
+      {% for code, name, role in preset %}{{ code }} ({{ name }}){% if not loop.last %}, {% endif %}{% endfor %}.
       Een gilde dat er al is, wordt overgeslagen.</p>
     <form method="post" action="{{ url_for('pages.guilds_add_preset') }}">
       <button class="button button-primary" type="submit">Open-ICT-gildes toevoegen</button>

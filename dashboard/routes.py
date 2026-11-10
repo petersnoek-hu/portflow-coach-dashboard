@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
-from . import (demo, guilds, overview as overview_data, portflow_link, projects, reset, roles,
+from . import (demo, guilds, overview as overview_data, portflow_link, projects, reset,
                semesters as semester_data, staff, student_edit, student_intake)
 from .db import get_db
 from .portflow_connection import initials
@@ -45,10 +45,6 @@ PAGES = [
      "eyebrow": "Curriculum", "title": "Kolommen",
      "intro": "De bouwstenen van je studentenoverzicht, op één plek beheerd.",
      "placeholder": "Hier beheer je straks de kolommen van het studentenoverzicht."},
-    {"endpoint": "professional_roles", "path": "/beroepsrollen", "label": "Beroepsrollen", "icon": "briefcase",
-     "eyebrow": "Opleidingsprofiel", "title": "Beroepsrollen",
-     "intro": "Beheer rollen en zie direct welke studenten primair of secundair gekoppeld zijn.",
-     "placeholder": None},
     {"endpoint": "semesters", "path": "/semesters", "label": "Semesters", "icon": "calendar",
      "eyebrow": "Studievoortgang", "title": "Semesters",
      "intro": "Bekijk de semesters, hun eisen en hoeveel studenten erin zitten.",
@@ -60,9 +56,9 @@ PAGES = [
 ]
 # Spec 002, F17: the management pages sit in one collapsible group "Beheer", in this order.
 MENU_ORDER = ["overview", "students", "evaluations",
-              "semesters", "professional_roles", "guilds", "guild_masters", "coaches", "squads", "columns",
-              "settings"]
-MANAGEMENT = {"semesters", "professional_roles", "guilds", "guild_masters", "coaches", "squads", "columns"}
+              "semesters", "guilds", "guild_masters", "coaches", "squads", "columns",
+              "settings"]   # spec 018: no Beroepsrollen any more
+MANAGEMENT = {"semesters", "guilds", "guild_masters", "coaches", "squads", "columns"}
 PAGES.sort(key=lambda page: MENU_ORDER.index(page["endpoint"]))
 for _page in PAGES:
     _page["group"] = "beheer" if _page["endpoint"] in MANAGEMENT else None
@@ -122,7 +118,7 @@ def render_page(endpoint: str, **context):
         now = datetime.now()
         page["eyebrow"], page["title"] = dutch_date(now), greeting(now)
     template = {"settings": "settings.html", "overview": "overview.html",
-                "students": "students.html", "professional_roles": "roles.html",
+                "students": "students.html",
                 "semesters": "semesters.html",
                 "squads": "projects.html"}.get(endpoint, "page.html")
     return render_template(template, page=page, active=endpoint, **context)
@@ -139,7 +135,7 @@ def _table_context() -> dict:
     conn = get_db()
     user = current_app.extensions["portflow"].user_name
     all_rows = overview_data.student_rows(conn, date.today())
-    args = {key: request.args.get(key, "") for key in ("wie", "semester", "invulling", "project", "rol", "aansporen")}
+    args = {key: request.args.get(key, "") for key in ("wie", "semester", "invulling", "project", "gilde", "aansporen")}
     args["wie"] = args["wie"] if args["wie"] in dict(overview_data.WHO) else "alle"
     grouping = request.args.get("groep", "squad")
     grouping = grouping if grouping in dict(overview_data.GROUPINGS) else "squad"
@@ -256,17 +252,6 @@ def squads():
 @bp.get("/kolommen")
 def columns():
     return render_page("columns")
-
-
-@bp.get("/beroepsrollen")
-def professional_roles():
-    """Spec 008, F1-F4 and the confirmation of F8."""
-    conn = get_db()
-    items = roles.all_roles(conn)
-    confirm_id = request.args.get("verwijder", "")
-    return render_page("professional_roles", items=items, linked=roles.linked_students(conn),
-                       confirm=next((r for r in items if str(r["id"]) == confirm_id), None),
-                       added=request.args.get("toegevoegd", ""))
 
 
 @bp.get("/semesters")
@@ -610,7 +595,7 @@ def guilds_list():
 def guilds_add():
     """F14: make one yourself, or add the Open-ICT guilds."""
     return render_template("guilds_add.html", page=_guild_page("Gilde toevoegen", "Kies hoe je gildes wilt toevoegen."),
-                           active="guilds", preset=guilds.read_preset(), role_count=roles.count(get_db()))
+                           active="guilds", preset=guilds.read_preset())
 
 
 @bp.post("/gildes/toevoegen/open-ict")
@@ -620,29 +605,29 @@ def guilds_add_preset():
 
 
 def _guild_form(guild=None):
-    """F14 (new) and F16 (edit): code, name, professional role and colour, checked as in F15."""
+    """F14 (new) and F16 (edit), spec 018 F2: code, name, professional role, description and colour."""
     conn = get_db()
     guild_id = guild["id"] if guild else None
     error = None
+    fields = ("code", "naam", "beroepsrol", "beschrijving", "kleur")
     if request.method == "POST":
-        values, error = guilds.validate(conn, request.form.get("code", ""), request.form.get("naam", ""),
-                                        request.form.get("rol", ""), request.form.get("kleur", ""), guild_id)
+        form = {f: request.form.get(f, "") for f in fields}
+        values, error = guilds.validate(conn, *(form[f] for f in fields), guild_id)
         if values:
             if guild:
                 guilds.update(conn, guild_id, values)
             else:
                 guilds.create(conn, values)
             return redirect(url_for("pages.guilds"))
-        form = {"code": request.form.get("code", ""), "name": request.form.get("naam", ""),
-                "role_id": request.form.get("rol", ""), "color": request.form.get("kleur", guilds.DEFAULT_COLOR)}
+        form["kleur"] = form["kleur"] or guilds.DEFAULT_COLOR
     elif guild:
-        form = {"code": guild["code"], "name": guild["name"], "role_id": str(guild["role_id"]), "color": guild["color"]}
+        form = {"code": guild["code"], "naam": guild["name"], "beroepsrol": guild["role_name"],
+                "beschrijving": guild["description"], "kleur": guild["color"]}
     else:
-        form = {"code": "", "name": "", "role_id": "", "color": guilds.DEFAULT_COLOR}
+        form = {"code": "", "naam": "", "beroepsrol": "", "beschrijving": "", "kleur": guilds.DEFAULT_COLOR}
     title = "Gilde bewerken" if guild else "Gilde aanmaken"
-    return render_template("guild_form.html", page=_guild_page(title, guild["name"] if guild else "Een gilde hoort bij precies één beroepsrol."),
-                           active="guilds", form=form, error=error, editing=bool(guild), role_count=roles.count(conn),
-                           roles=guilds.free_roles(conn, guild["role_id"] if guild else None))
+    intro = guild["name"] if guild else "Code, naam, beroepsrol en kleur van het gilde."
+    return render_template("guild_form.html", page=_guild_page(title, intro), active="guilds", form=form, error=error)
 
 
 @bp.route("/gildes/nieuw", methods=["GET", "POST"])
@@ -665,71 +650,10 @@ def guild_delete(guild_id: int):
     return redirect(url_for("pages.guilds"))
 
 
-# Professional roles (spec 008) ----------------------------------------------------------------
-
-def _role_form_page(title: str | None = None, intro: str | None = None) -> dict:
-    page = dict(PAGES_BY_ENDPOINT["professional_roles"])
-    if title:
-        page.update(title=title, intro=intro, label=title)
-    return page
-
-
-@bp.get("/beroepsrollen/toevoegen")
-def roles_add():
-    """F5: make one yourself, or add the Open-ICT roles."""
-    return render_template("roles_add.html", active="professional_roles", preset=roles.read_preset(),
-                           page=_role_form_page("Beroepsrol toevoegen", "Kies hoe je beroepsrollen wilt toevoegen."))
-
-
-@bp.post("/beroepsrollen/toevoegen/open-ict")
-def roles_add_preset():
-    added = roles.add_preset(get_db())
-    return redirect(url_for("pages.professional_roles", toegevoegd=added))
-
-
-def _role_form(role=None):
-    """F5 (new) and F7 (edit), checked as in F6."""
-    conn = get_db()
-    role_id = role["id"] if role else None
-    error = None
-    fields = ("code", "naam", "beschrijving", "kleur")
-    if request.method == "POST":
-        values, error = roles.validate(conn, *(request.form.get(f, "") for f in fields), role_id)
-        if values:
-            if role:
-                roles.update(conn, role_id, values)
-            else:
-                roles.create(conn, values)
-            return redirect(url_for("pages.professional_roles"))
-        form = {f: request.form.get(f, "") for f in fields}
-        form["kleur"] = form["kleur"] or roles.DEFAULT_COLOR
-    elif role:
-        form = {"code": role["code"], "naam": role["name"], "beschrijving": role["description"], "kleur": role["color"]}
-    else:
-        form = {"code": "", "naam": "", "beschrijving": "", "kleur": roles.DEFAULT_COLOR}
-    title = "Beroepsrol bewerken" if role else "Beroepsrol aanmaken"
-    return render_template("role_form.html", active="professional_roles", form=form, error=error,
-                           page=_role_form_page(title, role["name"] if role else "Code, naam, korte beschrijving en kleur."))
-
-
-@bp.route("/beroepsrollen/nieuw", methods=["GET", "POST"])
-def role_new():
-    return _role_form()
-
-
-@bp.route("/beroepsrollen/<int:role_id>/bewerken", methods=["GET", "POST"])
-def role_edit(role_id: int):
-    role = roles.find(get_db(), role_id)
-    if role is None:
-        abort(404)
-    return _role_form(role)
-
-
-@bp.post("/beroepsrollen/<int:role_id>/verwijderen")
-def role_delete(role_id: int):
-    """F8."""
-    roles.delete(get_db(), role_id)
-    return redirect(url_for("pages.professional_roles"))
+@bp.get("/beroepsrollen", endpoint="professional_roles")
+def professional_roles_moved():
+    """Spec 018, F1: the professional role is part of the guild now."""
+    return redirect(url_for("pages.guilds"))
 
 
 # Semesters (spec 009) --------------------------------------------------------------------------
@@ -816,8 +740,8 @@ def _student_form_from_request() -> dict:
     """The fields of the student form (spec 011, 016, 017) from the request."""
     form = {key: request.form.get(key, "") for key in (
         "name", "student_number", "semester", "start_date", "squad_id", "track", "squad_role", "coach_id", "notes")}
-    form["guilds"] = [{"role_id": r, "guild_master_id": m} for r, m in
-                      zip(request.form.getlist("guild_role"), request.form.getlist("guild_master"))]
+    form["guilds"] = [{"guild_id": r, "guild_master_id": m} for r, m in
+                      zip(request.form.getlist("guild"), request.form.getlist("guild_master"))]
     return form
 
 

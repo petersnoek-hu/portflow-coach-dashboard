@@ -36,14 +36,15 @@ class ShellTestCase(unittest.TestCase):
 
 
 class TestPages(ShellTestCase):
-    def test_database_is_created_without_roles(self):  # F3; spec 008, F9
+    def test_database_is_created_without_guilds(self):  # F3; spec 018
         self.assertTrue(self.db_path.exists())
         with self.db() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM professional_roles").fetchone()[0], 0)
-            conn.execute("INSERT INTO professional_roles (code, name) VALUES ('FE', 'Front-end developer')")
-        create_app(self.db_path)  # a second start reuses the database and adds no roles
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM guilds").fetchone()[0], 0)
+            self.assertIsNone(conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'professional_roles'").fetchone())
+            conn.execute("INSERT INTO guilds (code, name, role_name) VALUES ('FE', 'Front-end gilde', 'Front-end developer')")
+        create_app(self.db_path)  # a second start reuses the database and adds no guilds
         with self.db() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM professional_roles").fetchone()[0], 1)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM guilds").fetchone()[0], 1)
 
     def test_every_page_loads_with_shell(self):  # F5, F7, F8, F9
         with self.db() as conn:  # a student, so Overzicht shows its placeholder (spec 004, F1)
@@ -68,7 +69,7 @@ class TestPages(ShellTestCase):
         self.assertNotIn("open", group.group(1))
         self.assertIn("Beheer", group.group(2))
         order = re.findall(r'href="(/[a-z]+)"', group.group(2))
-        self.assertEqual(order, ["/semesters", "/beroepsrollen", "/gildes", "/gildemeesters", "/coaches", "/projecten",
+        self.assertEqual(order, ["/semesters", "/gildes", "/gildemeesters", "/coaches", "/projecten",
                                  "/kolommen"])
         outside = html.replace(group.group(0), "")
         for path in ("/", "/studenten", "/evaluaties", "/instellingen"):
@@ -126,8 +127,8 @@ class TestDemoData(ShellTestCase):
 
     def test_remove_keeps_real_records(self):  # F11, F12
         self.add_real_student()
-        with self.db() as conn:  # a real role stays; the demo only removes the roles it added
-            conn.execute("INSERT INTO professional_roles (code, name) VALUES ('FE', 'Front-end developer')")
+        with self.db() as conn:  # a real guild stays; the demo only removes the guilds it added
+            conn.execute("INSERT INTO guilds (code, name, role_name) VALUES ('FE', 'Front-end gilde', 'Front-end developer')")
         self.client.post("/instellingen/demodata/laden")
         response = self.client.post("/instellingen/demodata/verwijderen", follow_redirects=True)
         self.assertNotIn("Je bekijkt demodata", response.get_data(as_text=True))
@@ -135,7 +136,7 @@ class TestDemoData(ShellTestCase):
             names = [row[0] for row in conn.execute("SELECT name FROM students")]
             for table in ("squads", "staff", "evaluations"):
                 self.assertEqual(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0], 0, table)
-            self.assertEqual([r[0] for r in conn.execute("SELECT code FROM professional_roles")], ["FE"])
+            self.assertEqual([r[0] for r in conn.execute("SELECT code FROM guilds")], ["FE"])
         self.assertEqual(names, ["Echte Student"])
 
 

@@ -33,10 +33,10 @@
       </select>
     </label>
     <label class="select">
-      <span class="visually-hidden">Beroepsrol</span>
-      <select name="rol">
-        <option value="">Alle beroepsrollen</option>
-        {% for role in t.options.roles %}<option value="{{ role.id }}" {% if t.args.rol == role.id|string %}selected{% endif %}>{{ role.code }} · {{ role.name }}</option>{% endfor %}
+      <span class="visually-hidden">Gilde</span>
+      <select name="gilde">
+        <option value="">Alle gildes</option>
+        {% for guild in t.options.guilds %}<option value="{{ guild.id }}" {% if t.args.gilde == guild.id|string %}selected{% endif %}>{{ guild.code }} · {{ guild.name }}</option>{% endfor %}
       </select>
     </label>
     <label class="select">

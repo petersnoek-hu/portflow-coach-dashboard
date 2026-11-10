@@ -32,9 +32,9 @@ class PagesTestCase(unittest.TestCase):
         finally:
             conn.close()
 
-    def add_roles(self):
-        """Spec 008: a new dashboard has no professional roles; add the Open-ICT ones."""
-        self.client.post("/beroepsrollen/toevoegen/open-ict")
+    def add_guilds(self):
+        """A new dashboard has no guilds (spec 006, F13); add the Open-ICT ones with their roles (spec 018)."""
+        self.client.post("/gildes/toevoegen/open-ict")
 
     def html(self, path, **query):
         return self.client.get(path, query_string=query).get_data(as_text=True)
@@ -161,7 +161,7 @@ class TestStudentTable(PagesTestCase):
 class TestStaffPages(PagesTestCase):
     def setUp(self):
         super().setUp()
-        self.add_roles()
+        self.add_guilds()
 
     def test_menu_items(self):  # 006 F1, 007 F1
         html = self.html("/")
@@ -206,8 +206,8 @@ class TestStaffPages(PagesTestCase):
             staff.add(conn, ["A. de Vries"], "guild_master")
             person = conn.execute("SELECT id FROM staff").fetchone()["id"]
             student = conn.execute("INSERT INTO students (name, coach_id) VALUES ('Sem Bakker', ?) RETURNING id", (person,)).fetchone()[0]
-            role = conn.execute("SELECT id FROM professional_roles WHERE code = 'FE'").fetchone()[0]
-            conn.execute("INSERT INTO student_guilds (student_id, role_id, guild_master_id) VALUES (?, ?, ?)", (student, role, person))
+            role = conn.execute("SELECT id FROM guilds WHERE code = 'FE'").fetchone()[0]
+            conn.execute("INSERT INTO student_guilds (student_id, guild_id, guild_master_id) VALUES (?, ?, ?)", (student, role, person))
         self.assertIn("is bij 1 student ingevuld", self.html("/gildemeesters", verwijder=person))
         self.client.post(f"/gildemeesters/{person}/verwijderen")
         with self.db() as conn:
@@ -220,9 +220,7 @@ class TestStaffPages(PagesTestCase):
         with self.db() as conn:
             staff.add(conn, ["A Gilde", "B. Ander"], "guild_master")
             person = conn.execute("SELECT id FROM staff WHERE name = 'A Gilde'").fetchone()["id"]
-            role = conn.execute("SELECT id FROM professional_roles WHERE code = 'FE'").fetchone()["id"]
-            frontend = conn.execute("INSERT INTO guilds (code, name, role_id) VALUES ('FE', 'Front-end gilde', ?) "
-                                    "RETURNING id", (role,)).fetchone()["id"]
+            frontend = conn.execute("SELECT id FROM guilds WHERE code = 'FE'").fetchone()["id"]
         html = self.client.post(f"/gildemeesters/{person}/bewerken",
                                 data={"voornaam": "B.", "achternaam": "Ander"}).get_data(as_text=True)
         self.assertIn("staat al iemand", html)
@@ -268,8 +266,8 @@ class TestStaffPages(PagesTestCase):
             student = conn.execute("INSERT INTO students (name, semester, coach_id) VALUES ('Sem Bakker', 3, ?) RETURNING id",
                                    (ids["Marieke Ploeg"],)).fetchone()["id"]
             for code, person in (("CS", "Roland Middelweerd"), ("UX", "Laura Rademaker")):
-                role = conn.execute("SELECT id FROM professional_roles WHERE code = ?", (code,)).fetchone()["id"]
-                conn.execute("INSERT INTO student_guilds (student_id, role_id, guild_master_id) VALUES (?, ?, ?)",
+                role = conn.execute("SELECT id FROM guilds WHERE code = ?", (code,)).fetchone()["id"]
+                conn.execute("INSERT INTO student_guilds (student_id, guild_id, guild_master_id) VALUES (?, ?, ?)",
                              (student, role, ids[person]))
         html = self.html("/")
         self.assertIn("Gildemeester (voornaam)", html)
@@ -324,14 +322,7 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class TestGuilds(PagesTestCase):  # spec 006, F12-F19
-    def setUp(self):
-        super().setUp()
-        self.add_roles()
-
-    def role_id(self, code):
-        with self.db() as conn:
-            return conn.execute("SELECT id FROM professional_roles WHERE code = ?", (code,)).fetchone()["id"]
+class TestGuilds(PagesTestCase):  # spec 006, F12-F19; spec 018
 
     def test_menu_and_empty_start(self):  # F12, F13
         html = self.html("/gildes")
@@ -346,35 +337,52 @@ class TestGuilds(PagesTestCase):  # spec 006, F12-F19
         self.assertIn("Front-end gilde", html)
         self.assertIn("Front-end developer", html)
 
-    def test_validation(self):  # F15
-        fe = str(self.role_id("FE"))
+    def test_validation(self):  # F15, spec 018 F2
         for code in ("F", "FRON", "F1"):
-            html = self.client.post("/gildes/nieuw", data={"code": code, "naam": "X", "rol": fe}).get_data(as_text=True)
+            html = self.client.post("/gildes/nieuw", data={"code": code, "naam": "X", "beroepsrol": "Y"}).get_data(as_text=True)
             self.assertIn("2 of 3 letters", html)
-        self.client.post("/gildes/nieuw", data={"code": "fe", "naam": "Front-end gilde", "rol": fe, "kleur": "#123456"})
-        html = self.client.post("/gildes/nieuw", data={"code": "FE", "naam": "Ander", "rol": str(self.role_id("BE"))}).get_data(as_text=True)
+        html = self.client.post("/gildes/nieuw", data={"code": "FE", "naam": "Front-end gilde", "beroepsrol": " "}).get_data(as_text=True)
+        self.assertIn("Vul een beroepsrol in.", html)
+        self.assertIn('value="Front-end gilde"', html)   # the form is kept
+        self.client.post("/gildes/nieuw", data={"code": "fe", "naam": "Front-end gilde", "beroepsrol": "Front-end developer",
+                                                "beschrijving": "Bouwt interfaces", "kleur": "#123456"})
+        html = self.client.post("/gildes/nieuw", data={"code": "FE", "naam": "Ander", "beroepsrol": "X"}).get_data(as_text=True)
         self.assertIn("al een gilde met de code FE", html)
-        html = self.client.post("/gildes/nieuw", data={"code": "FX", "naam": "Ander", "rol": fe}).get_data(as_text=True)
-        self.assertIn("heeft al een gilde", html)
         with self.db() as conn:
-            row = conn.execute("SELECT code, color FROM guilds").fetchone()
-        self.assertEqual((row["code"], row["color"]), ("FE", "#123456"))
+            row = conn.execute("SELECT code, role_name, description, color FROM guilds").fetchone()
+        self.assertEqual(tuple(row), ("FE", "Front-end developer", "Bouwt interfaces", "#123456"))
+        html = self.html("/gildes")
+        self.assertIn("Front-end developer", html)
+        self.assertIn('title="Bouwt interfaces"', html)
 
-    def test_edit_and_delete_keeps_guild_masters(self):  # F16, F17
+    def test_edit_and_delete(self):  # F16, spec 018 F5
         self.client.post("/gildes/toevoegen/open-ict")
         with self.db() as conn:
             staff.add(conn, ["A. Gilde", "B. Gilde"], "guild_master")
-            guild = conn.execute("SELECT id FROM guilds WHERE code = 'FE'").fetchone()["id"]
+            fe = conn.execute("SELECT id FROM guilds WHERE code = 'FE'").fetchone()["id"]
+            ux = conn.execute("SELECT id FROM guilds WHERE code = 'UX'").fetchone()["id"]
             for person in conn.execute("SELECT id FROM staff").fetchall():
-                conn.execute("INSERT INTO staff_guilds (staff_id, guild_id) VALUES (?, ?)", (person["id"], guild))
-        self.client.post(f"/gildes/{guild}/bewerken", data={"code": "FE", "naam": "Gilde front-end",
-                                                            "rol": str(self.role_id("FE")), "kleur": "#909DB9"})
+                conn.execute("INSERT INTO staff_guilds (staff_id, guild_id) VALUES (?, ?)", (person["id"], fe))
+            for name in ("Sem Bakker", "Noor Peters", "Lars Koster"):
+                sid = conn.execute("INSERT INTO students (name, semester) VALUES (?, 3) RETURNING id", (name,)).fetchone()[0]
+                conn.execute("INSERT INTO student_guilds (student_id, guild_id) VALUES (?, ?)", (sid, fe))
+            other = conn.execute("INSERT INTO students (name, semester) VALUES ('Iris Bouma', 3) RETURNING id").fetchone()["id"]
+            conn.execute("INSERT INTO student_guilds (student_id, guild_id) VALUES (?, ?), (?, ?)", (other, ux, other, fe))
+        self.client.post(f"/gildes/{fe}/bewerken", data={"code": "FE", "naam": "Gilde front-end",
+                                                         "beroepsrol": "Frontend developer", "kleur": "#909DB9"})
         self.assertIn("Gilde front-end", self.html("/gildemeesters"))
-        self.assertIn("heeft 2 gildemeesters", self.html("/gildes", verwijder=guild))
-        self.client.post(f"/gildes/{guild}/verwijderen")
+        self.assertIn("Frontend developer", self.html("/gildes"))
+        self.assertIn("4 studenten", self.html("/gildes"))
+        confirm = self.html("/gildes", verwijder=fe)
+        self.assertIn("Bij 4 studenten verdwijnt dit gilde; 3 van hen hebben geen ander gilde", confirm)
+        self.assertIn("Het gilde heeft 2 gildemeesters", confirm)
+        self.client.post(f"/gildes/{fe}/verwijderen")
         with self.db() as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM staff WHERE is_guild_master = 1").fetchone()[0], 2)
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM staff_guilds").fetchone()[0], 0)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM student_guilds").fetchone()[0], 1)   # Iris keeps UX
+        titles = re.findall(r'class="group-title">([^<]+)<', self.html("/studenten"))
+        self.assertIn("Nog in te delen", titles)
 
     def test_guild_master_chooses_from_guilds(self):  # F18
         self.client.post("/gildes/toevoegen/open-ict")
@@ -386,12 +394,9 @@ class TestGuilds(PagesTestCase):  # spec 006, F12-F19
 
     def test_group_by_guild(self):  # F19
         self.load_demo()
-        with self.db() as conn:
-            conn.execute("DELETE FROM guilds")
         titles = re.findall(r'class="group-title">([^<]+)<', self.html("/studenten", groep="guild"))
         self.assertIn("FE", titles)                    # spec 016: grouped on the codes of the student's guilds
         self.assertEqual(titles[-1], "Nog in te delen")
-        self.client.post("/gildes/toevoegen/open-ict")
         html = self.html("/studenten", groep="guild")
         self.assertIn('class="group-title">FE<', html)
         self.assertIn("Front-end gilde", html)
@@ -410,62 +415,28 @@ class TestGuilds(PagesTestCase):  # spec 006, F12-F19
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM staff_guilds").fetchone()[0], 0)
 
 
-class TestRoles(PagesTestCase):  # spec 008
-    def test_empty_page_and_open_ict_twice(self):  # F1, F4, F5
-        html = self.html("/beroepsrollen")
-        self.assertIn("Nog geen beroepsrollen.", html)
-        self.assertIn("Opleidingsprofiel", html)
-        self.assertIn("toegevoegd=9", self.client.post("/beroepsrollen/toevoegen/open-ict").headers["Location"])
-        self.assertIn("toegevoegd=0", self.client.post("/beroepsrollen/toevoegen/open-ict").headers["Location"])
-        html = self.html("/beroepsrollen")
-        self.assertIn("Front-end developer", html)
-        self.assertIn("Een student kan een of meer gildes hebben", html)
+class TestNoRolePages(PagesTestCase):  # spec 018, F1
+    def test_role_pages_are_gone(self):
+        response = self.client.get("/beroepsrollen")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers["Location"].endswith("/gildes"))
+        for path in ("/beroepsrollen/toevoegen", "/beroepsrollen/nieuw"):
+            self.assertEqual(self.client.get(path).status_code, 404, path)
+        self.assertNotIn("Beroepsrollen", self.html("/gildes"))
 
-    def test_validation_and_edit(self):  # F6, F7
-        for code in ("F", "FRON", "F1"):
-            html = self.client.post("/beroepsrollen/nieuw", data={"code": code, "naam": "X"}).get_data(as_text=True)
-            self.assertIn("2 of 3 letters", html)
-        self.client.post("/beroepsrollen/nieuw", data={"code": "fe", "naam": "Front-end developer", "kleur": "#123456"})
-        html = self.client.post("/beroepsrollen/nieuw", data={"code": "FE", "naam": "Ander"}).get_data(as_text=True)
-        self.assertIn("al een beroepsrol met de code FE", html)
-        with self.db() as conn:
-            role = conn.execute("SELECT * FROM professional_roles").fetchone()
-        self.assertEqual((role["code"], role["color"]), ("FE", "#123456"))
-        self.client.post(f"/beroepsrollen/{role['id']}/bewerken",
-                         data={"code": "FE", "naam": "Frontend developer", "beschrijving": "Bouwt interfaces", "kleur": "#123456"})
-        html = self.html("/beroepsrollen")
-        self.assertIn("Frontend developer", html)
-        self.assertIn("Bouwt interfaces", html)
+    def test_guild_without_any_role_list(self):  # F2
+        html = self.html("/gildes/nieuw")
+        self.assertNotIn("Voeg eerst beroepsrollen toe", html)
+        self.assertIn('name="beroepsrol"', html)
+        self.client.post("/gildes/nieuw", data={"code": "fe", "naam": "Front-end gilde", "beroepsrol": "Front-end developer"})
+        self.assertIn("Front-end developer", self.html("/gildes"))
 
-    def test_counts_and_delete(self):  # F2, F3, F8
-        self.add_roles()
-        self.client.post("/gildes/toevoegen/open-ict")
-        with self.db() as conn:
-            fe = conn.execute("SELECT id FROM professional_roles WHERE code = 'FE'").fetchone()["id"]
-            ux = conn.execute("SELECT id FROM professional_roles WHERE code = 'UX'").fetchone()["id"]
-            for name in ("Sem Bakker", "Noor Peters", "Lars Koster"):
-                sid = conn.execute("INSERT INTO students (name, semester) VALUES (?, 3) RETURNING id", (name,)).fetchone()[0]
-                conn.execute("INSERT INTO student_guilds (student_id, role_id) VALUES (?, ?)", (sid, fe))
-            other = conn.execute("INSERT INTO students (name, semester) VALUES ('Iris Bouma', 3) RETURNING id").fetchone()["id"]
-            conn.execute("INSERT INTO student_guilds (student_id, role_id) VALUES (?, ?), (?, ?)", (other, ux, other, fe))
-        html = self.html("/beroepsrollen")
-        self.assertIn("<strong>4</strong> Studenten gekoppeld", html)
-        self.assertIn("4 studenten", html)                    # FE
-        confirm = self.html("/beroepsrollen", verwijder=fe)
-        self.assertIn("Bij 4 studenten verdwijnt dit gilde; 3 van hen hebben geen ander gilde", confirm)
-        self.assertIn("Het Front-end gilde wordt ook verwijderd", confirm)
-        self.client.post(f"/beroepsrollen/{fe}/verwijderen")
-        with self.db() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM student_guilds").fetchone()[0], 1)   # Iris keeps UX
-            self.assertIsNone(conn.execute("SELECT 1 FROM guilds WHERE code = 'FE'").fetchone())
-        titles = re.findall(r'class="group-title">([^<]+)<', self.html("/studenten"))
-        self.assertIn("Nog in te delen", titles)
-
-    def test_guild_pages_hint_without_roles(self):  # F10
-        self.assertIn("Voeg eerst beroepsrollen toe", self.html("/gildes/toevoegen"))
-        self.assertIn("Voeg eerst beroepsrollen toe", self.html("/gildes/nieuw"))
-        self.add_roles()
-        self.assertNotIn("Voeg eerst beroepsrollen toe", self.html("/gildes/toevoegen"))
+    def test_filter_on_guild(self):  # F7
+        self.load_demo()
+        html = self.html("/studenten")
+        self.assertIn('<select name="gilde">', html)
+        self.assertIn("Alle gildes", html)
+        self.assertNotIn("Alle beroepsrollen", html)
 
 
 class TestSemesters(PagesTestCase):  # spec 009
@@ -607,8 +578,8 @@ class TestStudentEdit(PagesTestCase):  # spec 011
         self.load_demo()
         with self.db() as conn:
             self.iris = conn.execute("SELECT id FROM students WHERE name = 'Iris Bouma'").fetchone()["id"]
-            self.fe = conn.execute("SELECT id FROM professional_roles WHERE code = 'FE'").fetchone()["id"]
-            self.ux = conn.execute("SELECT id FROM professional_roles WHERE code = 'UX'").fetchone()["id"]
+            self.fe = conn.execute("SELECT id FROM guilds WHERE code = 'FE'").fetchone()["id"]
+            self.ux = conn.execute("SELECT id FROM guilds WHERE code = 'UX'").fetchone()["id"]
             self.coach = conn.execute("SELECT id FROM staff WHERE name = 'Marieke Ploeg'").fetchone()["id"]
 
     def test_name_links_to_edit_page_keeping_filters(self):  # F1
@@ -632,14 +603,14 @@ class TestStudentEdit(PagesTestCase):  # spec 011
         with self.db() as conn:
             conn.execute("UPDATE staff SET is_guild_master = 1 WHERE id = ?", (gm,))
         data = {"name": "Iris Bouma", "semester": "3", "coach_id": str(self.coach),
-                "guild_role": [str(self.fe), str(self.ux), ""], "guild_master": [str(gm), "", ""],
+                "guild": [str(self.fe), str(self.ux), ""], "guild_master": [str(gm), "", ""],
                 "terug": "/studenten?semester=3"}
         response = self.client.post(f"/studenten/{self.iris}/bewerken", data=data)
         self.assertTrue(response.headers["Location"].startswith("/studenten?semester=3&melding="))
         with self.db() as conn:
             row = conn.execute("SELECT semester, coach_id FROM students WHERE id = ?", (self.iris,)).fetchone()
             guilds = sorted(tuple(r) for r in conn.execute(
-                "SELECT role_id, guild_master_id FROM student_guilds WHERE student_id = ?", (self.iris,)))
+                "SELECT guild_id, guild_master_id FROM student_guilds WHERE student_id = ?", (self.iris,)))
         self.assertEqual(tuple(row), (3, self.coach))
         self.assertEqual(guilds, sorted([(self.fe, gm), (self.ux, None)]))   # spec 016: each guild its own guild master
         html = self.html("/studenten", melding="Gegevens van Iris Bouma opgeslagen.")

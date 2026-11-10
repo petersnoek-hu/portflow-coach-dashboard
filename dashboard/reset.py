@@ -12,7 +12,7 @@ BACKUP_DIR = "reservekopieen"
 
 # F2: what disappears, with a count (table, Dutch label).
 SUMMARY = [("students", "studenten"), ("evaluations", "evaluaties (bewaarde kopie uit Portflow)"),
-           ("squads", "projecten"), ("semesters", "semesters"), ("professional_roles", "beroepsrollen"),
+           ("squads", "projecten"), ("semesters", "semesters"),
            ("guilds", "gildes"), ("staff", "coaches en gildemeesters"), ("custom_columns", "eigen kolommen"),
            ("settings", "instellingen")]
 

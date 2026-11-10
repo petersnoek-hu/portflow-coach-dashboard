@@ -261,19 +261,6 @@
 (() => {
   "use strict";
 
-  // Gilde aanmaken (spec 006, F14): a code equal to a role's code pre-selects that role.
-  const code = document.getElementById("guild-code");
-  const role = document.getElementById("guild-role");
-  if (!code || !role) return;
-  code.addEventListener("input", () => {
-    const match = Array.from(role.options).find((o) => o.dataset.code === code.value.trim().toUpperCase());
-    if (match && !role.value) role.value = match.value;
-  });
-})();
-
-(() => {
-  "use strict";
-
   // Student bewerken (spec 011, F2): show the guild that follows from the chosen primary role.
   const role = document.getElementById("primary-role");
   const guild = document.getElementById("guild-of-role");

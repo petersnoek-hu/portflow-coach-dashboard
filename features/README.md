@@ -75,7 +75,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 005 | [Gegevens ophalen en verversen](005-gegevens-ophalen/spec.md) | `klaar` |
 | 006 | [Gildemeesters en gildes](006-gildemeesters/spec.md) | `klaar` |
 | 007 | [Coaches](007-coaches/spec.md) | `klaar` (werkt als 006) |
-| 008 | [Beroepsrollen](008-beroepsrollen/spec.md) | `klaar` |
+| 008 | [Beroepsrollen](008-beroepsrollen/spec.md) | `klaar` (vervangen door 018) |
 | 009 | [Semesters](009-semesters/spec.md) | `klaar` |
 | 010 | [Studentenlijst](010-studentenlijst/spec.md) | `klaar` |
 | 011 | [Student bewerken](011-student-bewerken/spec.md) | `klaar` |
@@ -85,6 +85,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 015 | [Koppelen aan Portflow](015-koppelen-aan-portflow/spec.md) | `klaar` |
 | 016 | [Gildes van een student](016-gildes-van-een-student/spec.md) | `klaar` |
 | 017 | [Student handmatig toevoegen](017-student-handmatig-toevoegen/spec.md) | `klaar` |
+| 018 | [Beroepsrol als onderdeel van het gilde](018-beroepsrol-in-gilde/spec.md) | `klaar` |
 
 ## Kandidaten
 
@@ -94,7 +95,7 @@ Deze onderdelen volgen uit de ontwerpen en de docs. Ze zijn nog géén spec; ze 
 - **Studenten toevoegen (vervolg):** namen plakken, CSV/cellen plakken, ([gegevensmodel](../docs/gegevensmodel.md#studenten-toevoegen)); "uit Portflow kiezen" staat al in [spec 004](004-studenten-toevoegen/spec.md)
 - **Studenten beheren:** het bewerken van één student staat in [spec 011](011-student-bewerken/spec.md); nog open: meerdere studenten tegelijk, de Portflow-koppeling wijzigen
 - **Semesterstatus:** voldoet een student aan het toetsprogramma van zijn semester, en wat ontbreekt nog? (Volgt uit [voortgangsregels](../docs/voortgangsregels.md).)
-- **Kolommen:** het beheerscherm (Projecten: [spec 012](012-projecten/spec.md), Beroepsrollen: [spec 008](008-beroepsrollen/spec.md), Semesters: [spec 009](009-semesters/spec.md))
+- **Kolommen:** het beheerscherm (Projecten: [spec 012](012-projecten/spec.md), Gildes: [spec 018](018-beroepsrol-in-gilde/spec.md), Semesters: [spec 009](009-semesters/spec.md))
 - **Signaalkaarten:** evaluaties te beoordelen, studenten zonder recente update, actieve coachstudenten
 - **Te beoordelen:** openstaande evaluatieverzoeken aan de gebruiker, met link naar Portflow
 - **Weekgrafiek:** evaluaties per week, behaald en ingediend

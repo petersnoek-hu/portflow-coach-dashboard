@@ -80,3 +80,4 @@ Geen eigen ontwerp. Het blok "Gildes" volgt de formulieren van de beheerpagina's
 
 - 2026-11-10 – spec aangemaakt na de vraag van de gebruiker over het scherm Student bewerken; antwoorden verwerkt; status uitgewerkt
 - 2026-11-10 – gebouwd en getest (unit tests, ook de migratie); docs en de logboeken van specs 001, 006, 008, 010, 011 en 013 bijgewerkt; status klaar
+- 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): per regel kies je een gilde (niet meer een beroepsrol); de koppeltabel verwijst naar het gilde; F7 over de pagina Beroepsrollen vervalt

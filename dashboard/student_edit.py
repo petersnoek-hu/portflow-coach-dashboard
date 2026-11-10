@@ -18,7 +18,7 @@ def find(conn: sqlite3.Connection, student_id: int) -> sqlite3.Row | None:
 def form_values(conn: sqlite3.Connection, student: sqlite3.Row) -> dict:
     """The current values, as strings for the form (F2)."""
     text = lambda value: "" if value is None else str(value)
-    guilds = [{"role_id": str(g["role_id"]), "guild_master_id": text(g["guild_master_id"])}
+    guilds = [{"guild_id": str(g["guild_id"]), "guild_master_id": text(g["guild_master_id"])}
               for g in student_guilds.of_student(conn, student["id"])]
     return {
         "name": student["name"], "student_number": text(student["student_number"]),
@@ -39,8 +39,7 @@ def options(conn: sqlite3.Connection) -> dict:
                    rows("SELECT id, name, full_name, display_name FROM squads ORDER BY full_name")],
         "tracks": [(t, TRACK_LABELS[t]) for t in TRACKS],
         "squad_roles": SQUAD_ROLES,
-        "roles": rows("SELECT r.id, r.code, r.name, g.code AS guild_code, g.name AS guild_name "
-                      "FROM professional_roles r LEFT JOIN guilds g ON g.role_id = r.id ORDER BY r.code"),
+        "guilds": rows("SELECT id, code, name FROM guilds ORDER BY code"),   # spec 018, F6
         "coaches": rows("SELECT id, name FROM staff WHERE is_coach = 1 ORDER BY name COLLATE NOCASE"),
         "guild_masters": rows("SELECT id, name FROM staff WHERE is_guild_master = 1 ORDER BY name COLLATE NOCASE"),
     }
@@ -99,22 +98,22 @@ def validate(conn: sqlite3.Connection, form: dict) -> tuple[dict | None, str | N
     if squad_role and squad_role not in dict(SQUAD_ROLES):
         return None, "Kies een rol uit de lijst."
     values["track"], values["squad_role"] = track or None, squad_role or None
-    # Spec 016, F4: guild rows (professional role + guild master); an empty role is ignored.
+    # Spec 016, F4 (spec 018, F6): guild rows (guild + guild master); an empty guild is ignored.
     pairs: list[tuple[int, int | None]] = []
     for row in form.get("guilds") or []:
-        role_id, ok = _choice(conn, (row.get("role_id") or "").strip(), "SELECT 1 FROM professional_roles WHERE id = ?")
+        guild_id, ok = _choice(conn, (row.get("guild_id") or "").strip(), "SELECT 1 FROM guilds WHERE id = ?")
         if not ok:
-            return None, "Kies een beroepsrol uit de lijst."
-        if role_id is None:
+            return None, "Kies een gilde uit de lijst."
+        if guild_id is None:
             continue
-        if role_id in [r for r, _ in pairs]:
-            code = conn.execute("SELECT code FROM professional_roles WHERE id = ?", (role_id,)).fetchone()[0]
+        if guild_id in [r for r, _ in pairs]:
+            code = conn.execute("SELECT code FROM guilds WHERE id = ?", (guild_id,)).fetchone()[0]
             return None, f"{code} staat er twee keer in."
         master, ok = _choice(conn, (row.get("guild_master_id") or "").strip(),
                              "SELECT 1 FROM staff WHERE id = ? AND is_guild_master = 1")
         if not ok:
             return None, "Kies een gildemeester uit de lijst."
-        pairs.append((role_id, master))
+        pairs.append((guild_id, master))
     values["guilds"] = pairs
     return values, None
 

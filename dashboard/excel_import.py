@@ -108,7 +108,7 @@ def mapping_error(mapping: list[str]) -> str | None:
 class Lookups:
     semesters: set[int]
     squads: dict[str, dict]                 # number -> squad
-    roles: list[dict]
+    roles: list[dict]                       # guilds (spec 018)
     coaches: list[dict]
     guild_masters: list[dict]
 
@@ -118,7 +118,7 @@ class Lookups:
         return cls(
             semesters={r["number"] for r in conn.execute("SELECT number FROM semesters")},
             squads={r["number"]: r for r in rows("SELECT id, number, full_name FROM squads WHERE number IS NOT NULL")},
-            roles=rows("SELECT id, code, name FROM professional_roles"),
+            roles=rows("SELECT id, code, name, role_name FROM guilds"),   # spec 018: guilds
             coaches=rows("SELECT id, name FROM staff WHERE is_coach = 1"),
             guild_masters=rows("SELECT id, name FROM staff WHERE is_guild_master = 1"),
         )
@@ -149,7 +149,8 @@ def convert_role(value: str, lookups: Lookups, label: str) -> tuple[dict | None,
     candidates.append(value)
     for candidate in candidates:
         for role in lookups.roles:
-            if candidate.casefold() in (role["code"].casefold(), role["name"].casefold()):
+            # Spec 018, F8: a guild is recognised by its code, name or professional role.
+            if candidate.casefold() in (role["code"].casefold(), role["name"].casefold(), role["role_name"].casefold()):
                 return role, None
     return None, f"{label} '{value}' niet herkend"
 
@@ -338,7 +339,7 @@ def _compare(conn: sqlite3.Connection, row: Row, student: dict) -> None:
         elif str(current) != str(stored):
             row.changes.append((key, LABELS[key], _display(conn, key, current), display))
     have = {r[0]: r[1] for r in conn.execute(
-        "SELECT role_id, guild_master_id FROM student_guilds WHERE student_id = ?", (student["id"],))}
+        "SELECT guild_id, guild_master_id FROM student_guilds WHERE student_id = ?", (student["id"],))}
     for index, role in enumerate(row.guilds):   # spec 016, F8: add guilds, fill an empty guild master
         master = row.guild_master if index == 0 else None
         if role["id"] not in have:

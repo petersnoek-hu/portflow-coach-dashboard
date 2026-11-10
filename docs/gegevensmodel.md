@@ -8,7 +8,7 @@ Welke gegevens het dashboard bijhoudt, waar ze vandaan komen en wie ze invult. B
 |---|---|
 | Evaluaties (vaardigheid, niveau, datum, beoordelaar), openstaande evaluatieverzoeken, lijst met gedeelde portfolio's | **Portflow** (alleen lezen; lokaal bewaard als kopie, zie [architectuur.md](architectuur.md#verversen)) |
 | Studenten, hun indeling (semester, squad, invulling, beroepsrol), coach en gildemeester | **Het dashboard zelf**: de gebruiker voegt ze toe en beheert ze |
-| Squads (in de interface: projecten), beroepsrollen, gildes, eigen kolommen, coaches en gildemeesters | **Het dashboard zelf** |
+| Squads (in de interface: projecten), gildes (met hun beroepsrol), eigen kolommen, coaches en gildemeesters | **Het dashboard zelf** |
 | Gebruiker (naam, gildes) | **Het dashboard zelf**, ingevuld bij de eerste start |
 
 Elke coach heeft **eigen gegevens**: er is geen gedeelde database tussen coaches.
@@ -65,7 +65,7 @@ Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach
 | Invulling | nee | Open projecten, Open innovatieproject, Stage, Minor of Afstuderen. In keuzelijsten en filters met uitleg: "Open Projecten (jaar 2)", "Open Innovatieproject (semester 5, 6 of 7)", "Stage (semester 5, 6 of 7)", "Minor (semester 6)", "Afstuderen (semester 8)" |
 | Rol in de squad | nee | PO, SM, 2ePO of 2eSM (product owner, scrum master, tweede PO, tweede SM) |
 | Startdatum | nee | Eigen begin van de semesterperiode voor deze student (bijvoorbeeld bij een latere instroom); anders geldt het begin uit Instellingen |
-| Gildes | ja, maar mag tijdelijk ontbreken | Nul of meer beroepsrollen (en daarmee gildes), elk met een eigen **gildemeester** (keuze uit de gildemeesters, niet verplicht); geen volgorde of "primair" ([spec 016](../features/016-gildes-van-een-student/spec.md)) |
+| Gildes | ja, maar mag tijdelijk ontbreken | Nul of meer gildes (en daarmee beroepsrollen), elk met een eigen **gildemeester** (keuze uit de gildemeesters, niet verplicht); geen volgorde of "primair" ([spec 016](../features/016-gildes-van-een-student/spec.md)) |
 | Coach | nee | Keuze uit de beheerde lijst met coaches en gildemeesters |
 | Portflow-koppeling | nee | De Portflow-gebruiker (id en naam) en zijn portfolio-id's; een student kan meer dan één portfolio hebben. Zonder koppeling komen er geen evaluaties binnen |
 | Waarden eigen kolommen | nee | Per eigen kolom een percentage of tekst, ingevuld door de gebruiker in de tabel |
@@ -73,7 +73,7 @@ Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach
 
 - Een tribe (bijvoorbeeld "Tribe Peter/David") wordt **niet** bijgehouden.
 - Een student blijft bestaan als zijn squad wordt verwijderd; hij komt dan onder "Zonder project".
-- Een student zonder semester of zonder gilde (bijvoorbeeld na toevoegen op naam, of nadat zijn laatste beroepsrol is verwijderd) komt in de groep **Nog in te delen**, tot de gegevens zijn ingevuld.
+- Een student zonder semester of zonder gilde (bijvoorbeeld na toevoegen op naam, of nadat zijn laatste gilde is verwijderd) komt in de groep **Nog in te delen**, tot de gegevens zijn ingevuld.
 
 ## Studenten toevoegen
 
@@ -112,9 +112,7 @@ Studenten die niet via Portflow zijn toegevoegd (manier 2 tot en met 4), koppelt
 
 ## Beroepsrol
 
-Het dashboard start **zonder beroepsrollen**. De negen beroepsrollen van Open-ICT uit [beroepsrollen.md](beroepsrollen.md) zijn met één knop toe te voegen. De gebruiker kan rollen toevoegen, bewerken en verwijderen ([spec 008](../features/008-beroepsrollen/spec.md)). Velden: code (2 of 3 letters, uniek), naam, korte beschrijving (niet verplicht), kleur.
-
-Wordt een rol verwijderd, dan verdwijnt dat gilde bij alle studenten; wie daarna geen gilde meer heeft, komt bij **Nog in te delen**. Het gilde van de rol wordt ook verwijderd.
+Elke beroepsrol heeft precies één gilde. De beroepsrol is daarom **geen eigen lijst**, maar een veld van het [gilde](#gilde) ([spec 018](../features/018-beroepsrol-in-gilde/spec.md)).
 
 <a id="semester"></a>
 ## Semester
@@ -141,12 +139,13 @@ De semesters van de opleiding, met de eisen uit het toetsprogramma als vrije tek
 |---|---|
 | Code | 2 of 3 hoofdletters, uniek, bijvoorbeeld BIT of TI |
 | Naam | Bijvoorbeeld "Front-end gilde" |
-| Beroepsrol | Precies één; per beroepsrol hoogstens één gilde |
+| Beroepsrol | Verplicht, bijvoorbeeld "Front-end developer"; elke beroepsrol heeft precies één gilde |
+| Beschrijving | Van de beroepsrol, niet verplicht |
 | Kleur | Gekozen door de gebruiker |
 
-- De **gildes van een student** volgen uit zijn beroepsrollen (nul of meer, elk met een eigen gildemeester) ([spec 016](../features/016-gildes-van-een-student/spec.md)).
+- Een student heeft **nul of meer gildes**, elk met een eigen gildemeester ([spec 016](../features/016-gildes-van-een-student/spec.md), [spec 018](../features/018-beroepsrol-in-gilde/spec.md)).
 - Het dashboard start **zonder gildes**. De negen gildes van Open-ICT ([gildes-openict.md](gildes-openict.md)) zijn met één knop toe te voegen. De gebruiker kan gildes toevoegen, bewerken en verwijderen ([spec 006](../features/006-gildemeesters/spec.md), F12–F19).
-- Wordt een gilde verwijderd, dan blijven de gildemeesters gildemeester, zonder dat gilde. Wordt een beroepsrol verwijderd, dan verdwijnt ook het gilde van die rol.
+- Wordt een gilde verwijderd, dan verdwijnt het bij de studenten (wie daarna geen gilde meer heeft, komt bij **Nog in te delen**); de gildemeesters blijven gildemeester, zonder dat gilde.
 
 ## Kolommen
 

@@ -5,7 +5,7 @@ import unittest
 import tempfile
 from pathlib import Path
 
-from dashboard import db, demo, roles
+from dashboard import db, demo, guilds
 from dashboard.demo import SKILLS, STAFF, STUDENTS
 
 PRODUCT = {"OC", "KO", "JKO", "KPM"}
@@ -95,28 +95,27 @@ class TestSharedDemoData(unittest.TestCase):  # spec 002, F18
     def count(self, table, where="1"):
         return self.conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {where}").fetchone()[0]
 
-    def test_empty_dashboard_gets_demo_roles_guilds_semesters(self):
+    def test_empty_dashboard_gets_demo_guilds_semesters(self):  # spec 018, F10
         demo.load_demo_data(self.conn)
-        self.assertEqual(self.count("professional_roles", "is_demo = 1 AND description != ''"), 9)
-        self.assertEqual(self.count("guilds", "is_demo = 1"), 9)
+        self.assertEqual(self.count("guilds", "is_demo = 1 AND description != '' AND role_name != ''"), 9)
         self.assertEqual(self.count("semesters", "is_demo = 1"), 8)
-        fe = self.conn.execute("SELECT r.color, g.color FROM professional_roles r JOIN guilds g ON g.role_id = r.id "
-                               "WHERE r.code = 'FE'").fetchone()
-        self.assertEqual(fe[0], fe[1])
-        self.assertEqual(dict(demo.demo_counts(self.conn))["Beroepsrollen"], 9)
+        fe = self.conn.execute("SELECT color FROM guilds WHERE code = 'FE'").fetchone()[0]
+        self.assertEqual(fe, demo.ROLE_DETAILS["FE"][1])
+        self.assertNotIn("Beroepsrollen", dict(demo.demo_counts(self.conn)))
+        self.assertEqual(dict(demo.demo_counts(self.conn))["Gildes"], 9)
         demo.remove_demo_data(self.conn)
-        for table in ("professional_roles", "guilds", "semesters"):
+        for table in ("guilds", "semesters"):
             self.assertEqual(self.count(table), 0, table)
 
-    def test_existing_roles_are_used_and_unchanged(self):
-        roles.add_preset(self.conn)
-        self.conn.execute("UPDATE professional_roles SET description = 'Eigen tekst', color = '#000000' WHERE code = 'FE'")
+    def test_existing_guilds_are_used_and_unchanged(self):
+        guilds.add_preset(self.conn)
+        self.conn.execute("UPDATE guilds SET description = 'Eigen tekst', color = '#000000' WHERE code = 'FE'")
         self.conn.commit()
         demo.load_demo_data(self.conn)
-        self.assertEqual(self.count("professional_roles", "is_demo = 1"), 0)
-        fe = self.conn.execute("SELECT description, color FROM professional_roles WHERE code = 'FE'").fetchone()
+        self.assertEqual(self.count("guilds", "is_demo = 1"), 0)
+        fe = self.conn.execute("SELECT description, color FROM guilds WHERE code = 'FE'").fetchone()
         self.assertEqual(tuple(fe), ("Eigen tekst", "#000000"))
-        self.assertEqual(dict(demo.demo_counts(self.conn))["Beroepsrollen"], "gebruikt je bestaande 9")
+        self.assertEqual(dict(demo.demo_counts(self.conn))["Gildes"], "gebruikt je bestaande 9")
         demo.remove_demo_data(self.conn)
-        self.assertEqual(self.count("professional_roles"), 9)
+        self.assertEqual(self.count("guilds"), 9)
 

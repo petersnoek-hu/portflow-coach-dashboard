@@ -13,8 +13,8 @@ Gebruik deze termen overal op dezelfde manier: in specs, code en interface. Afko
 | **Tribe** | Leergemeenschap waarin meerdere squads samenkomen, bijvoorbeeld "Tribe Peter/David". Wordt in het dashboard niet bijgehouden |
 | **Rol in de squad** | Scrumrol van een student: **PO** (product owner), **SM** (scrum master), **2ePO**, **2eSM** (tweede PO of SM) |
 | **Leerteam** | Team waarin studenten samen leren (genoemd in LEF, naast squad, tribe en gilde) |
-| **Beroepsrol** | ICT-beroep waarin de student zich ontwikkelt. Een student heeft nul of meer beroepsrollen, en daarmee gildes, zonder volgorde of "primair" ([spec 016](../features/016-gildes-van-een-student/spec.md)). Zie [beroepsrollen.md](beroepsrollen.md) |
-| **Gilde** | Groep studenten met dezelfde beroepsrol; bij elke beroepsrol hoort hoogstens één gilde, met een eigen code en naam (bijvoorbeeld FE, "Front-end gilde"). Een student kan in meer gildes zitten, elk met een eigen gildemeester ([spec 016](../features/016-gildes-van-een-student/spec.md)). Studenten worden wekelijks in hun gildebijeenkomst verwacht. In het gilde worden de vier productvaardigheden (OC, KO, JKO, KPM) beoordeeld. Zie [gegevensmodel.md](gegevensmodel.md#gilde) |
+| **Beroepsrol** | ICT-beroep waarin de student zich ontwikkelt. Een student heeft nul of meer beroepsrollen, en daarmee gildes, zonder volgorde of "primair" ([spec 016](../features/016-gildes-van-een-student/spec.md)). Elke beroepsrol heeft precies één gilde; in het dashboard is de beroepsrol een veld van het gilde ([spec 018](../features/018-beroepsrol-in-gilde/spec.md)). Zie [beroepsrollen.md](beroepsrollen.md) |
+| **Gilde** | Groep studenten met dezelfde beroepsrol; bij elke beroepsrol hoort precies één gilde, met een eigen code en naam (bijvoorbeeld FE, "Front-end gilde"). Een student kan in meer gildes zitten, elk met een eigen gildemeester ([spec 016](../features/016-gildes-van-een-student/spec.md)). Studenten worden wekelijks in hun gildebijeenkomst verwacht. In het gilde worden de vier productvaardigheden (OC, KO, JKO, KPM) beoordeeld. Zie [gegevensmodel.md](gegevensmodel.md#gilde) |
 | **Coach** | Begeleider van studenten; de **primaire gebruiker** van dit dashboard. Beoordeelt de sociale en persoonsvormende vaardigheden PL, BD, SW, FO, PH en RE |
 | **Gildemeester** | Beoordelaar van studenten binnen het gilde; de **secundaire gebruiker** van dit dashboard. Beoordeelt de vier productvaardigheden OC, KO, JKO en KPM. Sommige gildemeesters zijn ook coach, sommige coaches zijn ook gildemeester; het dashboard moet dus beide rollen tegelijk aankunnen |
 | **Opdrachtgever** | Externe partij voor wie de squad een product maakt |
@@ -27,7 +27,7 @@ Gebruik deze termen overal op dezelfde manier: in specs, code en interface. Afko
 
 ## Beroepsrollen en gildes
 
-De negen beroepsrollen met hun codes (UX, BIT, CS, CI, FE, BE, AI, GD, TI) staan in [beroepsrollen.md](beroepsrollen.md).
+De negen beroepsrollen met hun codes (UX, BIT, CS, CI, FE, BE, AI, GD, TI) staan met hun gilde in [gildes-openict.md](gildes-openict.md); zie ook [beroepsrollen.md](beroepsrollen.md).
 
 ## Vaardigheden, niveaus en beroepstaken
 
@@ -102,8 +102,8 @@ De code is Engelstalig, de interface Nederlands. Gebruik deze vertalingen, zodat
 | Gildemeester | `guild_master` |
 | Gilde | `guild` |
 | Gebruiker | `user` |
-| Beroepsrol | `professional_role` |
-| Gildes van een student (beroepsrol + gildemeester) | `student_guilds` |
+| Beroepsrol (veld van het gilde) | `role_name` in `guilds` |
+| Gildes van een student (gilde + gildemeester) | `student_guilds` |
 | Rol in de squad (PO, SM, …) | `squad_role` |
 | Squad (in de interface "project") | `squad` |
 | Invulling | `track` |

@@ -28,7 +28,7 @@ class ImportTestCase(unittest.TestCase):
         self.db_path = Path(self.tmp.name) / "data" / "test.sqlite3"
         self.app = create_app(self.db_path, env_file=Path(self.tmp.name) / ".env")
         self.client = self.app.test_client()
-        self.client.post("/beroepsrollen/toevoegen/open-ict")
+        self.client.post("/gildes/toevoegen/open-ict")
         self.client.post("/semesters/toevoegen/open-ict")
         self.client.post("/projecten/nieuw/open-ict")
         with self.db() as conn:
@@ -154,7 +154,7 @@ class TestImportPages(ImportTestCase):
             students = {r["name"]: dict(r) for r in conn.execute("SELECT * FROM students")}
             guilds = [tuple(r) for r in conn.execute(
                 "SELECT s.name, r.code, sg.guild_master_id FROM student_guilds sg JOIN students s ON s.id = sg.student_id "
-                "JOIN professional_roles r ON r.id = sg.role_id ORDER BY s.name, r.code")]
+                "JOIN guilds r ON r.id = sg.guild_id ORDER BY s.name, r.code")]
         self.assertEqual(sorted(students), ["Anna de Boer", "Bram Visser", "Dewi Smit"])
         self.assertEqual(students["Anna de Boer"]["coach_id"], self.coach_id("Marieke Ploeg"))
         self.assertEqual(students["Bram Visser"]["coach_id"], coach)         # no coach in the file -> default
@@ -176,9 +176,9 @@ class TestImportPages(ImportTestCase):
     def test_existing_student_gets_extra_guild_and_empty_guild_master_filled(self):  # spec 016, F8
         with self.db() as conn:
             conn.execute("INSERT INTO staff (name, is_guild_master) VALUES ('Joost Hendriks', 1)")
-            fe = conn.execute("SELECT id FROM professional_roles WHERE code = 'FE'").fetchone()[0]
+            fe = conn.execute("SELECT id FROM guilds WHERE code = 'FE'").fetchone()[0]
             sid = conn.execute("INSERT INTO students (name) VALUES ('Eva Kok') RETURNING id").fetchone()[0]
-            conn.execute("INSERT INTO student_guilds (student_id, role_id) VALUES (?, ?)", (sid, fe))
+            conn.execute("INSERT INTO student_guilds (student_id, guild_id) VALUES (?, ?)", (sid, fe))
         location, html = self.preview({"Studenten": [["Naam", "Gilde", "Eventueel 2e gilde", "Gildemeester"],
                                                       ["Eva Kok", "Front-end developer (FE)", "UI/UX Designer (UX)", "Joost"]]})
         self.assertIn("+ Gildemeester bij FE: Joost Hendriks", html)
@@ -186,9 +186,17 @@ class TestImportPages(ImportTestCase):
         self.client.post(f"/studenten/toevoegen/excel/{self.key(location)}/importeren", data={})
         with self.db() as conn:
             rows = [tuple(r) for r in conn.execute(
-                "SELECT r.code, st.name FROM student_guilds sg JOIN professional_roles r ON r.id = sg.role_id "
+                "SELECT r.code, st.name FROM student_guilds sg JOIN guilds r ON r.id = sg.guild_id "
                 "LEFT JOIN staff st ON st.id = sg.guild_master_id ORDER BY r.code")]
         self.assertEqual(rows, [("FE", "Joost Hendriks"), ("UX", None)])
+
+    def test_guild_by_code_name_or_role(self):  # spec 018, F8
+        from dashboard import excel_import
+        with self.db() as conn:
+            lookups = excel_import.Lookups.load(conn)
+        for value in ("FE", "Front-end gilde", "front-end developer"):
+            guild, warning = excel_import.convert_role(value, lookups, "Gilde")
+            self.assertEqual((guild["code"], warning), ("FE", None), value)
 
     def test_first_name_without_accents(self):  # F7
         with self.db() as conn:

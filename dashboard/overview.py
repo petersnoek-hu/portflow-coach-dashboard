@@ -196,7 +196,7 @@ def student_rows(conn: sqlite3.Connection, today: date) -> list[dict]:
             "track": s["track"],
             "guilds": guilds_of.get(s["id"], []),
             "guild_codes": ", ".join(g["code"] for g in guilds_of.get(s["id"], [])),
-            "guild_names": ", ".join(g["guild_name"] or g["name"] for g in guilds_of.get(s["id"], [])),
+            "guild_names": ", ".join(g["guild_name"] for g in guilds_of.get(s["id"], [])),
             "guild_masters": [g["guild_master"] for g in guilds_of.get(s["id"], []) if g["guild_master"]],
             # Spec 006, F21: the columns show first names; the full names have their own columns.
             "guild_master": ", ".join(dict.fromkeys(g["guild_master_first"] for g in guilds_of.get(s["id"], [])
@@ -243,7 +243,7 @@ def apply_filters(rows: list[dict], args: dict, user_name: str | None) -> list[d
             continue
         if args.get("project") and str(row["squad_id"] or "") != args["project"]:
             continue
-        if args.get("rol") and args["rol"] not in {str(g["role_id"]) for g in row["guilds"]}:
+        if args.get("gilde") and args["gilde"] not in {str(g["guild_id"]) for g in row["guilds"]}:   # spec 018, F7
             continue
         if args.get("aansporen") and not row["progress"].signals:
             continue
@@ -276,7 +276,7 @@ def group_rows(rows: list[dict], grouping: str) -> list[dict]:
             put((1, row["semester"]), f"Semester {row['semester']}", "", "#5E8C74", row)
         elif grouping == "guild":  # spec 016, F6: a student with more guilds is in every group
             for guild in row["guilds"]:
-                put((1, guild["code"]), guild["code"], guild["guild_name"] or guild["name"],
+                put((1, guild["code"]), guild["code"], guild["guild_name"],
                     guild["guild_color"] or "#909DB9", row)
         else:  # squad
             if row["squad_id"]:
@@ -291,7 +291,7 @@ def filter_options(conn: sqlite3.Connection) -> dict:
         # F12: the filter shows the display name (in the order of the project numbers)
         "squads": [dict(r, full_name=r["display_name"] or r["full_name"]) for r in conn.execute(
             "SELECT id, name, full_name, display_name FROM squads ORDER BY full_name")],
-        "roles": [dict(r) for r in conn.execute("SELECT id, code, name FROM professional_roles ORDER BY code")],
+        "guilds": [dict(r) for r in conn.execute("SELECT id, code, name FROM guilds ORDER BY code")],
         "tracks": [(t, TRACK_LABELS[t]) for t in TRACKS],
         "semesters": list(range(1, 9)),
     }

@@ -1,24 +1,22 @@
 {% extends "base.html" %}
-{# Gilde aanmaken (F14) en bewerken (F16), met de controle van F15. #}
+{# Gilde aanmaken (F14) en bewerken (F16), met de controle van F15; de beroepsrol is een veld van het gilde (spec 018, F2). #}
 {% block content %}
-{% include "_no_roles_hint.html" %}
 <form method="post" class="card names-form">
   {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
   <label>Code <span class="muted">(2 of 3 letters, bijvoorbeeld FE of BIT)</span>
-    <input name="code" value="{{ form.code }}" required maxlength="3" id="guild-code" autocomplete="off">
+    <input name="code" value="{{ form.code }}" required maxlength="3" autocomplete="off">
   </label>
-  <label>Naam
-    <input name="naam" value="{{ form.name }}" required>
+  <label>Naam <span class="muted">(bijvoorbeeld Front-end gilde)</span>
+    <input name="naam" value="{{ form.naam }}" required>
   </label>
-  <label>Beroepsrol
-    <select name="rol" id="guild-role" required>
-      <option value="">Kies een beroepsrol</option>
-      {% for r in roles %}<option value="{{ r.id }}" data-code="{{ r.code }}" {% if form.role_id == r.id|string %}selected{% endif %}>{{ r.code }} · {{ r.name }}</option>{% endfor %}
-    </select>
+  <label>Beroepsrol <span class="muted">(bijvoorbeeld Front-end developer)</span>
+    <input name="beroepsrol" value="{{ form.beroepsrol }}" required>
   </label>
-  {% if not roles %}<p class="muted">Alle beroepsrollen hebben al een gilde.</p>{% endif %}
+  <label>Beschrijving van de beroepsrol <span class="muted">(niet verplicht)</span>
+    <textarea name="beschrijving" rows="2">{{ form.beschrijving }}</textarea>
+  </label>
   <label>Kleur
-    <input type="color" name="kleur" value="{{ form.color }}">
+    <input type="color" name="kleur" value="{{ form.kleur }}">
   </label>
   <div class="actions">
     <a class="button button-secondary" href="{{ url_for('pages.guilds') }}">Annuleren</a>

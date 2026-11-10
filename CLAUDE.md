@@ -20,8 +20,8 @@ Volg dit bij **elke** functie, ook als de gebruiker alleen "bouw X" zegt:
 | Vaardigheden: codes, volgorde, categorieën | `docs/vaardigheden-openict.md` |
 | Vaardigheden: volledige LEF-tekst per niveau | `docs/vaardigheden-niveaus-LEF.md` |
 | Evaluaties, toetsprogramma per semester, semester behaald, weergave van niveaus | `docs/voortgangsregels.md` |
-| Beroepsrollen en codes | `docs/beroepsrollen.md` |
-| Gildes van Open-ICT (code en naam) | `docs/gildes-openict.md` |
+| Beroepsrollen (begrip; codes en namen staan bij de gildes) | `docs/beroepsrollen.md` |
+| Gildes van Open-ICT met hun beroepsrol (code, gilde, beroepsrol) | `docs/gildes-openict.md` |
 | Projecten van Open-ICT (sept 2026) met opdrachtgever | `docs/openict-projecten.md` |
 | Gildemeesters Open-ICT (sept 2026) met hun gilde | `docs/gildemeesters-sept2026.md` |
 | HBO-i-beroepstaken | `docs/HBOi-beroepstaken.md` |

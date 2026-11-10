@@ -139,3 +139,4 @@ Geen eigen ontwerp. Uploadpagina, koppelstap en voorbeeld volgen de pagina's van
 - 2026-11-09 – gewijzigde F6 gebouwd en getest; status klaar
 - 2026-11-09 – na het importeren wordt direct aan Portflow gekoppeld als de verbinding geldig is ([spec 015](../015-koppelen-aan-portflow/spec.md), F3)
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): de gildekolommen worden samen de gildes van de student; een kolom Gildemeester hoort bij het eerste gilde in de rij
+- 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): een gildekolom herkent een gilde aan zijn code, naam of beroepsrol

@@ -7,7 +7,7 @@ of spec 001, so the progress rules can be tried out and tested later.
 
 import sqlite3
 
-from . import guilds, projects, roles, semesters
+from . import guilds, projects, semesters
 from .skills import SKILLS
 
 STAFF = ["Marieke Ploeg", "Joost Hendriks", "Femke Bos", "Ruben Smit"]
@@ -194,7 +194,7 @@ STUDENTS = [
 
 COUNT_TABLES = {"students": "Studenten", "squads": "Squads", "staff": "Coaches en gildemeesters",
                 "evaluations": "Evaluaties", "custom_columns": "Eigen kolommen", "guilds": "Gildes",
-                "professional_roles": "Beroepsrollen", "semesters": "Semesters"}
+                "semesters": "Semesters"}   # spec 018, F10: no professional roles of their own
 
 
 def has_demo_data(conn: sqlite3.Connection) -> bool:
@@ -204,7 +204,7 @@ def has_demo_data(conn: sqlite3.Connection) -> bool:
     )
 
 
-SHARED_TABLES = {"professional_roles", "guilds", "semesters"}   # the demo reuses existing ones (F18)
+SHARED_TABLES = {"guilds", "semesters"}   # the demo reuses existing ones (F18)
 
 
 def demo_counts(conn: sqlite3.Connection) -> list[tuple[str, int | str]]:
@@ -230,18 +230,15 @@ def load_demo_data(conn: sqlite3.Connection) -> bool:
     """Insert the demo set. Returns False if demo data is already present."""
     if has_demo_data(conn):
         return False
-    # Demo roles and guilds: the Open-ICT ones that do not exist yet, marked as demo
-    # (spec 008 F5, spec 006 F14), so removing the demo data removes only those.
-    roles.add_preset(conn, is_demo=True)
+    # Demo guilds: the Open-ICT ones that do not exist yet, marked as demo (spec 006 F14,
+    # spec 018 F10), so removing the demo data removes only those.
     guilds.add_preset(conn, is_demo=True)
     semesters.add_preset(conn, is_demo=True)  # spec 009
     with conn:
-        # Spec 002, F18: description and colour for the roles the demo added; its guilds get the role colour.
+        # Spec 002, F18: description of the professional role and colour for the guilds the demo added.
         for code, (description, color) in ROLE_DETAILS.items():
-            conn.execute("UPDATE professional_roles SET description = ?, color = ? WHERE code = ? AND is_demo = 1",
+            conn.execute("UPDATE guilds SET description = ?, color = ? WHERE code = ? AND is_demo = 1",
                          (description, color, code))
-            conn.execute("UPDATE guilds SET color = ? WHERE is_demo = 1 AND role_id IN "
-                         "(SELECT id FROM professional_roles WHERE code = ?)", (color, code))
         for name in STAFF:
             staff_roles = STAFF_ROLES[name]
             cursor = conn.execute(
@@ -276,7 +273,6 @@ def remove_demo_data(conn: sqlite3.Connection) -> None:
         conn.execute("DELETE FROM squads WHERE is_demo = 1")
         conn.execute("DELETE FROM staff WHERE is_demo = 1")
         conn.execute("DELETE FROM guilds WHERE is_demo = 1")
-        conn.execute("DELETE FROM professional_roles WHERE is_demo = 1")
         conn.execute("DELETE FROM semesters WHERE is_demo = 1")
 
 
@@ -311,8 +307,8 @@ def _insert_student(conn: sqlite3.Connection, student: dict) -> None:
     codes = ([student["role"]] if student["role"] else []) + student.get("secondary_roles", [])
     for index, code in enumerate(codes):
         conn.execute(
-            "INSERT OR IGNORE INTO student_guilds (student_id, role_id, guild_master_id) VALUES (?, ?, ?)",
-            (student_id, _lookup(conn, "SELECT id FROM professional_roles WHERE code = ?", code),
+            "INSERT OR IGNORE INTO student_guilds (student_id, guild_id, guild_master_id) VALUES (?, ?, ?)",
+            (student_id, _lookup(conn, "SELECT id FROM guilds WHERE code = ?", code),
              _lookup(conn, staff_id, student["guild_master"]) if index == 0 else None),
         )
 
