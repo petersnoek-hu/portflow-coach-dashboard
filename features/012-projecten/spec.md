@@ -51,6 +51,18 @@ Als **coach** of **gildemeester** wil ik de projecten (squads) beheren: zelf aan
 - [x] **F9 – Verwijderen.** Na bevestiging ("In 02 Gamified Learning zitten 3 studenten; zij komen bij Zonder project.") verdwijnt het project. De studenten blijven bestaan, zonder project ([gegevensmodel.md](../../docs/gegevensmodel.md#squad-project)).
   - *Acceptatie:* na verwijderen staan de 3 studenten in de balk "Zonder project" en in het studentenoverzicht onder "Zonder project".
 
+### Weergavenaam (toegevoegd 2026-11-10)
+
+- [x] **F10 – Veld weergavenaam.** Een project krijgt een vrij veld **"Weergavenaam"** (bijvoorbeeld "Condor - Gamified learning (02)"), te zien op de kaart en te wijzigen bij Handmatig toevoegen en Bewerken. Laat de gebruiker het leeg, dan vult de app de standaard in (F11).
+  - *Acceptatie:* de weergavenaam van 02 wijzigen in "Condor (spel)" → de kaart en de overzichten tonen "Condor (spel)".
+- [x] **F11 – Standaard weergavenaam.** De standaard is de ingekorte opdrachtgever en projectnaam met het nummer tussen haakjes:
+  - bij de **Open-ICT-projecten** de kolom *Weergave* uit [`docs/openict-projecten.md`](../../docs/openict-projecten.md) met " (NN)" erachter, bijvoorbeeld "Condor - Gamified learning (02)";
+  - bij een **handmatig** project "Opdrachtgever - Projectnaam (NN)" (zonder opdrachtgever alleen de projectnaam, zonder nummer zonder haakjes). Het veld wordt al ingevuld terwijl de gebruiker nummer, naam en opdrachtgever typt, zolang hij het veld zelf niet heeft aangepast;
+  - **bestaande projecten** krijgen bij het starten eenmalig de weergavenaam uit het bestand (op nummer), of anders de handmatige standaard.
+  - *Acceptatie:* "Open-ICT-projecten toevoegen" → project 02 heeft "Condor - Gamified learning (02)"; handmatig nummer 21, naam "Spel", opdrachtgever "Acme" zonder weergavenaam → "Acme - Spel (21)".
+- [x] **F12 – Weergavenaam in de overzichten.** In het studentenoverzicht (Overzicht, [spec 001](../001-studentenoverzicht/spec.md)) en de studentenlijst (Studenten, [spec 010](../010-studentenlijst/spec.md)) staat overal waar het project staat **alleen de weergavenaam**: in de groepskop, in de kolom Project, in het filter op project en in het zoeken.
+  - *Acceptatie:* "Groeperen: Project" toont de groepskop "Condor - Gamified learning (02)"; de kolom Project en het filter tonen dezelfde tekst; zoeken op "condor" vindt de studenten van dat project.
+
 ### Buiten scope
 
 - Studenten in een project indelen: [spec 011](../011-student-bewerken/spec.md) (per student)
@@ -89,3 +101,5 @@ Nieuw project en het formulier volgen de pagina's van de beroepsrollen ([spec 00
 
 - 2026-11-09 – spec aangemaakt op verzoek van de gebruiker; `docs/openict-projecten.md` omgezet naar een tabel; antwoorden verwerkt; status uitgewerkt
 - 2026-11-09 – gebouwd en getest (unit tests en in de browser); status klaar. Initialen: eerste en laatste woord, bij één woord de eerste twee letters ("Beheerteam" → BE)
+- 2026-11-10 – F10–F12 toegevoegd op verzoek van de gebruiker: een weergavenaam per project (standaard met het nummer tussen haakjes) die in de overzichten de projectnaam vervangt
+- 2026-11-10 – F10–F12 gebouwd en getest (unit tests en in de browser met de echte projecten); status klaar

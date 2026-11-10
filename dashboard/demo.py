@@ -259,8 +259,8 @@ def load_demo_data(conn: sqlite3.Connection) -> bool:
             if conn.execute("SELECT 1 FROM squads WHERE number = ?", (number,)).fetchone():
                 number = None
             conn.execute(
-                "INSERT INTO squads (number, name, client, full_name, color, is_demo) VALUES (?, ?, ?, ?, ?, 1)",
-                (number, name, client, projects.full_name(number, name), color),
+                "INSERT INTO squads (number, name, client, full_name, display_name, color, is_demo) VALUES (?, ?, ?, ?, ?, ?, 1)",
+                (number, name, client, projects.full_name(number, name), projects.default_display(number, name, client), color),
             )
         for student in STUDENTS:
             _insert_student(conn, student)

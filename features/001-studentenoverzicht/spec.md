@@ -164,3 +164,5 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - 2026-11-10 – F23 gebouwd en getest (unit test en in de browser); status klaar
 - 2026-11-10 – F16 uitgebreid op verzoek van de gebruiker met de keuze "Niet groeperen" (geldt ook voor de studentenlijst, spec 010)
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): de kolom Profiel heet Gilde en toont alle codes; filter, groeperen en "Mijn gildestudenten" kijken naar alle gildes; "Groeperen: Beroepsrol" vervalt
+- 2026-11-10 – projecten worden getoond met hun weergavenaam ([spec 012](../012-projecten/spec.md), F12)
+- 2026-11-10 – het filter Invulling toont de opties met uitleg ("Open Projecten (jaar 2)", …; [gegevensmodel.md](../../docs/gegevensmodel.md#student))

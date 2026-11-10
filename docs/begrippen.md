@@ -19,7 +19,7 @@ Gebruik deze termen overal op dezelfde manier: in specs, code en interface. Afko
 | **Gildemeester** | Beoordelaar van studenten binnen het gilde; de **secundaire gebruiker** van dit dashboard. Beoordeelt de vier productvaardigheden OC, KO, JKO en KPM. Sommige gildemeesters zijn ook coach, sommige coaches zijn ook gildemeester; het dashboard moet dus beide rollen tegelijk aankunnen |
 | **Opdrachtgever** | Externe partij voor wie de squad een product maakt |
 | **Open Inno / Stage / Duaal** | Onderwijsvormen die in LEF genoemd worden; de werkmethodiek kan per vorm verschillen |
-| **Invulling** | Wat een student in zijn semester doet: open projecten (jaar 2), open innovatieproject (jaar 3), stage, minor of afstuderen |
+| **Invulling** | Wat een student in zijn semester doet: open projecten (jaar 2), open innovatieproject (semester 5, 6 of 7), stage (semester 5, 6 of 7), minor (semester 6) of afstuderen (semester 8). Zie [gegevensmodel.md](gegevensmodel.md#student) |
 | **Studentnummer** | Het **OV-nummer** (onderwijsovereenkomstnummer) van een student |
 | **Coachstudent** | Student bij wie de gebruiker als coach is ingevuld |
 | **Gildestudent** | Student bij wie de gebruiker als gildemeester is ingevuld, of die in een gilde zit waarvan de gebruiker gildemeester is. Zie [gegevensmodel.md](gegevensmodel.md#gebruiker) |

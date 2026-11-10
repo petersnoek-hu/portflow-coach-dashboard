@@ -2,8 +2,28 @@
    Same toolbar, groups, search and sorting as the progress table (spec 001). #}
 {% set t = table %}
 {% set squad_roles = {"PO": "product owner", "SM": "scrum master", "2ePO": "tweede product owner", "2eSM": "tweede scrum master"} %}
-<section class="card student-table-card" id="student-table">
+<section class="card student-table-card{% for key in t.list_hidden %} hide-col-{{ key }}{% endfor %}" id="student-table">
   {% include "_table_toolbar.html" %}
+
+  {# Spec 010, F5: choose the visible columns with the gear menu; the choice is kept. #}
+  <div class="list-subbar">
+    <details class="column-menu gear-menu">
+      <summary class="button button-secondary gear-button" aria-label="Kolommen kiezen" title="Kolommen kiezen">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+        </svg>
+      </summary>
+      <form method="post" action="{{ url_for('pages.save_list_columns') }}" class="column-menu-panel" id="list-column-form">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <p class="panel-title">Kolommen</p>
+        {% for key, label in t.list_columns %}
+        <label class="checkbox"><input type="checkbox" name="kolom" value="{{ key }}" {% if key not in t.list_hidden %}checked{% endif %}> {{ label }}</label>
+        {% endfor %}
+        <button class="button button-secondary js-hide" type="submit">Opslaan</button>
+      </form>
+    </details>
+  </div>
 
   {% if t.matching == 0 %}
   <p class="muted table-empty">Geen studenten die aan deze filters voldoen.</p>
@@ -13,9 +33,8 @@
     <thead>
       <tr>
         <th scope="col" class="col-student" data-sort="name" aria-sort="ascending"><button type="button">Student</button></th>
-        {% for key, label in [("semester", "Semester"), ("project", "Project"), ("track", "Invulling"), ("squadrole", "Rol"),
-                              ("guild", "Gilde"), ("coach", "Coach"), ("guildmaster", "Gildemeester"), ("portflow", "Portflow")] %}
-        <th scope="col" data-sort="{{ key }}"><button type="button">{{ label }}</button></th>
+        {% for key, label in t.list_columns %}
+        <th scope="col" data-sort="{{ key }}" data-col="{{ key }}"><button type="button">{{ label }}</button></th>
         {% endfor %}
       </tr>
     </thead>
@@ -40,14 +59,14 @@
           <span class="avatar avatar-small">{{ row.initials }}</span>
           <a class="student-name student-link" href="{{ url_for('pages.student_edit_page', student_id=row.id, terug=request.full_path.rstrip('?')) }}">{{ row.name }}</a>
         </th>
-        <td data-sort-value="{{ row.semester or 99 }}">{{ row.semester or "–" }}</td>
-        <td data-sort-value="{{ (row.squad_full_name or '~')|lower }}">{{ row.squad_full_name or "–" }}</td>
-        <td data-sort-value="{{ (row.track or '~')|lower }}">{{ row.track or "–" }}</td>
-        <td data-sort-value="{{ row.squad_role or '~' }}">{% if row.squad_role %}<span class="role-label" title="{{ squad_roles.get(row.squad_role, '') }}">{{ row.squad_role }}</span>{% else %}–{% endif %}</td>
-        <td data-sort-value="{{ row.guild_codes or '~' }}">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}–{% endif %}</td>
-        <td class="col-extra" data-sort-value="{{ (row.coach or '~')|lower }}">{{ row.coach or "–" }}</td>
-        <td class="col-extra" data-sort-value="{{ (row.guild_master or '~')|lower }}">{{ row.guild_master or "–" }}</td>
-        <td class="col-extra{% if portflow != 'Gekoppeld' %} muted{% endif %}" data-sort-value="{{ portflow }}">{{ portflow }}</td>
+        <td data-col="semester" data-sort-value="{{ row.semester or 99 }}">{{ row.semester or "–" }}</td>
+        <td data-col="project" data-sort-value="{{ (row.squad_full_name or '~')|lower }}">{{ row.squad_full_name or "–" }}</td>
+        <td data-col="track" data-sort-value="{{ (row.track or '~')|lower }}">{{ row.track or "–" }}</td>
+        <td data-col="squadrole" data-sort-value="{{ row.squad_role or '~' }}">{% if row.squad_role %}<span class="role-label" title="{{ squad_roles.get(row.squad_role, '') }}">{{ row.squad_role }}</span>{% else %}–{% endif %}</td>
+        <td data-col="guild" data-sort-value="{{ row.guild_codes or '~' }}">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}–{% endif %}</td>
+        <td data-col="coach" class="col-extra" data-sort-value="{{ (row.coach or '~')|lower }}">{{ row.coach or "–" }}</td>
+        <td data-col="guildmaster" class="col-extra" data-sort-value="{{ (row.guild_master or '~')|lower }}">{{ row.guild_master or "–" }}</td>
+        <td data-col="portflow" class="col-extra{% if portflow != 'Gekoppeld' %} muted{% endif %}" data-sort-value="{{ portflow }}">{{ portflow }}</td>
       </tr>
       {% endfor %}
     </tbody>

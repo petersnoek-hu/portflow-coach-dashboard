@@ -5,7 +5,7 @@ from datetime import date
 
 from . import student_guilds
 from .progress import name_key
-from .overview import TRACKS
+from .overview import TRACK_LABELS, TRACKS
 
 SQUAD_ROLES = [("PO", "product owner"), ("SM", "scrum master"),
                ("2ePO", "tweede product owner"), ("2eSM", "tweede scrum master")]
@@ -34,8 +34,10 @@ def options(conn: sqlite3.Connection) -> dict:
     rows = lambda sql: [dict(r) for r in conn.execute(sql)]
     return {
         "semesters": rows("SELECT number, osiris_code FROM semesters ORDER BY number"),
-        "squads": rows("SELECT id, name, full_name FROM squads ORDER BY full_name"),
-        "tracks": TRACKS,
+        # The display name of the project (spec 012, F12), in the order of the project numbers.
+        "squads": [dict(s, full_name=s["display_name"] or s["full_name"]) for s in
+                   rows("SELECT id, name, full_name, display_name FROM squads ORDER BY full_name")],
+        "tracks": [(t, TRACK_LABELS[t]) for t in TRACKS],
         "squad_roles": SQUAD_ROLES,
         "roles": rows("SELECT r.id, r.code, r.name, g.code AS guild_code, g.name AS guild_name "
                       "FROM professional_roles r LEFT JOIN guilds g ON g.role_id = r.id ORDER BY r.code"),

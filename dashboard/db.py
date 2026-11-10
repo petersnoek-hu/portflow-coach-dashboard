@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS squads (
     number    TEXT,                          -- two digits, unique when filled
     name      TEXT NOT NULL,
     client    TEXT NOT NULL DEFAULT '',      -- opdrachtgever
+    display_name TEXT NOT NULL DEFAULT '',   -- weergavenaam, shown in the overviews (spec 012, F10-F12)
     full_name TEXT NOT NULL,
     color     TEXT NOT NULL DEFAULT '#909DB9',
     is_demo   INTEGER NOT NULL DEFAULT 0
@@ -176,6 +177,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
             if first.isdigit() and len(first) <= 2 and rest:
                 conn.execute("UPDATE squads SET number = ?, name = ? WHERE id = ?", (first.zfill(2), rest, row["id"]))
     _migrate_student_guilds(conn, columns)
+    squad_columns = {row["name"] for row in conn.execute("PRAGMA table_info(squads)")}
+    if "display_name" not in squad_columns:
+        conn.execute("ALTER TABLE squads ADD COLUMN display_name TEXT NOT NULL DEFAULT ''")
+        from .projects import fill_display_names   # F11: existing projects, once
+        fill_display_names(conn)
     staff_columns = {row["name"] for row in conn.execute("PRAGMA table_info(staff)")}
     if "is_coach" not in staff_columns:
         # Before specs 006/007 the list had no roles; existing names become coaches.

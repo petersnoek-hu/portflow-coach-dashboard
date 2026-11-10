@@ -671,3 +671,33 @@ a.button-danger { color: #fff; }
 .js-only { display: none !important; }
 html.js .js-only { display: inline-flex !important; }
 html.js .noscript-hint { display: none; }
+
+/* Kolommen kiezen met het tandwiel (spec 010, F5) ---------------------------------------- */
+
+.list-subbar { display: flex; justify-content: flex-end; margin-top: 10px; margin-bottom: 8px; }
+.gear-button { padding: 6px 9px; }
+.gear-button .icon { width: 18px; height: 18px; }
+.hide-col-semester [data-col=semester] { display: none; }
+.hide-col-project [data-col=project] { display: none; }
+.hide-col-track [data-col=track] { display: none; }
+.hide-col-squadrole [data-col=squadrole] { display: none; }
+.hide-col-guild [data-col=guild] { display: none; }
+.hide-col-coach [data-col=coach] { display: none; }
+.hide-col-guildmaster [data-col=guildmaster] { display: none; }
+.hide-col-portflow [data-col=portflow] { display: none; }
+.project-form input[name=weergavenaam] { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
+.project-display { margin: 2px 0 0; }
+
+/* Student bewerken: aligned fields (layout fix 2026-11-10) -------------------------------- */
+
+/* A hint under a label must not stretch the field next to it: fields sit at the bottom of their row. */
+.student-form > label { align-content: end; }
+.student-form > label > input, .student-form > label > select { height: 39px; box-sizing: border-box; }
+
+/* Portflow block: label left, status, choice and hint stacked and aligned on the right. */
+.portflow-link { display: grid; grid-template-columns: 110px 1fr; align-items: start; gap: 4px 16px; flex-wrap: nowrap; }
+.portflow-link-label { padding-top: 2px; }
+.portflow-link-body { display: grid; gap: 8px; justify-items: start; }
+.portflow-link .link-choice { display: grid; grid-template-columns: auto minmax(240px, 360px); align-items: center; gap: 12px; }
+.portflow-link .link-choice select { height: 39px; }
+.link-hint { font-size: 13px; }

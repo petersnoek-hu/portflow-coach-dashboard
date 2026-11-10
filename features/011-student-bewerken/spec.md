@@ -83,3 +83,7 @@ Geen eigen ontwerp. Het formulier volgt de formulieren van de beheerpagina's ([s
 - 2026-11-09 – het veld Notities is toegevoegd via [spec 013](../013-excel-importeren/spec.md), F12
 - 2026-11-09 – F3 gewijzigd op verzoek van de gebruiker: de Portflow-koppeling is te wijzigen ([spec 015](../015-koppelen-aan-portflow/spec.md), F5)
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): de velden Primaire beroepsrol, Secundaire beroepsrollen en Gildemeester zijn vervangen door het blok Gildes
+- 2026-11-10 – op verzoek van de gebruiker: de keuzelijst Project toont de weergavenaam ([spec 012](../012-projecten/spec.md), F12), en Invulling toont de opties met uitleg ("Stage (semester 5, 6 of 7)", …; [gegevensmodel.md](../../docs/gegevensmodel.md#student))
+- 2026-11-10 – layout: velden in het formulier even hoog en op één lijn; het blok Portflow netjes uitgelijnd (label links, status, keuzelijst en uitleg onder elkaar)
+- 2026-11-10 – labels ingekort op verzoek van de gebruiker: "Studentnummer" en "Startdatum" op één regel (de uitleg staat bij hover), "Rol in de squad" werd "Rol", en de uitleg bij Notities is weg
+- 2026-11-10 – op verzoek van de gebruiker: de toelichting bij Gildes is weg en "Startdatum" heet "Afwijkende semester startdatum"

@@ -183,6 +183,9 @@
     });
   });
 
+  const listColumnForm = document.getElementById("list-column-form");   // spec 010, F5
+  listColumnForm?.addEventListener("change", () => listColumnForm.submit());
+
   const colourForm = document.getElementById("colour-form");   // F23
   colourForm?.addEventListener("change", () => colourForm.submit());
 
@@ -346,4 +349,22 @@
     add.before(row);
     row.querySelector("select")?.focus();
   });
+})();
+
+(() => {
+  "use strict";
+
+  // Project form (spec 012, F11): fill the display name while typing, until the user edits it.
+  const display = document.getElementById("project-display");
+  if (!display) return;
+  const form = display.form;
+  const value = (name) => form.querySelector(`[name=${name}]`).value.trim();
+  const fill = () => {
+    if (display.dataset.edited) return;
+    const number = value("nummer");
+    const base = value("opdrachtgever") ? `${value("opdrachtgever")} - ${value("naam")}` : value("naam");
+    display.value = base ? (number ? `${base} (${number.padStart(2, "0")})` : base) : "";
+  };
+  display.addEventListener("input", () => { display.dataset.edited = display.value ? "1" : ""; });
+  ["nummer", "naam", "opdrachtgever"].forEach((name) => form.querySelector(`[name=${name}]`).addEventListener("input", fill));
 })();

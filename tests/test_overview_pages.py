@@ -495,11 +495,25 @@ class TestStudentList(PagesTestCase):  # spec 010
         self.assertNotIn("Product nog leeg</span>", html.split("</thead>")[1])
         row = re.search(r'data-sort-name="lieke jansen">(.*?)</tr>', html, re.S).group(1)
         cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
-        self.assertEqual(cells, ["3", "04 Horizon", "Open projecten", "SM", "FE",
+        self.assertEqual(cells, ["3", "Stichting Verzonnen Zorg - Horizon (04)", "Open projecten", "SM", "FE",
                                  "Marieke Ploeg", "Joost Hendriks", "Niet gekoppeld"])
         self.assertIn('title="scrum master">SM<', row)
         julia = re.search(r'data-sort-name="julia meijer">(.*?)</tr>', html, re.S).group(1)
         self.assertIn(">CI, CS<", julia)                     # spec 016: all guild codes
+
+    def test_gear_menu_hides_columns_and_keeps_choice(self):  # F5
+        self.load_demo()
+        html = self.html("/studenten")
+        self.assertIn('aria-label="Kolommen kiezen"', html)
+        self.assertEqual(len(re.findall(r'name="kolom" value="(\w+)" checked', html)), 8)
+        self.assertNotIn("hide-col-", html)
+        keep = ["semester", "project", "squadrole", "guild", "coach", "guildmaster"]   # not track and portflow
+        self.client.post("/studenten/lijstkolommen", data={"kolom": keep, "next": "/studenten"})
+        html = create_app(self.db_path).test_client().get("/studenten").get_data(as_text=True)   # after a restart
+        self.assertIn("hide-col-track", html)
+        self.assertIn("hide-col-portflow", html)
+        self.assertNotIn('value="track" checked', html)
+        self.assertIn('value="coach" checked', html)
 
     def test_portflow_column(self):  # F1
         with self.db() as conn:
@@ -654,9 +668,48 @@ class TestProjects(PagesTestCase):  # spec 012
         with self.db() as conn:
             conn.execute("UPDATE students SET squad_id = ? WHERE name = 'Iris Bouma'", (self.project_id("02"),))
         self.client.post(f"/projecten/{self.project_id('02')}/bewerken",
-                         data={"nummer": "02", "naam": "Gamified Learning 2", "opdrachtgever": "Condor", "kleur": "#123456"})
-        for path in ("/projecten", "/", "/studenten"):
-            self.assertIn("02 Gamified Learning 2", self.html(path), path)
+                         data={"nummer": "02", "naam": "Gamified Learning 2", "opdrachtgever": "Condor", "kleur": "#123456",
+                               "weergavenaam": "Condor (spel)"})
+        self.assertIn("02 Gamified Learning 2", self.html("/projecten"))
+        for path in ("/projecten", "/", "/studenten"):   # F12: the display name in the overviews
+            self.assertIn("Condor (spel)", self.html(path), path)
+        self.assertNotIn("02 Gamified Learning 2", self.html("/studenten"))
+
+    def test_edit_page_and_filters_show_display_name_and_track_labels(self):  # F12; docs/gegevensmodel.md#student
+        self.load_demo()
+        with self.db() as conn:
+            lieke = conn.execute("SELECT id FROM students WHERE name = 'Lieke Jansen'").fetchone()["id"]
+        page = self.html(f"/studenten/{lieke}/bewerken")
+        self.assertRegex(page, r'selected>Stichting Verzonnen Zorg - Horizon \(04\)</option>')
+        self.assertIn('<option value="Open projecten" selected>Open Projecten (jaar 2)</option>', page)
+        self.assertIn(">Afstuderen (semester 8)</option>", page)
+        overview = self.html("/studenten", invulling="Stage")
+        self.assertIn('<option value="Stage" selected>Stage (semester 5, 6 of 7)</option>', overview)
+        self.assertIn(">Minor (semester 6)</option>", overview)
+
+    def test_display_name_defaults(self):  # F10, F11
+        self.client.post("/projecten/nieuw/open-ict")
+        with self.db() as conn:
+            self.assertEqual(conn.execute("SELECT display_name FROM squads WHERE number = '02'").fetchone()[0],
+                             "Condor - Gamified learning (02)")
+        self.client.post("/projecten/handmatig", data={"nummer": "21", "naam": "Spel", "opdrachtgever": "Acme"})
+        self.client.post("/projecten/handmatig", data={"naam": "Stage"})
+        with self.db() as conn:
+            rows = dict(conn.execute("SELECT name, display_name FROM squads WHERE name IN ('Spel', 'Stage')").fetchall())
+        self.assertEqual(rows, {"Spel": "Acme - Spel (21)", "Stage": "Stage"})
+        self.assertIn("Weergavenaam", self.html("/projecten/handmatig"))
+
+    def test_display_name_filled_for_existing_projects(self):  # F11
+        with self.db() as conn:
+            conn.execute("DROP TABLE squads")
+            conn.execute("CREATE TABLE squads (id INTEGER PRIMARY KEY, number TEXT, name TEXT NOT NULL, client TEXT NOT NULL "
+                         "DEFAULT '', full_name TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#909DB9', is_demo INTEGER NOT NULL DEFAULT 0)")
+            conn.execute("INSERT INTO squads (number, name, client, full_name) VALUES ('02', 'Gamified Learning', 'Condor Arnhem OT', "
+                         "'02 Gamified Learning'), ('21', 'Spel', 'Acme', '21 Spel')")
+        create_app(self.db_path)
+        with self.db() as conn:
+            rows = [r[0] for r in conn.execute("SELECT display_name FROM squads ORDER BY number")]
+        self.assertEqual(rows, ["Condor - Gamified learning (02)", "Acme - Spel (21)"])
 
     def test_delete_moves_students_without_project(self):  # F9
         self.client.post("/projecten/nieuw/open-ict")

@@ -22,7 +22,7 @@
       <span class="visually-hidden">Invulling</span>
       <select name="invulling">
         <option value="">Alle invullingen</option>
-        {% for track in t.options.tracks %}<option {% if t.args.invulling == track %}selected{% endif %}>{{ track }}</option>{% endfor %}
+        {% for track, label in t.options.tracks %}<option value="{{ track }}" {% if t.args.invulling == track %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </label>
     <label class="select">

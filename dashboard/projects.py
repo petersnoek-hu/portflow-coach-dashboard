@@ -7,7 +7,6 @@ from pathlib import Path
 from .portflow_connection import initials
 
 PRESET_FILE = Path(__file__).resolve().parent.parent / "docs" / "openict-projecten.md"
-_PRESET_LINE = re.compile(r"^\|\s*(\d{1,2})\s*\|\s*(.+?)\s*\|\s*(.*?)\s*\|\s*$")
 # F6: colours from the designs (docs/design-system.md#projecten), used in turn.
 PALETTE = ["#7D6BA8", "#C17661", "#5E8C74", "#5B76A8", "#B58A4A", "#A86B8A", "#4F8FA8", "#6B8F3F"]
 _COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -18,11 +17,38 @@ def full_name(number: str | None, name: str) -> str:
 
 
 def read_preset(path: Path = PRESET_FILE) -> list[dict]:
-    """Rows '| NN | Projectnaam | Opdrachtgever |' from docs/openict-projecten.md (F5)."""
+    """Rows '| NN | Projectnaam | Opdrachtgever | Weergave |' from docs/openict-projecten.md (F5, F11).
+    The Weergave column may be missing."""
     if not path.exists():
         return []
-    return [{"number": m.group(1).zfill(2), "name": " ".join(m.group(2).split()), "client": " ".join(m.group(3).split())}
-            for m in map(_PRESET_LINE.match, path.read_text(encoding="utf-8").splitlines()) if m]
+    result = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        cells = [" ".join(c.split()) for c in line.strip().strip("|").split("|")]
+        if len(cells) < 3 or not re.fullmatch(r"\d{1,2}", cells[0]):
+            continue
+        number = cells[0].zfill(2)
+        short = cells[3] if len(cells) > 3 and cells[3] else ""
+        result.append({"number": number, "name": cells[1], "client": cells[2],
+                       "display_name": with_number(short, number) if short else default_display(number, cells[1], cells[2])})
+    return result
+
+
+def with_number(text: str, number: str | None) -> str:
+    """F11: 'Condor - Gamified learning' + 02 -> 'Condor - Gamified learning (02)'."""
+    return f"{text} ({number})" if number else text
+
+
+def default_display(number: str | None, name: str, client: str) -> str:
+    """F11: 'Opdrachtgever - Projectnaam (NN)' for a project added by hand."""
+    return with_number(f"{client} - {name}" if client else name, number)
+
+
+def fill_display_names(conn: sqlite3.Connection) -> None:
+    """F11: give existing projects without a display name the one from the file, else the default."""
+    preset = {p["number"]: p["display_name"] for p in read_preset()}
+    for row in conn.execute("SELECT id, number, name, client FROM squads WHERE display_name = ''").fetchall():
+        display = preset.get(row["number"]) or default_display(row["number"], row["name"], row["client"])
+        conn.execute("UPDATE squads SET display_name = ? WHERE id = ?", (display, row["id"]))
 
 
 def next_color(conn: sqlite3.Connection) -> str:
@@ -58,9 +84,10 @@ def find(conn: sqlite3.Connection, squad_id: int) -> sqlite3.Row | None:
 
 
 def validate(conn: sqlite3.Connection, number: str, name: str, client: str, color: str,
-             squad_id: int | None = None) -> tuple[dict | None, str | None]:
-    """F7: returns (clean values, None) or (None, Dutch error message)."""
+             squad_id: int | None = None, display_name: str = "") -> tuple[dict | None, str | None]:
+    """F7, F10: returns (clean values, None) or (None, Dutch error message)."""
     number, name, client = number.strip(), " ".join(name.split()), " ".join(client.split())
+    display_name = " ".join(display_name.split())
     if not name:
         return None, "Vul een naam in."
     if number and (not number.isdigit() or len(number) > 2):
@@ -71,13 +98,14 @@ def validate(conn: sqlite3.Connection, number: str, name: str, client: str, colo
     if not _COLOR.match(color.strip()):
         color = next_color(conn)
     return {"number": number, "name": name, "client": client, "color": color.strip(),
-            "full_name": full_name(number, name)}, None
+            "full_name": full_name(number, name),
+            "display_name": display_name or default_display(number, name, client)}, None
 
 
 def create(conn: sqlite3.Connection, values: dict, *, is_demo: bool = False) -> int:
     with conn:
-        return conn.execute("INSERT INTO squads (number, name, client, full_name, color, is_demo) "
-                            "VALUES (:number, :name, :client, :full_name, :color, :is_demo)",
+        return conn.execute("INSERT INTO squads (number, name, client, full_name, display_name, color, is_demo) "
+                            "VALUES (:number, :name, :client, :full_name, :display_name, :color, :is_demo)",
                             dict(values, is_demo=int(is_demo))).lastrowid
 
 
@@ -85,7 +113,7 @@ def update(conn: sqlite3.Connection, squad_id: int, values: dict) -> None:
     """F8: the students stay in the project."""
     with conn:
         conn.execute("UPDATE squads SET number = :number, name = :name, client = :client, full_name = :full_name, "
-                     "color = :color WHERE id = :id", dict(values, id=squad_id))
+                     "display_name = :display_name, color = :color WHERE id = :id", dict(values, id=squad_id))
 
 
 def delete(conn: sqlite3.Connection, squad_id: int) -> None:
@@ -100,6 +128,6 @@ def add_preset(conn: sqlite3.Connection) -> int:
     for project in read_preset():
         if conn.execute("SELECT 1 FROM squads WHERE number = ?", (project["number"],)).fetchone():
             continue
-        create(conn, dict(project, color=next_color(conn), full_name=full_name(project["number"], project["name"])))
+        create(conn, dict(project, color=next_color(conn), full_name=full_name(project["number"], project["name"])))  # F11
         added += 1
     return added

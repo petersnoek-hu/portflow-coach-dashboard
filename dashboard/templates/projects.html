@@ -47,6 +47,7 @@
       <div>
         <h2>{{ p.name }}</h2>
         <p class="muted staff-sub">{{ p.full_name }}</p>
+        {% if p.display_name %}<p class="staff-sub project-display">Weergave: <strong>{{ p.display_name }}</strong></p>{% endif %}
       </div>
     </div>
     {% if p.client %}<p class="staff-sub">{{ p.client }}</p>{% endif %}

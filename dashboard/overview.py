@@ -16,6 +16,9 @@ S_SEMESTER_START = "semester_start"
 S_SEMESTER_END = "semester_end"
 S_VISIBLE_COLUMNS = "overview_visible_columns"
 S_COLOURS_OFF = "overview_colours_off"      # spec 001, F23
+S_LIST_HIDDEN = "list_hidden_columns"       # spec 010, F5
+LIST_COLUMNS = [("semester", "Semester"), ("project", "Project"), ("track", "Invulling"), ("squadrole", "Rol"),
+                ("guild", "Gilde"), ("coach", "Coach"), ("guildmaster", "Gildemeester"), ("portflow", "Portflow")]
 COLOUR_KINDS = ["n0", "n1", "n2", "pending"]
 
 EXTRA_COLUMNS = [("coach", "Coach"), ("guild_master", "Gildemeester"), ("track", "Invulling")]
@@ -25,6 +28,11 @@ WHO = [("alle", "Alle gevolgde studenten"), ("coach", "Mijn coachstudenten"), ("
 GROUPINGS = [("squad", "Project"), ("none", "Niet groeperen"), ("track", "Invulling"), ("semester", "Semester"),
              ("guild", "Gilde")]   # "Beroepsrol" is the same as "Gilde" since spec 016
 TRACKS = ["Open projecten", "Open innovatieproject", "Stage", "Minor", "Afstuderen"]
+# The stored value stays short; dropdowns and filters show this label (docs/gegevensmodel.md#student).
+TRACK_LABELS = {"Open projecten": "Open Projecten (jaar 2)",
+                "Open innovatieproject": "Open Innovatieproject (semester 5, 6 of 7)",
+                "Stage": "Stage (semester 5, 6 of 7)", "Minor": "Minor (semester 6)",
+                "Afstuderen": "Afstuderen (semester 8)"}
 UNASSIGNED = "Nog in te delen"
 
 
@@ -83,6 +91,23 @@ def save_colours_on(conn: sqlite3.Connection, on: list[str]) -> None:
                      (S_COLOURS_OFF, json.dumps([k for k in COLOUR_KINDS if k not in on])))
 
 
+def list_hidden(conn: sqlite3.Connection) -> list[str]:
+    """Spec 010, F5: columns of the student list that the user switched off."""
+    row = conn.execute("SELECT value FROM settings WHERE key = ?", (S_LIST_HIDDEN,)).fetchone()
+    try:
+        keys = {k for k, _ in LIST_COLUMNS}
+        return [k for k in json.loads(row["value"]) if k in keys] if row and row["value"] else []
+    except ValueError:
+        return []
+
+
+def save_list_visible(conn: sqlite3.Connection, visible: list[str]) -> None:
+    with conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                     (S_LIST_HIDDEN, json.dumps([k for k, _ in LIST_COLUMNS if k not in visible])))
+
+
 def save_visible_columns(conn: sqlite3.Connection, keys: list[str]) -> None:
     allowed = {k for k, _ in EXTRA_COLUMNS} | {f"custom:{c['id']}" for c in custom_columns(conn)}
     with conn:
@@ -119,7 +144,7 @@ def save_custom_value(conn: sqlite3.Connection, student_id: int, column_id: int,
 # Rows -----------------------------------------------------------------------------------
 
 STUDENT_SQL = """
-SELECT s.*, sq.name AS squad_name, sq.full_name AS squad_full_name, sq.color AS squad_color,
+SELECT s.*, sq.name AS squad_name, sq.full_name AS squad_full_name, sq.display_name AS squad_display, sq.color AS squad_color,
        c.name AS coach_name
 FROM students s
 LEFT JOIN squads sq ON sq.id = s.squad_id
@@ -153,8 +178,10 @@ def student_rows(conn: sqlite3.Connection, today: date) -> list[dict]:
             "sub": sub,
             "semester": s["semester"],
             "squad_id": s["squad_id"],
-            "squad": s["squad_name"],
-            "squad_full_name": s["squad_full_name"],
+            # Spec 012, F12: the overviews show the display name instead of the project name.
+            "squad": s["squad_display"] or s["squad_name"],
+            "squad_full_name": s["squad_display"] or s["squad_full_name"],
+            "squad_sort": s["squad_full_name"] or "",
             "squad_color": s["squad_color"],
             "squad_role": s["squad_role"],
             "track": s["track"],
@@ -240,8 +267,7 @@ def group_rows(rows: list[dict], grouping: str) -> list[dict]:
                     guild["guild_color"] or "#909DB9", row)
         else:  # squad
             if row["squad_id"]:
-                put((1, (row["squad_full_name"] or "").casefold()), row["squad"], row["squad_full_name"],
-                    row["squad_color"], row)
+                put((1, row["squad_sort"].casefold()), row["squad"], "", row["squad_color"], row)
             else:
                 put((2, ""), "Zonder project", "", "#B9BFBB", row)
     return [groups[key] for key in sorted(groups, key=lambda k: tuple(str(p) for p in k))]
@@ -249,9 +275,11 @@ def group_rows(rows: list[dict], grouping: str) -> list[dict]:
 
 def filter_options(conn: sqlite3.Connection) -> dict:
     return {
-        "squads": [dict(r) for r in conn.execute("SELECT id, name, full_name FROM squads ORDER BY full_name")],
+        # F12: the filter shows the display name (in the order of the project numbers)
+        "squads": [dict(r, full_name=r["display_name"] or r["full_name"]) for r in conn.execute(
+            "SELECT id, name, full_name, display_name FROM squads ORDER BY full_name")],
         "roles": [dict(r) for r in conn.execute("SELECT id, code, name FROM professional_roles ORDER BY code")],
-        "tracks": TRACKS,
+        "tracks": [(t, TRACK_LABELS[t]) for t in TRACKS],
         "semesters": list(range(1, 9)),
     }
 

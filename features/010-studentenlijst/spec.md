@@ -44,6 +44,9 @@ Als **coach** of **gildemeester** wil ik op de pagina **Studenten** de basisgege
 - [x] **F4 – Paginakop.** Kopje "Studievoortgang", titel "Studenten", uitleg "Alle studenten die je volgt, met hun indeling."
   - *Acceptatie:* de pagina toont deze kop.
 
+- [x] **F5 – Kolommen kiezen (tandwiel).** Rechtsboven in de tabel staat een knopje met een **tandwiel**. Dat opent een lijst met de kolommen **Semester, Project, Invulling, Rol, Gilde, Coach, Gildemeester en Portflow**, elk met een vinkje (standaard alle aan). Een vinkje uitzetten verbergt die kolom, aanzetten toont hem weer. De kolom Student is altijd zichtbaar. De keuze wordt **bewaard**, ook na een herstart. Werkt ook zonder JavaScript (met een knop "Opslaan").
+  - *Acceptatie:* Invulling en Portflow uitzetten → de tabel toont die kolommen niet; na een herstart nog steeds niet; weer aanzetten → ze staan er weer.
+
 ### Buiten scope
 
 - Gegevens van een student bewerken: [spec 011](../011-student-bewerken/spec.md); de naam in de lijst opent die pagina
@@ -75,3 +78,6 @@ Geen eigen ontwerp. Volgt de tabel van het studentenoverzicht ([design-system.md
 - 2026-11-09 – gebouwd en getest (unit tests en in de browser); status klaar
 - 2026-11-10 – de keuze "Niet groeperen" (spec 001, F16) geldt ook hier, via de gedeelde werkbalk
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): de kolommen Beroepsrol, Gilde, Secundaire rollen en Gildemeester zijn samengevoegd tot Gilde en Gildemeester
+- 2026-11-10 – F5 toegevoegd op verzoek van de gebruiker: kolommen aan- en uitzetten met een tandwielmenu (keuze wordt bewaard)
+- 2026-11-10 – F5 gebouwd en getest (unit test en in de browser); status klaar
+- 2026-11-10 – projecten worden getoond met hun weergavenaam ([spec 012](../012-projecten/spec.md), F12)

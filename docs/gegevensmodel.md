@@ -62,7 +62,7 @@ Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach
 | Studentnummer | nee | Het **OV-nummer** (onderwijsovereenkomstnummer) |
 | Semester | ja, maar mag tijdelijk ontbreken | Precies één semester (1–8) per student |
 | Squad | nee | In de interface "project"; zonder squad valt de student onder "Zonder project" |
-| Invulling | nee | Open projecten (jaar 2), open innovatieproject (jaar 3), stage, minor of afstuderen |
+| Invulling | nee | Open projecten, Open innovatieproject, Stage, Minor of Afstuderen. In keuzelijsten en filters met uitleg: "Open Projecten (jaar 2)", "Open Innovatieproject (semester 5, 6 of 7)", "Stage (semester 5, 6 of 7)", "Minor (semester 6)", "Afstuderen (semester 8)" |
 | Rol in de squad | nee | PO, SM, 2ePO of 2eSM (product owner, scrum master, tweede PO, tweede SM) |
 | Startdatum | nee | Eigen begin van de semesterperiode voor deze student (bijvoorbeeld bij een latere instroom); anders geldt het begin uit Instellingen |
 | Gildes | ja, maar mag tijdelijk ontbreken | Nul of meer beroepsrollen (en daarmee gildes), elk met een eigen **gildemeester** (keuze uit de gildemeesters, niet verplicht); geen volgorde of "primair" ([spec 016](../features/016-gildes-van-een-student/spec.md)) |
@@ -104,6 +104,7 @@ Studenten die niet via Portflow zijn toegevoegd (manier 2 tot en met 4), koppelt
 | Nummer | Niet verplicht; twee cijfers, uniek, bijvoorbeeld "02" |
 | Naam | Verplicht, bijvoorbeeld "Gamified Learning" |
 | Opdrachtgever | Niet verplicht, bijvoorbeeld "Condor Arnhem OT" |
+| Weergavenaam | Vrij veld, bijvoorbeeld "Condor - Gamified learning (02)": de ingekorte opdrachtgever en projectnaam met het nummer tussen haakjes. Wordt in de overzichten getoond in plaats van de projectnaam ([spec 012](../features/012-projecten/spec.md), F10–F12) |
 | Kleur | Voor de weergave; de initialen volgen uit de naam |
 
 - De **volledige naam** is nummer en naam samen, bijvoorbeeld "02 Gamified Learning"; zonder nummer alleen de naam.

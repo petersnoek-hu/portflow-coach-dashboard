@@ -29,7 +29,7 @@
   <label>Naam
     <input name="name" value="{{ form.name }}" required>
   </label>
-  <label>Studentnummer <span class="muted">(OV-nummer, niet verplicht)</span>
+  <label title="Het OV-nummer (onderwijsovereenkomstnummer); niet verplicht">Studentnummer
     <input name="student_number" value="{{ form.student_number }}">
   </label>
 
@@ -40,7 +40,7 @@
     </select>
     {% if not options.semesters %}<span class="muted">Er zijn nog geen semesters. <a href="{{ url_for('pages.semesters_add') }}">Semester toevoegen</a></span>{% endif %}
   </label>
-  <label>Startdatum <span class="muted">(niet verplicht: eigen begin van de semesterperiode)</span>
+  <label title="Eigen begin van de semesterperiode voor deze student; niet verplicht">Afwijkende semester startdatum
     <input type="date" name="start_date" value="{{ form.start_date }}">
   </label>
 
@@ -53,18 +53,18 @@
   <label>Invulling
     <select name="track">
       <option value="">–</option>
-      {% for track in options.tracks %}<option {% if form.track == track %}selected{% endif %}>{{ track }}</option>{% endfor %}
+      {% for track, label in options.tracks %}<option value="{{ track }}" {% if form.track == track %}selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
   </label>
 
-  <label>Rol in de squad
+  <label>Rol
     <select name="squad_role">
       <option value="">Geen</option>
       {% for code, name in options.squad_roles %}<option value="{{ code }}" {% if form.squad_role == code %}selected{% endif %}>{{ code }} · {{ name }}</option>{% endfor %}
     </select>
   </label>
   <fieldset class="guild-rows form-wide" id="guild-rows">
-    <legend>Gildes <span class="muted">(per gilde een gildemeester; geen volgorde)</span></legend>
+    <legend>Gildes</legend>
     {% if not options.roles %}<p class="muted">Er zijn nog geen beroepsrollen. <a href="{{ url_for('pages.roles_add') }}">Beroepsrol toevoegen</a></p>{% endif %}
     {% for g in form.guilds + [{"role_id": "", "guild_master_id": ""}] %}
     <div class="guild-row{% if not g.role_id %} is-empty{% endif %}">
@@ -90,28 +90,30 @@
     </select>
   </label>
 
-  <label class="form-wide">Notities <span class="muted">(niet verplicht; de Excel-import zet hier kolommen die de app niet kent)</span>
+  <label class="form-wide">Notities
     <textarea name="notes" rows="5">{{ form.notes }}</textarea>
   </label>
 
   {% if student %}
   <div class="form-wide portflow-link">
-    <strong>Portflow</strong>
-    <span class="muted">{{ link_info.status }}{% if link_info.portfolios %} · portfolio {{ link_info.portfolios|join(", ") }}{% endif %}</span>
-    {% if link_choices is not none %}
-    <label class="link-choice">Koppelen aan
-      <select name="portflow">
-        <option value="geen" {% if form.portflow == "geen" %}selected{% endif %}>Niet gekoppeld</option>
-        {% for c in link_choices %}<option value="{{ c.portflow_user_id }}" {% if form.portflow == c.portflow_user_id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-        {% if student.portflow_user_id and not (link_choices|selectattr("portflow_user_id", "equalto", student.portflow_user_id)|list) %}
-        <option value="{{ student.portflow_user_id }}" selected>Huidige koppeling (niet meer gedeeld)</option>
-        {% endif %}
-      </select>
-    </label>
-    <span class="muted">Een andere keuze laat de bewaarde evaluaties van de oude koppeling vervallen; Verversen haalt de nieuwe op.</span>
-    {% else %}
-    <span class="muted">Verbind met Portflow om te koppelen.</span>
-    {% endif %}
+    <strong class="portflow-link-label">Portflow</strong>
+    <div class="portflow-link-body">
+      <span class="muted">{{ link_info.status }}{% if link_info.portfolios %} · portfolio {{ link_info.portfolios|join(", ") }}{% endif %}</span>
+      {% if link_choices is not none %}
+      <label class="link-choice"><span>Koppelen aan</span>
+        <select name="portflow">
+          <option value="geen" {% if form.portflow == "geen" %}selected{% endif %}>Niet gekoppeld</option>
+          {% for c in link_choices %}<option value="{{ c.portflow_user_id }}" {% if form.portflow == c.portflow_user_id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          {% if student.portflow_user_id and not (link_choices|selectattr("portflow_user_id", "equalto", student.portflow_user_id)|list) %}
+          <option value="{{ student.portflow_user_id }}" selected>Huidige koppeling (niet meer gedeeld)</option>
+          {% endif %}
+        </select>
+      </label>
+      <span class="muted link-hint">Een andere keuze laat de bewaarde evaluaties van de oude koppeling vervallen; Verversen haalt de nieuwe op.</span>
+      {% else %}
+      <span class="muted">Verbind met Portflow om te koppelen.</span>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 

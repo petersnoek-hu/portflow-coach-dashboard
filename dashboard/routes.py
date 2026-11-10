@@ -164,6 +164,8 @@ def _table_context() -> dict:
             "all_custom_columns": custom,
             "visible": visible,
             "colours_off": overview_data.colours_off(conn),
+            "list_columns": overview_data.LIST_COLUMNS,
+            "list_hidden": overview_data.list_hidden(conn),
             "query": request.query_string.decode(),
             "error": request.args.get("fout", ""),
         },
@@ -204,6 +206,13 @@ def _back_to_table():
 def save_columns():
     """F3: the visible extra and custom columns are kept."""
     overview_data.save_visible_columns(get_db(), request.form.getlist("kolom"))
+    return redirect(_back_to_table())
+
+
+@bp.post("/studenten/lijstkolommen")
+def save_list_columns():
+    """Spec 010, F5: the visible columns of the student list; the choice is kept."""
+    overview_data.save_list_visible(get_db(), request.form.getlist("kolom"))
     return redirect(_back_to_table())
 
 
@@ -949,8 +958,8 @@ def _project_form(project=None):
     error = None
     fields = ("nummer", "naam", "opdrachtgever", "kleur")
     if request.method == "POST":
-        form = {f: request.form.get(f, "") for f in fields}
-        values, error = projects.validate(conn, *(form[f] for f in fields), project_id)
+        form = {f: request.form.get(f, "") for f in fields + ("weergavenaam",)}
+        values, error = projects.validate(conn, *(form[f] for f in fields), project_id, form["weergavenaam"])
         if values:
             if project:
                 projects.update(conn, project_id, values)
@@ -959,9 +968,9 @@ def _project_form(project=None):
             return redirect(url_for("pages.squads"))
     elif project:
         form = {"nummer": project["number"] or "", "naam": project["name"], "opdrachtgever": project["client"],
-                "kleur": project["color"]}
+                "kleur": project["color"], "weergavenaam": project["display_name"]}
     else:
-        form = {"nummer": "", "naam": "", "opdrachtgever": "", "kleur": projects.next_color(conn)}
+        form = {"nummer": "", "naam": "", "opdrachtgever": "", "kleur": projects.next_color(conn), "weergavenaam": ""}
     title = "Project bewerken" if project else "Handmatig toevoegen"
     intro = project["full_name"] if project else "Nummer, naam, opdrachtgever en kleur van het project."
     return render_template("project_form.html", active="squads", form=form, error=error, page=_project_page(title, intro))
