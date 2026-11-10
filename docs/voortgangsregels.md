@@ -25,19 +25,19 @@ Een evaluatie op **startniveau** betekent: de evaluatie is gedaan, maar het nive
 
 Uit Portflow komen per vaardigheid alle *feedback items* (zie [architectuur.md](architectuur.md#portflow-api)). Een evaluatie **telt mee** en verschijnt in de cel als alle vier de voorwaarden gelden:
 
-1. **Beoordeeld door een ander:** het is geen zelfevaluatie van de student, en er is een niveau toegekend.
-2. **Bekende beoordelaar:** de beoordelaar staat in de lijst met coaches en gildemeesters in Instellingen ([gegevensmodel.md](gegevensmodel.md#gebruiker)). Dit geldt voor alle tien vaardigheden. Evaluaties van andere beoordelaars (bijvoorbeeld een ouderejaars student die evaluaties afnam) worden **volledig verborgen** en tellen niet mee.
+1. **Beoordeeld door een ander:** het is geen zelfevaluatie van de student, er is een niveau toegekend, en het verzoek is in Portflow als geheel beoordeeld (`review_request_scored` is niet `false`; overgenomen uit de console-app).
+2. **Bekende beoordelaar:** de beoordelaar staat op de pagina Coaches of Gildemeesters ([gegevensmodel.md](gegevensmodel.md#coaches-en-gildemeesters)). Dit geldt voor alle tien vaardigheden. Evaluaties van andere beoordelaars (bijvoorbeeld een ouderejaars student die evaluaties afnam) worden **volledig verborgen** en tellen niet mee.
 3. **Binnen de semesterperiode:** de datum van de evaluatie valt binnen de semesterperiode uit Instellingen. Heeft de student een eigen startdatum, dan geldt die als begin. Een evaluatie zonder herkenbare datum telt mee.
 4. **Een van de tien vaardigheden:** het doel in Portflow is een van de tien vaardigheden. Beroepstaken tellen **niet** mee voor het semester (zie [HBOi-beroepstaken.md](HBOi-beroepstaken.md)).
 
 <a id="openstaand"></a>
 ### Openstaande evaluaties (`?`)
 
-Heeft de student een evaluatie aangevraagd (zelfevaluatie ingediend), maar is die nog niet beoordeeld, dan staat er een `?` in de cel, na de behaalde niveaus. Voorbeeld: `1/?`. Een `?` telt **niet** mee voor "semester behaald" en niet voor de kleur van de cel; het heeft een eigen kleur ([design-system.md](design-system.md#niveaulabels)).
+Heeft de student een evaluatie aangevraagd (zelfevaluatie ingediend), maar is die nog niet beoordeeld, dan staat er een `?` in de cel, na de behaalde niveaus. Alleen zelfevaluaties binnen de semesterperiode tellen hiervoor. Voorbeeld: `1/?`. Een `?` telt **niet** mee voor "semester behaald". Een cel met een `?` krijgt een blauwe achtergrond, zodat openstaande verzoeken opvallen ([design-system.md](design-system.md#niveaulabels)).
 
 Geen `?` (overgenomen uit de console-app):
 
-- als het verzoek door de beoordelaar is **geweigerd**;
+- als het verzoek door de beoordelaar is **geweigerd**. Portflow geeft die status alleen voor verzoeken aan de gebruiker zelf; een verzoek dat een andere beoordelaar heeft geweigerd, blijft dus als `?` staan ([spec 005](../features/005-gegevens-ophalen/spec.md), F3);
 - als er voor die vaardigheid al een beoordeling is **op of na** de datum van de zelfevaluatie (het verzoek is dan beantwoord);
 - als er voor dezelfde vaardigheid een **nieuwer** openstaand verzoek is (alleen het nieuwste telt);
 - bij een **eindassessment**: een verzoek waarin de student in één keer alle tien vaardigheden indient. Dan staan er geen tien losse `?`, maar krijgt de student één markering **"Assessment ingeleverd"**.
@@ -65,6 +65,8 @@ Bron: *Tabel 1: Toetsprogramma – de eisen per semester* ([`screenshots/toetspr
 | 6 | Situatie | TICT-OV3SE6-26 (keuze, minor) | 4 op 3, 6 op 2 | Minimaal KPM op 2 | |
 | 7 | Situatie | TICT-OV4SE7-26 | 5 op 3, 5 op 2 | Minimaal KPM op 2 | |
 | 8 | Situatie | TICT-AFSTUD-25 | | BOKSA | hbo-i niveau S |
+
+Het dashboard leest deze tabel voor de knop "Open-ICT-semesters toevoegen" ([spec 009](../features/009-semesters/spec.md)); houd de vorm van de tabel daarom gelijk.
 
 Hoe de tabel te lezen is:
 
@@ -112,6 +114,7 @@ In de voortgangstabel (één rij per student, één kolom per vaardigheid OC …
 |---|---|---|
 | Nog geen evaluatie behaald, semester 3 of hoger | `-/-` | |
 | Nog geen evaluatie behaald, semester 1 of 2 | grijze cel | in deze semesters hoeft niet elke vaardigheid geëvalueerd te worden |
+| Nog geen evaluatie behaald, semester onbekend (student bij "Nog in te delen") | grijze cel | zoals semester 1 of 2 |
 | Eén evaluatie behaald | het niveau | `0` (startniveau), `1`, `2` of `3` |
 | Twee evaluaties behaald | beide niveaus | eerst niveau 1, daarna niveau 2 voor Samenwerken → `1/2`; andersom → `2/1`; eerst startniveau, daarna 1 → `0/1` |
 | Drie evaluaties (uitzondering) | alle drie | `1/1/2` |
@@ -125,9 +128,9 @@ In de voortgangstabel (één rij per student, één kolom per vaardigheid OC …
 <a id="signalen"></a>
 ## Signalen: lege vaardigheden
 
-Overgenomen uit de console-app. Alleen voor studenten in **semester 3 en hoger** (in semester 1 en 2 blijven lege cellen grijs). Per student, kijkend naar vaardigheden zonder behaalde evaluatie:
+Overgenomen uit de console-app. Alleen voor studenten in **semester 3 en hoger** (in semester 1 en 2, en zonder bekend semester, blijven lege cellen grijs en zijn er geen signalen). Per student, kijkend naar vaardigheden zonder behaalde evaluatie:
 
-Doel: de coach ziet snel welke studenten aangespoord moeten worden. Een signaal geldt voor de student als geheel en staat daarom als **label bij de naam**, niet in de cellen. De cellen houden hun gewone kleur.
+Doel: de coach ziet snel welke studenten aangespoord moeten worden. Een signaal geldt voor de student als geheel. Het wordt niet als label getoond (sinds 2026-11-10), maar bepaalt het filter **"Aan te sporen"**. De cellen houden hun gewone kleur.
 
 | Situatie | Signaal |
 |---|---|
@@ -157,4 +160,5 @@ Een `?` telt niet als gevuld. Het filter **"Aan te sporen"** toont alleen studen
 - [x] **Periode:** alleen evaluaties binnen de semesterperiode tellen.
 - [x] **Wie telt als beoordelaar:** alleen namen uit de lijst met coaches en gildemeesters; andere worden verborgen.
 - [x] **Signalen in semester 1 en 2:** niet; alleen vanaf semester 3.
+- [x] **Semester onbekend:** een lege cel is grijs, zoals bij semester 1 en 2, en er zijn geen signalen.
 - [x] **Signalen en celkleur:** signalen zijn labels bij de naam; de celkleur blijft het aantal evaluaties tonen.

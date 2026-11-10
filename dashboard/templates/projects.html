@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{# Projecten (spec 012, F1-F4, F9). #}
+{% block page_actions %}
+<a class="button button-primary" href="{{ url_for('pages.projects_add') }}">+ Nieuw project</a>
+{% endblock %}
+{% block content %}
+{% if added %}
+<div class="alert-success" role="status">
+  {% if added == "0" %}Geen projecten toegevoegd: ze stonden er al.{% else %}{{ added }} project{{ "en" if added != "1" }} toegevoegd.{% endif %}
+</div>
+{% endif %}
+
+{% if confirm %}
+<div class="confirm" role="alertdialog" aria-labelledby="remove-title">
+  <p id="remove-title">
+    <strong>{{ confirm.full_name }} verwijderen?</strong>
+    {% if confirm.students %}In {{ confirm.full_name }} zitten {{ confirm.students|length }} student{{ "en" if confirm.students|length != 1 }}; {{ "zij komen" if confirm.students|length != 1 else "die komt" }} bij Zonder project.
+    {% else %}Er zitten geen studenten in dit project.{% endif %}
+  </p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.squads') }}">Annuleren</a>
+    <form method="post" action="{{ url_for('pages.project_delete', project_id=confirm.id) }}">
+      <button class="button button-danger" type="submit">Verwijderen</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if not items %}
+<section class="card empty-state">
+  <h2>Nog geen projecten.</h2>
+  <p class="muted">Voeg de Open-ICT-projecten van september 2026 in één keer toe, of maak er zelf een.</p>
+  <a class="button button-primary" href="{{ url_for('pages.projects_add') }}">+ Nieuw project</a>
+</section>
+{% else %}
+<section class="summary-bar card">
+  <span><strong>{{ active_count }}</strong> {{ "actief project" if active_count == 1 else "actieve projecten" }}</span>
+  <span><strong>{{ in_project }}</strong> student{{ "en" if in_project != 1 }}</span>
+  <span><strong>{{ without|length }}</strong> zonder project</span>
+</section>
+
+<section class="staff-cards">
+  {% for p in items %}
+  <article class="card staff-card">
+    <div class="staff-card-head">
+      <span class="code-block" style="background: {{ p.color }}">{{ p.initials }}</span>
+      <div>
+        <h2>{{ p.name }}</h2>
+        <p class="muted staff-sub">{{ p.full_name }}</p>
+      </div>
+    </div>
+    {% if p.client %}<p class="staff-sub">{{ p.client }}</p>{% endif %}
+    <div class="project-footer">
+      <div class="avatar-stack" aria-label="Studenten">
+        {% for s in p.students[:8] %}<span class="avatar avatar-tiny" title="{{ s.name }}">{{ s.name|initials }}</span>{% endfor %}
+        {% if p.students|length > 8 %}<span class="avatar avatar-tiny avatar-more">+{{ p.students|length - 8 }}</span>{% endif %}
+      </div>
+      <span class="muted">{{ p.students|length }} student{{ "en" if p.students|length != 1 }}</span>
+    </div>
+    <div class="actions">
+      <a class="button button-secondary button-compact" href="{{ url_for('pages.project_edit', project_id=p.id) }}">Bewerken</a>
+      <a class="button button-secondary button-compact" href="{{ url_for('pages.squads', verwijder=p.id) }}">Verwijderen</a>
+    </div>
+  </article>
+  {% endfor %}
+  <a class="card add-card" href="{{ url_for('pages.projects_add') }}">
+    <span class="add-card-plus">+</span>
+    <strong>Project toevoegen</strong>
+    <span class="muted">Maak een nieuwe groep voor studenten</span>
+  </a>
+</section>
+{% endif %}
+
+<section class="card without-project">
+  <span class="code-block without-block">–</span>
+  <div>
+    <h2>Zonder project</h2>
+    <p class="muted staff-sub">Studenten blijven hier zichtbaar nadat een project is verwijderd.</p>
+  </div>
+  {% if without %}
+  <div class="avatar-stack" aria-label="Studenten zonder project">
+    {% for s in without[:10] %}<span class="avatar avatar-tiny" title="{{ s.name }}">{{ s.name|initials }}</span>{% endfor %}
+    {% if without|length > 10 %}<span class="avatar avatar-tiny avatar-more">+{{ without|length - 10 }}</span>{% endif %}
+  </div>
+  {% endif %}
+  <strong class="push-right">{{ without|length }} student{{ "en" if without|length != 1 }}</strong>
+</section>
+{% endblock %}

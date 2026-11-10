@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{# Studenten (spec 010): basic data of the students, or the empty state (F3). #}
+{% block page_actions %}
+<a class="button button-primary" href="{{ url_for('pages.add_students') }}">+ Student toevoegen</a>
+{% endblock %}
+{% block content %}
+{% if message %}<div class="alert-success" role="status">{{ message }}</div>{% endif %}
+{% if student_count == 0 %}
+{% include "_empty_students.html" %}
+{% else %}
+{% include "_student_list.html" %}
+{% endif %}
+{% endblock %}

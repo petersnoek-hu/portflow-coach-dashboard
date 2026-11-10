@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{# Voorbeeld van de import (spec 013, F6-F11). #}
+{% block content %}
+{% with job_sheet = job.sheet_index %}{% include "_excel_sheet_choice.html" %}{% endwith %}
+<form method="post" action="{{ url_for('excel.run', key=key) }}" class="card pick-form import-form">
+  <div class="import-summary">
+    <span><strong>{{ counts.new }}</strong> nieuw</span>
+    <span><strong>{{ counts.existing }}</strong> aanvullen</span>
+    <span><strong>{{ counts.unchanged }}</strong> ongewijzigd</span>
+    <span><strong>{{ counts.skipped }}</strong> overgeslagen</span>
+    <a class="push-right" href="{{ url_for('excel.mapping', key=key) }}">Kolommen anders koppelen</a>
+  </div>
+  <p class="muted import-mapping">Gekoppeld:
+    {% for i in range(header|length) %}{% set kind = job.mapping[i] %}{% if kind != "unused" %}<span class="tag">{{ header[i] or "Kolom " ~ (i + 1) }} → {{ labels[kind] }}</span>{% endif %}{% endfor %}
+  </p>
+
+  <p class="muted import-hint">{% if user_known %}Aangevinkt zijn de {{ mine_count }} nieuwe student{{ "en" if mine_count != 1 }} bij wie jouw naam in een kolom staat. Vink zelf anderen aan of vink ze uit.{% else %}Je naam is nog niet bekend (verbind met Portflow); daarom zijn alle nieuwe studenten aangevinkt.{% endif %}</p>
+  <div class="pick-toolbar">
+    <input type="search" id="import-search" class="pick-search" placeholder="Zoek op naam" aria-label="Zoek op naam">
+    <button type="button" class="button button-secondary" data-import-select="all">Selecteer alles</button>
+    <button type="button" class="button button-secondary" data-import-select="none">Selecteer niets</button>
+  </div>
+
+  <ul class="import-list" id="import-rows">
+    {% for row in rows %}
+    <li class="import-row status-{{ row.status }}" data-search="{{ row.search }}">
+      <div class="import-head">
+        {% if row.status == "new" %}
+        <label class="checkbox"><input type="checkbox" name="nieuw" value="{{ row.number }}" {% if row.mine_column or not user_known %}checked{% endif %} data-import-new> <strong>{{ row.name }}</strong></label>
+        {% else %}
+        <strong>{{ row.name or "(geen naam)" }}</strong>
+        {% endif %}
+        <span class="tag status-tag">{{ {"new": "Nieuw", "existing": "Aanvullen", "unchanged": "Ongewijzigd", "skipped": "Overgeslagen"}[row.status] }}</span>
+        {% if row.mine_column %}<span class="tag tag-user">Jouw naam in kolom {{ row.mine_column }}</span>{% endif %}
+        <span class="muted">rij {{ row.number }}</span>
+        {% if row.reason %}<span class="muted">· {{ row.reason }}</span>{% endif %}
+      </div>
+      {% if row.status == "new" %}
+      <p class="import-detail muted">{% for key, value in row.values.items() %}{{ labels[key] }}: {{ value[1] }}{% if not loop.last %} · {% endif %}{% endfor %}{% if row.guilds %} · Gilde: {{ row.guilds|map(attribute="code")|join(", ") }}{% if row.guild_master %} (gildemeester {{ row.guild_master.name }}){% endif %}{% endif %}{% if row.notes %} · {{ row.notes|length }} notitieregel{{ "s" if row.notes|length != 1 }}{% endif %}</p>
+      {% elif row.status == "existing" %}
+      <ul class="import-detail">
+        {% for key, label, display in row.fills %}<li class="fill">+ {{ label }}: {{ display }}</li>{% endfor %}
+        {% for role, master, text in row.guild_fills %}<li class="fill">+ {{ text }}</li>{% endfor %}
+        {% if row.new_notes %}<li class="fill">+ {{ row.new_notes|length }} notitieregel{{ "s" if row.new_notes|length != 1 }}</li>{% endif %}
+        {% for key, label, old, new in row.changes %}
+        <li><label class="checkbox"><input type="checkbox" name="overnemen" value="{{ row.number }}:{{ key }}"> {{ label }}: {{ old }} → <strong>{{ new }}</strong> <span class="muted">(overnemen)</span></label></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if row.warnings and row.status != "skipped" %}
+      <ul class="import-warnings">{% for w in row.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+
+  <label>Coach voor nieuwe studenten zonder coach
+    <select name="coach">
+      <option value="">Geen</option>
+      {% for c in coaches %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+    </select>
+  </label>
+
+  <div class="actions">
+    <button class="button button-secondary" type="submit" formaction="{{ url_for('excel.cancel', key=key) }}" formnovalidate>Annuleren</button>
+    <button class="button button-primary" type="submit" id="import-submit"
+            data-existing="{{ counts.existing }}">Importeren ({{ mine_count if user_known else counts.new }} toevoegen, {{ counts.existing }} bijwerken)</button>
+  </div>
+</form>
+{% endblock %}

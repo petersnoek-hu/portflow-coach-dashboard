@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{# Kolommen koppelen (spec 013, F5). #}
+{% block content %}
+{% with job_sheet = sheet_index %}{% include "_excel_sheet_choice.html" %}{% endwith %}
+<form method="post" class="card mapping-form">
+  {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+  <p class="muted">Kies per kolom uit het bestand welk gegeven erin staat. Een gegeven kan maar aan één kolom gekoppeld zijn.
+    Kolommen op "Notitie" komen als regel "Kolomnaam: waarde" bij de student.</p>
+  <label class="header-row">Kopregel staat op rij
+    <input name="kopregel" value="{{ header_row }}" inputmode="numeric" class="input-short">
+    <button class="button button-secondary button-compact" type="submit">Andere kopregel</button>
+  </label>
+  <table class="mapping-table">
+    <thead><tr><th>Kolom in het bestand</th><th>Voorbeelden</th><th>Hoort bij</th></tr></thead>
+    <tbody>
+      {% for c in columns %}
+      <tr>
+        <th scope="row">{{ c.name }}</th>
+        <td class="muted">{{ c.samples|join(" · ") or "–" }}</td>
+        <td>
+          <select name="kolom{{ c.index }}" aria-label="{{ c.name }} hoort bij">
+            {% for value, label in choices %}<option value="{{ value }}" {% if c.choice == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('excel.upload') }}">Ander bestand</a>
+    <button class="button button-primary" type="submit" name="koppelen" value="1">Naar het voorbeeld</button>
+  </div>
+</form>
+{% endblock %}

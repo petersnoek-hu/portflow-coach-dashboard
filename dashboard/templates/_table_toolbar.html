@@ -1,0 +1,53 @@
+{# Filters, grouping and search for the student tables (spec 001 F13-F17, spec 010 F2). #}
+{% set t = table %}
+  <form method="get" class="table-toolbar" id="table-filters">
+    <input type="search" class="table-search" id="table-search" placeholder="Zoek op naam, project of profiel"
+           aria-label="Zoek op naam, project of profiel" autocomplete="off">
+    <kbd class="kbd" aria-hidden="true">⌘K</kbd>
+
+    <label class="select">
+      <span class="visually-hidden">Wie</span>
+      <select name="wie">
+        {% for value, label in t.who_options %}<option value="{{ value }}" {% if t.args.wie == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="select">
+      <span class="visually-hidden">Semester</span>
+      <select name="semester">
+        <option value="">Alle semesters</option>
+        {% for s in t.options.semesters %}<option value="{{ s }}" {% if t.args.semester == s|string %}selected{% endif %}>Semester {{ s }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="select">
+      <span class="visually-hidden">Invulling</span>
+      <select name="invulling">
+        <option value="">Alle invullingen</option>
+        {% for track in t.options.tracks %}<option {% if t.args.invulling == track %}selected{% endif %}>{{ track }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="select">
+      <span class="visually-hidden">Project</span>
+      <select name="project">
+        <option value="">Alle projecten</option>
+        {% for squad in t.options.squads %}<option value="{{ squad.id }}" {% if t.args.project == squad.id|string %}selected{% endif %}>{{ squad.full_name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="select">
+      <span class="visually-hidden">Beroepsrol</span>
+      <select name="rol">
+        <option value="">Alle beroepsrollen</option>
+        {% for role in t.options.roles %}<option value="{{ role.id }}" {% if t.args.rol == role.id|string %}selected{% endif %}>{{ role.code }} · {{ role.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="select">
+      <span class="visually-hidden">Groeperen</span>
+      <select name="groep">
+        {% for value, label in t.grouping_options %}<option value="{{ value }}" {% if t.grouping == value %}selected{% endif %}>{% if value == "none" %}{{ label }}{% else %}Groeperen: {{ label }}{% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="toggle">
+      <input type="checkbox" name="aansporen" value="1" {% if t.args.aansporen %}checked{% endif %}>
+      Aan te sporen
+    </label>
+    <button class="button button-secondary js-hide" type="submit">Toepassen</button>
+  </form>

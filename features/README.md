@@ -68,21 +68,33 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 
 | Nr | Functie | Status |
 |---|---|---|
-| 001 | [Studentenoverzicht](001-studentenoverzicht/spec.md) | `uitgewerkt` (bouwen na Portflow verbinden en Studenten toevoegen) |
+| 001 | [Studentenoverzicht](001-studentenoverzicht/spec.md) | `klaar` |
 | 002 | [Basisapplicatie en schil](002-app-schil/spec.md) | `klaar` |
 | 003 | [Portflow verbinden](003-portflow-verbinden/spec.md) | `klaar` (F17 niet getest) |
-| 004 | [Studenten toevoegen](004-studenten-toevoegen/spec.md) | `uitgewerkt` (dekt nu alleen de lege staat, het keuzescherm en "Uit Portflow kiezen") |
+| 004 | [Studenten toevoegen](004-studenten-toevoegen/spec.md) | `klaar` (dekt nu alleen de lege staat, het keuzescherm en "Uit Portflow kiezen"; niet echt getest met Portflow) |
+| 005 | [Gegevens ophalen en verversen](005-gegevens-ophalen/spec.md) | `klaar` |
+| 006 | [Gildemeesters en gildes](006-gildemeesters/spec.md) | `klaar` |
+| 007 | [Coaches](007-coaches/spec.md) | `klaar` (werkt als 006) |
+| 008 | [Beroepsrollen](008-beroepsrollen/spec.md) | `klaar` |
+| 009 | [Semesters](009-semesters/spec.md) | `klaar` |
+| 010 | [Studentenlijst](010-studentenlijst/spec.md) | `klaar` |
+| 011 | [Student bewerken](011-student-bewerken/spec.md) | `klaar` |
+| 012 | [Projecten](012-projecten/spec.md) | `klaar` |
+| 013 | [Studenten importeren uit Excel](013-excel-importeren/spec.md) | `klaar` |
+| 014 | [Alles verwijderen](014-alles-verwijderen/spec.md) | `klaar` (nog niet in de browser bekeken) |
+| 015 | [Koppelen aan Portflow](015-koppelen-aan-portflow/spec.md) | `klaar` |
+| 016 | [Gildes van een student](016-gildes-van-een-student/spec.md) | `klaar` |
+| 017 | [Student handmatig toevoegen](017-student-handmatig-toevoegen/spec.md) | `klaar` |
 
 ## Kandidaten
 
 Deze onderdelen volgen uit de ontwerpen en de docs. Ze zijn nog géén spec; ze kunnen er een worden:
 
-- **Gegevens ophalen en verversen:** lokaal bewaren, verversen bij openen en met een knop ([architectuur](../docs/architectuur.md#verversen))
-- **Eerste start en instellingen:** gildes van de gebruiker (de naam komt uit Portflow), rollen bij de naam ("Coach · Gildemeester"), lijst met coaches en gildemeesters, semesterperiode, drempel "zonder recente update" ([gegevensmodel](../docs/gegevensmodel.md#gebruiker))
-- **Studenten toevoegen (vervolg):** Excel uploaden, namen plakken, CSV/cellen plakken, plus automatisch koppelen op naam aan een gedeeld portfolio ([gegevensmodel](../docs/gegevensmodel.md#studenten-toevoegen)); "uit Portflow kiezen" staat al in [spec 004](004-studenten-toevoegen/spec.md)
-- **Studenten beheren:** velden van een student bewerken, inclusief coach en gildemeester
+- **Eerste start en instellingen:** gildes van de gebruiker (de naam komt uit Portflow), rollen bij de naam ("Coach · Gildemeester"), semesterperiode, drempel "zonder recente update" ([gegevensmodel](../docs/gegevensmodel.md#gebruiker))
+- **Studenten toevoegen (vervolg):** namen plakken, CSV/cellen plakken, ([gegevensmodel](../docs/gegevensmodel.md#studenten-toevoegen)); "uit Portflow kiezen" staat al in [spec 004](004-studenten-toevoegen/spec.md)
+- **Studenten beheren:** het bewerken van één student staat in [spec 011](011-student-bewerken/spec.md); nog open: meerdere studenten tegelijk, de Portflow-koppeling wijzigen
 - **Semesterstatus:** voldoet een student aan het toetsprogramma van zijn semester, en wat ontbreekt nog? (Volgt uit [voortgangsregels](../docs/voortgangsregels.md).)
-- **Projecten (squads)**, **Semesters**, **Beroepsrollen**, **Kolommen:** de beheerschermen
+- **Kolommen:** het beheerscherm (Projecten: [spec 012](012-projecten/spec.md), Beroepsrollen: [spec 008](008-beroepsrollen/spec.md), Semesters: [spec 009](009-semesters/spec.md))
 - **Signaalkaarten:** evaluaties te beoordelen, studenten zonder recente update, actieve coachstudenten
 - **Te beoordelen:** openstaande evaluatieverzoeken aan de gebruiker, met link naar Portflow
 - **Weekgrafiek:** evaluaties per week, behaald en ingediend

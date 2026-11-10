@@ -99,8 +99,9 @@ De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../f
 ### Verversen
 
 - De laatst opgehaalde Portflow-gegevens worden **lokaal bewaard**, zodat de app direct opent.
-- Verversen gebeurt **bij het openen** van de app en met een **knop**. De kop toont "Bijgewerkt om …".
-- Tijdens het ophalen is de voortgang zichtbaar. Feedback items worden parallel opgehaald (de console gebruikt 8 tegelijk).
+- Verversen gebeurt **alleen met de knop "Verversen"** in de bovenbalk, naast de Portflow-status; niet vanzelf bij het openen en niet na het toevoegen van studenten. Naast de knop staat "Bijgewerkt om …".
+- Tijdens het ophalen is de voortgang zichtbaar. Feedback items worden parallel opgehaald, hooguit 8 tegelijk.
+- De uitgewerkte eisen staan in [spec 005](../features/005-gegevens-ophalen/spec.md).
 
 ## Privacy
 
@@ -109,6 +110,7 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 - Alleen tonen wat een coach nodig heeft.
 - Geen echte studentgegevens in screenshots, testdata of de repository. Ontwerpscreenshots met echte namen staan in `.gitignore` tot ze geanonimiseerd zijn.
 - Studentgegevens blijven lokaal op de laptop van de gebruiker; de lokale database, het Portflow-token en het browserprofiel staan niet in de repository.
+- Ingelezen Excelbestanden worden niet bewaard. Notities bij een student kunnen contactgegevens bevatten als de gebruiker die bij het importeren meeneemt; ze blijven lokaal in de database ([spec 013](../features/013-excel-importeren/spec.md)).
 
 ## Beslissingen
 
@@ -119,6 +121,12 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 | 2026-11-09 | Studenten worden automatisch aan Portflow gekoppeld op naam, met controle door de gebruiker bij twijfel | Weinig handwerk, maar geen stille fouten |
 | 2026-11-09 | Inloggen zoals de console-app: Chrome-venster, token opvangen, lokaal bewaren | Enige bekende manier; gebruiker logt in via HU-SSO |
 | 2026-11-09 | Token verversen in een zichtbaar Chrome-venster met hetzelfde profiel (standaard); onzichtbaar verversen als instelling | Portflow heeft geen refresh-endpoint; headless blijft hangen op de accountkeuze van SURFconext |
-| 2026-11-09 | Portflow-gegevens lokaal bewaren; verversen bij openen en met een knop | Ophalen duurt even; de app moet direct openen |
+| 2026-11-09 | Portflow-gegevens lokaal bewaren; verversen alleen met een knop in de bovenbalk | Ophalen duurt even; de app moet direct openen, en de gebruiker bepaalt zelf wanneer er Portflow-verkeer is |
 | 2026-11-09 | Flask + server-HTML + eigen JS/CSS + SQLite; venv; code in het Engels | Eenvoudigste codebase met de minste dependencies; geen build-stap |
 | 2026-11-09 | Alleen evaluaties van beoordelaars uit de eigen lijst tellen; de vaste uitzondering in de console-app vervalt | Evaluaties door bijvoorbeeld ouderejaars studenten onderscheiden van die door coaches en gildemeesters |
+| 2026-11-09 | Coaches en gildemeesters in één tabel met personen en rollen, met twee eigen pagina's | Iemand kan beide zijn; één naam op één plek wijzigen |
+| 2026-11-09 | Gildes als eigen lijst (code, naam, kleur), één per beroepsrol; start leeg | De gebruiker beheert de gildes; de Open-ICT-gildes zijn met één knop toe te voegen |
+| 2026-11-09 | Beroepsrollen starten leeg en worden niet meer vanzelf aangemaakt; de negen Open-ICT-rollen met één knop | Net als bij gildes; een verwijderde rol komt niet terug |
+| 2026-11-09 | Semesters als eigen lijst met de eisen als vrije tekst; start leeg, de 8 Open-ICT-semesters met één knop; het semester van een student blijft een nummer | Weergave van het toetsprogramma; de rekenregels blijven op één plek (voortgangsregels.md) |
+| 2026-11-09 | Projecten met nummer, naam, opdrachtgever en kleur; start leeg, de Open-ICT-projecten met één knop | Net als bij de andere beheerlijsten |
+| 2026-11-09 | Excelbestanden (.xlsx) inlezen zonder extra pakket (zip met XML); het bestand wordt niet bewaard | Geen nieuwe dependency; studentgegevens blijven zo kort mogelijk in de app |

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{# Overzicht: lege staat (spec 004), verkorte studententabel (spec 001, F1). #}
+{% block page_actions %}
+{% if student_count > 0 %}
+<a class="button button-primary" href="{{ url_for('pages.add_students') }}">+ Student toevoegen</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+{% if message %}<div class="alert-success" role="status">{{ message }}</div>{% endif %}
+{% if added or linked %}
+<div class="alert-success" role="status">
+  {% if added %}
+  {{ added }} student{{ "en" if added != 1 else "" }} toegevoegd.
+  {{ "Ze staan" if added != 1 else "Die staat" }} bij Nog in te delen.
+  {% endif %}
+  {% if linked %}
+  {{ linked }} bestaande student{{ "en" if linked != 1 else "" }} gekoppeld.
+  {% endif %}
+  Klik op Verversen om hun evaluaties op te halen.
+</div>
+{% endif %}
+
+{% if student_count == 0 %}
+{% include "_empty_students.html" %}
+{% else %}
+<h2 class="section-title">Studentenoverzicht</h2>
+{% include "_student_table.html" %}
+{% endif %}
+{% endblock %}

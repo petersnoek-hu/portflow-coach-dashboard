@@ -38,6 +38,8 @@ Dit is de eerste code van het project. De technische keuzes staan in [architectu
 
 - [x] **F5 – Zijbalk.** Donkergroen. Bovenaan het **terminal-woordmerk**: `>_ portflow` in een monospace letter, met daaronder "coach dashboard" (een knipoog naar de console-app). Daaronder het kopje "Werkruimte" en de menu-items Overzicht, Studenten, Evaluaties, Projecten, Kolommen, Beroepsrollen, Semesters en Instellingen, elk met een icoon. De browsertab heeft een `>_`-icoon. Het actieve item is gemarkeerd.
   - *Acceptatie:* een klik op Projecten opent de pagina Projecten, en dan is Projecten in de zijbalk gemarkeerd. De browsertab heet "Portflow coach dashboard".
+- [x] **F17 – Menugroep Beheer.** De beheerpagina's staan in de zijbalk onder één menu-item **Beheer** dat open- en dichtklapt, in deze volgorde: Semesters, Beroepsrollen, Gildes, Gildemeesters, Coaches, Projecten, Kolommen. De zijbalk wordt daarmee: Overzicht, Studenten, Evaluaties, **Beheer ▸**, Instellingen. Bij het openen van de app en op pagina's buiten Beheer is de groep **dichtgeklapt**; op een pagina binnen Beheer is hij **opengeklapt**, met die pagina gemarkeerd. De gebruiker kan hem altijd zelf open- en dichtklikken. Werkt zonder JavaScript.
+  - *Acceptatie:* op Overzicht zijn de zeven beheerpagina's niet zichtbaar; een klik op Beheer toont ze in de genoemde volgorde; op de pagina Gildes is Beheer open en Gildes gemarkeerd.
 - [x] **F6 – Gebruiker onderin de zijbalk.** Zolang de eerste start (naam invullen) niet gebouwd is: een neutrale avatar met de tekst **"Gebruiker"**, zonder rollen. Geen hulpkaart ("Hulp nodig?"); die komt pas als er een handleiding is.
   - *Acceptatie:* onderin de zijbalk staat "Gebruiker"; er is geen hulpkaart.
 - [x] **F7 – Bovenbalk.** De Portflow-status "Niet verbonden" (deze functie verbindt nog niet) en de avatar van de gebruiker. Geen belletje; dat komt pas als er meldingen zijn.
@@ -75,6 +77,9 @@ Dit is de eerste code van het project. De technische keuzes staan in [architectu
   - studenten met signalen;
   - een student zonder toegang.
   - *Acceptatie:* een test controleert dat elk genoemd geval in de demoset voorkomt.
+
+- [x] **F18 – Demodata voor beroepsrollen, gildes en semesters.** Bij het laden voegt de demo de Open-ICT-beroepsrollen ([spec 008](../008-beroepsrollen/spec.md)), -gildes ([spec 006](../006-gildemeesters/spec.md)) en -semesters ([spec 009](../009-semesters/spec.md)) toe die nog **ontbreken**, gemarkeerd als demo. De demo-beroepsrollen krijgen een verzonnen korte beschrijving en elk een eigen kleur; het demo-gilde krijgt de kleur van zijn rol. Bestaan ze al (codes en semesternummers zijn uniek), dan gebruikt de demo de bestaande en verandert daar niets aan. Instellingen toont per soort wat de demo doet: "9" (toegevoegd als demo) of "gebruikt je bestaande 9". Verwijderen van de demodata verwijdert alleen wat de demo heeft toegevoegd.
+  - *Acceptatie:* op een leeg dashboard levert "Demodata laden" 9 beroepsrollen met beschrijving, 9 gildes en 8 semesters op, en na "Demodata verwijderen" zijn ze weg; met 9 bestaande rollen toont Instellingen "Beroepsrollen: gebruikt je bestaande 9" en blijven die rollen ongewijzigd.
 
 ### Uiterlijk
 
@@ -126,3 +131,8 @@ Dit is de eerste code van het project. De technische keuzes staan in [architectu
 - 2026-11-09 – poort gewijzigd van 5000 naar 5050, instelbaar met `--port` (5000 is op macOS bezet door AirPlay); status in bouw
 - 2026-11-09 – gebouwd en gecontroleerd: 17 tests slagen (`python -m unittest`); in de browser gecontroleerd op 1440 px breed: alle pagina's, demodata laden, bevestigen, verwijderen, alleen verzoeken naar 127.0.0.1. Extra: `--no-browser` en een favicon. Status klaar.
 - Niet automatisch getest: het vanzelf openen van de browser (F1) en de onbereikbaarheid vanaf een ander apparaat (F2; volgt uit het luisteren op 127.0.0.1).
+- 2026-11-09 – F17 toegevoegd op verzoek van de gebruiker: menugroep Beheer (volgorde en open/dicht door de gebruiker gekozen)
+- 2026-11-09 – F17 gebouwd en getest; status klaar
+- 2026-11-09 – Kolommen op verzoek van de gebruiker ook onder Beheer gezet (als laatste)
+- 2026-11-09 – F18 toegevoegd op verzoek van de gebruiker: demodata voor beroepsrollen, gildes en semesters
+- 2026-11-09 – F18 gebouwd en getest; status klaar

@@ -2,6 +2,10 @@
 
 import unittest
 
+import tempfile
+from pathlib import Path
+
+from dashboard import db, demo, roles
 from dashboard.demo import SKILLS, STAFF, STUDENTS
 
 PRODUCT = {"OC", "KO", "JKO", "KPM"}
@@ -75,3 +79,44 @@ class TestDemoCoverage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSharedDemoData(unittest.TestCase):  # spec 002, F18
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = str(Path(self.tmp.name) / "test.sqlite3")
+        db.init_db(self.path)
+        self.conn = db.connect(self.path)
+
+    def tearDown(self):
+        self.conn.close()
+        self.tmp.cleanup()
+
+    def count(self, table, where="1"):
+        return self.conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {where}").fetchone()[0]
+
+    def test_empty_dashboard_gets_demo_roles_guilds_semesters(self):
+        demo.load_demo_data(self.conn)
+        self.assertEqual(self.count("professional_roles", "is_demo = 1 AND description != ''"), 9)
+        self.assertEqual(self.count("guilds", "is_demo = 1"), 9)
+        self.assertEqual(self.count("semesters", "is_demo = 1"), 8)
+        fe = self.conn.execute("SELECT r.color, g.color FROM professional_roles r JOIN guilds g ON g.role_id = r.id "
+                               "WHERE r.code = 'FE'").fetchone()
+        self.assertEqual(fe[0], fe[1])
+        self.assertEqual(dict(demo.demo_counts(self.conn))["Beroepsrollen"], 9)
+        demo.remove_demo_data(self.conn)
+        for table in ("professional_roles", "guilds", "semesters"):
+            self.assertEqual(self.count(table), 0, table)
+
+    def test_existing_roles_are_used_and_unchanged(self):
+        roles.add_preset(self.conn)
+        self.conn.execute("UPDATE professional_roles SET description = 'Eigen tekst', color = '#000000' WHERE code = 'FE'")
+        self.conn.commit()
+        demo.load_demo_data(self.conn)
+        self.assertEqual(self.count("professional_roles", "is_demo = 1"), 0)
+        fe = self.conn.execute("SELECT description, color FROM professional_roles WHERE code = 'FE'").fetchone()
+        self.assertEqual(tuple(fe), ("Eigen tekst", "#000000"))
+        self.assertEqual(dict(demo.demo_counts(self.conn))["Beroepsrollen"], "gebruikt je bestaande 9")
+        demo.remove_demo_data(self.conn)
+        self.assertEqual(self.count("professional_roles"), 9)
+

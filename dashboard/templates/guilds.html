@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{# Gildes (spec 006, F12, F13, F17). #}
+{% block page_actions %}
+<a class="button button-primary" href="{{ url_for('pages.guilds_add') }}">+ Gilde toevoegen</a>
+{% endblock %}
+{% block content %}
+{% if added %}
+<div class="alert-success" role="status">
+  {% if added == "0" %}Geen gildes toegevoegd: ze stonden er al.{% else %}{{ added }} gilde{{ "s" if added != "1" }} toegevoegd.{% endif %}
+</div>
+{% endif %}
+
+{% if confirm %}
+<div class="confirm" role="alertdialog" aria-labelledby="remove-title">
+  <p id="remove-title">
+    <strong>{{ confirm.name }} verwijderen?</strong>
+    {% if confirm.guild_masters %}
+    {{ confirm.name }} heeft {{ confirm.guild_masters|length }} gildemeester{{ "s" if confirm.guild_masters|length != 1 }}.
+    {{ "Zij houden" if confirm.guild_masters|length != 1 else "Die houdt" }} {{ "hun" if confirm.guild_masters|length != 1 else "de" }} rol, maar niet meer dit gilde.
+    {% endif %}
+    Studenten en beroepsrollen blijven ongewijzigd.
+  </p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.guilds') }}">Annuleren</a>
+    <form method="post" action="{{ url_for('pages.guild_delete', guild_id=confirm.id) }}">
+      <button class="button button-danger" type="submit">Verwijderen</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if not items %}
+<section class="card empty-state">
+  <h2>Nog geen gildes.</h2>
+  <p class="muted">Bij elke beroepsrol hoort hoogstens één gilde. Voeg de gildes van Open-ICT in één keer toe, of maak er zelf een.</p>
+  <a class="button button-primary" href="{{ url_for('pages.guilds_add') }}">+ Gilde toevoegen</a>
+</section>
+{% else %}
+<section class="staff-cards">
+  {% for g in items %}
+  <article class="card staff-card">
+    <div class="staff-card-head">
+      <span class="code-block" style="background: {{ g.color }}">{{ g.code }}</span>
+      <div>
+        <h2>{{ g.name }}</h2>
+        <p class="muted staff-sub">{{ g.role_name }}</p>
+      </div>
+    </div>
+    <p class="muted staff-sub">{{ g.guild_masters|length }} gildemeester{{ "s" if g.guild_masters|length != 1 }} · {{ g.students }} student{{ "en" if g.students != 1 }}</p>
+    {% if g.guild_masters %}
+    <div class="avatar-stack" aria-label="Gildemeesters">
+      {% for m in g.guild_masters[:8] %}<span class="avatar avatar-tiny" title="{{ m.name }}">{{ m.name|initials }}</span>{% endfor %}
+      {% if g.guild_masters|length > 8 %}<span class="avatar avatar-tiny avatar-more">+{{ g.guild_masters|length - 8 }}</span>{% endif %}
+    </div>
+    {% endif %}
+    <div class="actions">
+      <a class="button button-secondary" href="{{ url_for('pages.guild_edit', guild_id=g.id) }}">Bewerken</a>
+      <a class="button button-secondary" href="{{ url_for('pages.guilds', verwijder=g.id) }}">Verwijderen</a>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

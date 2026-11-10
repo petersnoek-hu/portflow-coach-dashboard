@@ -125,10 +125,13 @@ a { color: inherit; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: none;               /* never squeezed by a long name next to it: stays round */
   width: 40px;
   height: 40px;
+  aspect-ratio: 1;
   border-radius: 50%;
   font-weight: 600;
+  line-height: 1;
 }
 
 .avatar { background: #5e8c74; color: #fff; font-size: 14px; letter-spacing: 0.02em; }
@@ -178,7 +181,7 @@ a { color: inherit; }
 
 /* Page header and cards -------------------------------------------------- */
 
-.page-header { margin-bottom: 32px; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
 .page-header h1 { margin: 6px 0 6px; font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 .page-intro { margin: 0; font-size: 17px; color: var(--text-muted); }
 
@@ -304,3 +307,367 @@ a { color: inherit; }
 .button-small { padding: 6px 12px; font-size: 13px; background: var(--accent); color: #fff; }
 .button-small:hover { background: #a9604d; }
 .content > .card + .card { margin-top: 24px; }
+
+.alert-success {
+  margin-bottom: 24px;
+  padding: 12px 20px;
+  border-radius: var(--radius-small);
+  background: #e6f0e8;
+  color: #2f5d40;
+}
+
+/* Studenten toevoegen (spec 004) ---------------------------------------------- */
+
+.empty-state { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.empty-state h2 { margin: 0; font-size: 22px; }
+
+.add-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.add-method { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.add-method form { margin: 4px 0 0; }
+.add-method.is-disabled { opacity: 0.6; }
+
+.badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--page);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pick-form { display: flex; flex-direction: column; gap: 16px; }
+
+.pick-toolbar { display: flex; align-items: center; gap: 12px; }
+.pick-search {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  font: inherit;
+}
+
+.pick-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; max-height: 420px; overflow-y: auto; }
+.pick-row { border-radius: var(--radius-small); }
+.pick-row label { display: flex; align-items: center; gap: 12px; padding: 10px 12px; cursor: pointer; }
+.pick-row label:hover { background: var(--page); }
+.pick-row.is-disabled label { cursor: not-allowed; color: var(--text-muted); }
+.pick-row .avatar { width: 32px; height: 32px; font-size: 12px; }
+.pick-name { flex: 1; font-weight: 600; }
+.pick-row.is-disabled .pick-name { font-weight: 400; }
+.pick-form .checkbox { display: block; font-weight: 400; }
+.pick-form > .button { justify-self: start; }
+
+
+/* Verversen in the top bar (spec 005) ---------------------------------------------- */
+
+.refresh { margin: 0; }
+/* Same box as .portflow-status, so both buttons in the top bar are equally high. */
+.refresh-button {
+  display: flex; align-items: center; gap: 10px; box-sizing: border-box; height: 52px; padding: 8px 16px;
+  border: 1px solid var(--border); border-radius: var(--radius-small); background: var(--card);
+  font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.refresh-button:hover:not(:disabled) { background: var(--page); }
+.refresh-button:disabled { cursor: not-allowed; }
+.refresh-button:disabled .status-value { color: var(--text-muted); }
+.refresh-button .status-sub { white-space: nowrap; }
+/* Both top-bar buttons have the same size; a long sub line is cut off with "…" (full text on hover). */
+.portflow-status, .refresh-button { box-sizing: border-box; width: 260px; height: 52px; }
+.portflow-status .status-text, .refresh-button .status-text { min-width: 0; }
+.portflow-status .status-value, .portflow-status .status-sub, .refresh-button .status-value, .refresh-button .status-sub {
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.refresh-failed { color: #8e5a49; cursor: help; }
+.is-spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Student overview (spec 001) ------------------------------------------------------- */
+
+.section-title { margin: 0 0 14px; font-size: 20px; font-weight: 600; }
+.student-table-card { padding: 20px 0 0; }
+.student-table-card > *:not(.table-scroll) { margin-left: 24px; margin-right: 24px; }
+
+.table-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.table-search {
+  flex: 1 1 260px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  font: inherit;
+}
+.kbd { margin-left: -50px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted); pointer-events: none; }
+.select select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--card);
+  font: inherit;
+  font-size: 14px;
+}
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.table-subbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-top: 14px; margin-bottom: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--text-muted); }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+
+.column-menu { position: relative; }
+.column-menu > summary { list-style: none; padding: 6px 12px; font-size: 14px; }
+.column-menu > summary::-webkit-details-marker { display: none; }
+.column-menu-panel {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 5;
+  display: grid; gap: 6px; min-width: 240px; padding: 14px 16px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(29, 39, 35, 0.12); font-size: 14px;
+}
+.column-menu-panel .panel-title { margin: 4px 0 0; font-size: 13px; }
+
+.table-scroll { overflow-x: auto; }
+.student-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.student-table th, .student-table td { padding: 8px 6px; text-align: left; vertical-align: middle; border-top: 1px solid var(--border); }
+.student-table thead th { border-top: 0; padding-top: 4px; padding-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.student-table thead th button { padding: 2px 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.student-table thead th[aria-sort="ascending"] button::after { content: " ↑"; }
+.student-table thead th[aria-sort="descending"] button::after { content: " ↓"; }
+.student-table th:first-child, .student-table td:first-child { padding-left: 24px; }
+.student-table th:last-child, .student-table td:last-child { padding-right: 24px; }
+
+.col-skill { text-align: center !important; }
+thead .col-skill { border-top: 3px solid transparent !important; }
+thead .cat-product { border-top-color: #909db9 !important; }
+thead .cat-social { border-top-color: #a6b392 !important; }
+thead .cat-personal { border-top-color: #cba084 !important; }
+
+.group-header th { padding-top: 14px; background: #fafbf8; font-size: 14px; font-weight: 600; }
+.group-header th > * { vertical-align: middle; }
+.group-stripe { display: inline-block; width: 4px; height: 18px; margin-right: 8px; border-radius: 2px; }
+.group-header .muted { margin-left: 8px; font-weight: 400; }
+.group-count { float: right; font-weight: 400; color: var(--text-muted); }
+
+.col-student { font-weight: 400; min-width: 260px; }
+th.col-student { display: flex; align-items: center; gap: 10px; }
+thead th.col-student { display: table-cell; }
+.avatar-small { width: 32px; height: 32px; font-size: 12px; flex: none; }
+.student-text { display: flex; flex-direction: column; line-height: 1.3; }
+.student-name { font-weight: 600; }
+.student-sub { font-size: 12px; color: var(--text-muted); }
+.role-label, .mark-assessment, .signal, .tag {
+  display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; line-height: 1.6; vertical-align: 1px; white-space: nowrap;
+}
+.role-label { background: #e6ecf5; color: #3f5578; }
+.mark-assessment { background: #ede9f6; color: #5a4a8a; }
+.signal { cursor: help; }
+.signal-red { background: #ebd5cb; color: #8e5a49; }
+.signal-orange { background: #f5dfc8; color: #8a5420; }
+.signal-yellow { background: #f2eac1; color: #837031; }
+.legend .signal { margin-left: 0; }
+
+.level {
+  display: inline-block; min-width: 38px; padding: 3px 7px; border-radius: 6px;
+  font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center;
+}
+.level-n0 { background: #ebd5cb; color: #8e5a49; }
+.level-n1 { background: #f2eac1; color: #837031; }
+.level-n2 { background: #dae9dd; color: #406b52; }
+.level-grey { background: #eceeea; min-height: 1.6em; vertical-align: middle; }
+.level-na { background: none; color: #9aa29e; font-weight: 400; }
+/* A cell with an open request is blue, whatever the number of evaluations (spec 001, F7). */
+.level.has-pending { background: #d6e2f5; color: #2f4f86; box-shadow: none; }
+.pending { color: #1f4a9a; font-weight: 800; }
+
+.col-skill { position: relative; }
+.level-details {
+  position: absolute; left: 50%; top: calc(100% - 2px); z-index: 4; transform: translateX(-50%);
+  display: none; flex-direction: column; gap: 2px; min-width: 240px; padding: 10px 12px;
+  background: var(--sidebar); color: #fff; border-radius: var(--radius-small);
+  font-size: 12px; text-align: left; white-space: nowrap;
+}
+.col-skill:hover .level-details, .level:focus + .level-details { display: flex; }
+.pending-line { color: #c7d6f0; }
+
+.student-row.is-no-access { color: #9aa29e; background: #fafaf8; }
+.student-row.is-no-access .avatar { background: #b9bfbb; }
+
+.col-custom { min-width: 80px; }
+.custom-cell { display: flex; align-items: center; margin: 0; }
+.custom-input {
+  width: 100%; max-width: 160px; padding: 3px 6px; border: 1px solid transparent; border-radius: 6px;
+  background: transparent; font: inherit; text-overflow: ellipsis;
+}
+.custom-percentage { width: 42px; text-align: right; }
+.custom-input:hover { border-color: var(--border); }
+.custom-input:focus { border-color: #9fb3a8; background: #fff; outline: none; }
+.col-type { font-weight: 400; opacity: 0.7; }
+.col-extra { white-space: nowrap; }
+
+.table-empty { padding: 24px 0; }
+.table-footer { display: flex; justify-content: space-between; margin: 0 !important; padding: 14px 24px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text-muted); }
+.table-more { font-weight: 600; color: var(--text); text-decoration: none; }
+
+/* Settings: semester period (spec 001, F22) ------------------------------------------ */
+
+.period-form { display: flex; align-items: flex-end; gap: 16px; margin-top: 12px; }
+.period-form label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+.period-form input { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; }
+
+/* Coaches and Gildemeesters (specs 006, 007) ------------------------------------------ */
+
+.summary-bar { display: flex; align-items: center; gap: 28px; margin-bottom: 24px; padding: 18px 28px; }
+.staff-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.staff-card { display: flex; flex-direction: column; gap: 8px; }
+.staff-card-head { display: flex; gap: 14px; align-items: flex-start; }
+.staff-card h2 { margin: 0; font-size: 18px; }
+.staff-guilds { margin: 6px 0 0; }
+.staff-sub { margin: 0; font-size: 14px; }
+.tag { margin-left: 4px; background: var(--page); color: var(--text-muted); }
+.tag-user { background: #dae9dd; color: #406b52; }
+.tag-guild { margin: 0 4px 0 0; background: #ede9f6; color: #5a4a8a; }
+.avatar-stack { display: flex; }
+.avatar-tiny { width: 28px; height: 28px; margin-right: -6px; font-size: 10px; border: 2px solid #fff; }
+.avatar-more { background: var(--page); color: var(--text-muted); }
+.staff-card .actions { margin-top: auto; padding-top: 8px; }
+.pick-meta { font-size: 13px; }
+.names-form { display: grid; gap: 14px; max-width: 720px; }
+.names-form label { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
+.names-form textarea, .names-form input[name=naam] { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
+.names-form .checkbox { display: block; font-weight: 400; }
+.guild-choice { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 16px; border: 1px solid var(--border); border-radius: var(--radius-small); padding: 12px 16px; }
+.guild-choice legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+.confirm ul { margin: 8px 0; }
+.content > .confirm { margin: 0 0 24px; }
+
+[hidden] { display: none !important; }
+
+/* Gildes (spec 006, F12-F19) ------------------------------------------------------------ */
+
+.code-block {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 52px; height: 44px; border-radius: var(--radius-small);
+  color: #fff; font-weight: 700; letter-spacing: 0.04em; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.names-form select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
+.names-form input[name=code], .names-form input[name=naam] { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
+.names-form input[type=color] { width: 64px; height: 36px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-small); }
+
+/* Beroepsrollen (spec 008) ---------------------------------------------------------------- */
+
+.role-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.role-cards .staff-card-head { justify-content: space-between; }
+.role-cards h2 { margin: 4px 0 0; font-size: 18px; }
+.role-actions { margin-top: 0 !important; gap: 6px; }
+.button-compact { padding: 5px 10px; font-size: 13px; }
+.role-counts { margin: 4px 0; }
+.role-counts .tag { margin: 0 6px 0 0; }
+.summary-note { margin-left: auto; }
+
+/* Semesters (spec 009) --------------------------------------------------------------------- */
+
+.semester-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.semester-card h2 { margin: 2px 0 0; font-size: 18px; }
+.semester-number { width: 44px; font-size: 20px; }
+.semester-count { margin: 6px 0 0; }
+.semester-count strong { font-size: 28px; font-weight: 600; }
+.semester-fields { display: grid; gap: 2px; margin: 4px 0; font-size: 13px; }
+.semester-fields dt { color: var(--text-muted); }
+.semester-fields dd { margin: 0 0 4px; font-weight: 600; }
+.names-form input[name=number], .names-form input[name=osiris_code], .names-form input[name=min_level],
+.names-form input[name=kpm_level], .names-form input[name=mastery] {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400;
+}
+.input-short { width: 80px; }
+
+/* Menugroep Beheer (spec 002, F17) ------------------------------------------------------ */
+
+.nav-group > summary { list-style: none; cursor: pointer; }
+.nav-group > summary::-webkit-details-marker { display: none; }
+.nav-chevron { margin-left: auto; font-size: 18px; line-height: 1; transition: transform 0.15s; }
+.nav-group[open] .nav-chevron { transform: rotate(90deg); }
+.nav-sub { padding-left: 18px; }
+.nav-sub .nav-item { padding-top: 8px; padding-bottom: 8px; font-size: 15px; }
+.sidebar nav { min-height: 0; overflow-y: auto; }
+
+/* Student bewerken (spec 011) ------------------------------------------------------------ */
+
+.student-link { color: inherit; text-decoration: none; }
+.student-link:hover { text-decoration: underline; }
+.student-form { grid-template-columns: repeat(2, 1fr); max-width: 960px; column-gap: 24px; }
+.student-form .form-wide { grid-column: 1 / -1; }
+.student-form input, .student-form select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; background: var(--card); }
+.student-form .guild-choice { grid-template-columns: repeat(3, 1fr); }
+.portflow-link { display: flex; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+.push-right { margin-left: auto; }
+
+/* Projecten (spec 012) ----------------------------------------------------------------------- */
+
+.project-form input[name=nummer], .project-form input[name=opdrachtgever] { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
+.project-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.add-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 180px; border: 1.5px dashed #cfd5cf; background: #fafbf8; text-decoration: none; color: var(--text); text-align: center; }
+.add-card:hover { background: var(--page); }
+.add-card-plus { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: #e6f0e8; font-size: 22px; color: var(--primary); }
+.without-project { display: flex; align-items: center; gap: 16px; margin-top: 24px; background: #f0f1ed; }
+.without-project h2 { margin: 0; font-size: 18px; }
+.without-block { background: #dfe2dc; color: var(--text-muted); }
+
+.student-form textarea { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
+
+/* Excel importeren (spec 013) --------------------------------------------------------------- */
+
+.sheet-choice { margin-bottom: 16px; }
+.sheet-choice label { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+.sheet-choice select, .mapping-table select, .import-form select { padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; background: var(--card); }
+.mapping-form { display: grid; gap: 14px; }
+.header-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.header-row input { padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; }
+.mapping-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.mapping-table th, .mapping-table td { padding: 8px 10px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+.mapping-table thead th { border-top: 0; color: var(--text-muted); font-size: 12px; }
+.import-summary { display: flex; gap: 24px; align-items: center; }
+.import-mapping { margin: 0; font-size: 13px; line-height: 2; }
+.import-list { margin: 0; padding: 0; list-style: none; max-height: 560px; overflow-y: auto; border-top: 1px solid var(--border); }
+.import-row { padding: 10px 6px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.import-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.import-head .checkbox { display: inline-flex; gap: 6px; align-items: center; }
+.import-detail { margin: 4px 0 0 24px; padding: 0; list-style: none; font-size: 13px; }
+.import-detail .fill { color: #406b52; }
+.import-warnings { margin: 4px 0 0 24px; padding: 0; list-style: none; font-size: 13px; color: #8a5420; }
+.import-warnings li::before { content: "! "; font-weight: 700; }
+.status-new .status-tag { background: #dae9dd; color: #406b52; }
+.status-existing .status-tag { background: #e6ecf5; color: #3f5578; }
+.status-skipped { opacity: 0.6; }
+
+/* Alles verwijderen (spec 014) ------------------------------------------------------------- */
+
+.reset-card { border-color: #ebd5cb; }
+.reset-list { margin: 8px 0; padding-left: 20px; }
+.reset-word { display: grid; gap: 6px; margin-top: 12px; max-width: 320px; font-size: 14px; }
+.reset-word input { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; letter-spacing: 0.04em; }
+a.button-danger { color: #fff; }
+.portflow-link { flex-wrap: wrap; align-items: center; }
+.link-choice { display: inline-flex; align-items: center; gap: 8px; font-weight: 400; }
+
+/* Kleuren aan/uit via de legenda (spec 001, F23): switched-off kinds are white with black text. */
+.legend-item { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.legend-item input { margin: 0; }
+.colour-off-n0 .student-row .level-n0:not(.has-pending),
+.colour-off-n1 .student-row .level-n1:not(.has-pending),
+.colour-off-n2 .student-row .level-n2:not(.has-pending),
+.colour-off-pending .student-row .level.has-pending,
+.colour-off-pending .student-row .level.has-pending .pending { background: #fff; color: #000; }
+.colour-off-n0 .legend-item input[value=n0]:not(:checked) + .legend-sample,
+.colour-off-n1 .legend-item input[value=n1]:not(:checked) + .legend-sample,
+.colour-off-n2 .legend-item input[value=n2]:not(:checked) + .legend-sample,
+.colour-off-pending .legend-item input[value=pending]:not(:checked) + .legend-sample { background: #fff; color: #000; box-shadow: inset 0 0 0 1px var(--border); }
+
+/* Gildes van een student (spec 016) ------------------------------------------------------- */
+
+.guild-rows { display: grid; gap: 8px; border: 1px solid var(--border); border-radius: var(--radius-small); padding: 12px 16px; }
+.guild-rows legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+.guild-row { display: flex; gap: 10px; align-items: center; }
+.guild-row select { flex: 1; }
+.guild-rows #guild-add { justify-self: start; }
+.js-only { display: none !important; }
+html.js .js-only { display: inline-flex !important; }
+html.js .noscript-hint { display: none; }

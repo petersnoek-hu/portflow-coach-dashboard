@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{# "Uit Portflow kiezen" (spec 006 F5, spec 007 F3): beoordelaars uit de opgehaalde evaluaties. #}
+{% block content %}
+{% if not candidates %}
+<section class="card">
+  <h2>Nog geen beoordelaars gevonden</h2>
+  <p class="muted">
+    {% if has_evaluations %}In de opgehaalde evaluaties staat nog geen beoordelaar.
+    {% else %}Er zijn nog geen evaluaties opgehaald. Klik bovenaan op <strong>Verversen</strong> om de evaluaties van je studenten op te halen, en kom dan terug.{% endif %}
+  </p>
+  <a class="button button-secondary" href="{{ url_for('pages.staff_add', kind=kind) }}">Terug</a>
+</section>
+{% else %}
+<form method="post" class="card pick-form">
+  <div class="pick-toolbar">
+    <input type="search" id="portflow-search" class="pick-search" placeholder="Zoek op naam" aria-label="Zoek op naam">
+    <button type="button" class="button button-secondary" data-pick-select="all">Selecteer alles</button>
+    <button type="button" class="button button-secondary" data-pick-select="none">Selecteer niets</button>
+  </div>
+  <ul class="pick-list" id="portflow-candidates" data-pick-noun="{{ words.single }}|{{ words.plural }}">
+    {% for c in candidates %}
+    <li class="pick-row{% if c.has_role %} is-disabled{% endif %}" data-pick-name="{{ c.name|lower }}">
+      <label>
+        <input type="checkbox" name="naam" value="{{ c.name }}" {% if c.has_role %}disabled{% endif %}>
+        <span class="avatar avatar-neutral">{{ c.name|initials }}</span>
+        <span class="pick-name">{{ c.name }}</span>
+        <span class="muted pick-meta">{{ c.total }} evaluatie{{ "s" if c.total != 1 }} · {{ c.product }} product · {{ c.coach }} coach · laatste {{ c.last|nl_date }}</span>
+        {% if c.has_role %}<span class="muted">{{ words.already }}</span>{% endif %}
+      </label>
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.staff_add', kind=kind) }}">Terug</a>
+    <button class="button button-primary" type="submit" id="portflow-submit">{{ words.plural|capitalize }} toevoegen</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

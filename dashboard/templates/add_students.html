@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{# Keuzescherm tussen de vier manieren (spec 004, F3). Alleen "Uit Portflow kiezen" werkt al. #}
+{% block content %}
+<section class="add-methods">
+  <article class="card add-method">
+    <h2>Uit Portflow kiezen</h2>
+    <p class="muted">Kies uit de portfolio's die studenten al met je gedeeld hebben in Portflow.</p>
+    <form method="post" action="{{ url_for('pages.add_students_portflow_start') }}">
+      <button class="button button-primary" type="submit">Uit Portflow kiezen</button>
+    </form>
+  </article>
+
+  <article class="card add-method">
+    <h2>Handmatig invoeren</h2>
+    <p class="muted">Voeg één student toe en vul meteen zijn gegevens in.</p>
+    <a class="button button-primary" href="{{ url_for('pages.student_new_page') }}">Handmatig invoeren</a>
+  </article>
+
+  <article class="card add-method">
+    <h2>Excelbestand uploaden</h2>
+    <p class="muted">Lees een Excelbestand (.xlsx) in: nieuwe studenten worden toegevoegd, bestaande aangevuld. De kolommen mogen in elke volgorde staan.</p>
+    <a class="button button-primary" href="{{ url_for('excel.upload') }}">Excelbestand uploaden</a>
+  </article>
+
+  <article class="card add-method is-disabled">
+    <h2>Namen typen of plakken</h2>
+    <p class="muted">Typ of plak één studentnaam per regel.</p>
+    <span class="badge">Binnenkort beschikbaar</span>
+  </article>
+
+  <article class="card add-method is-disabled">
+    <h2>CSV of Excelcellen plakken</h2>
+    <p class="muted">Plak CSV of cellen die je uit Excel hebt gekopieerd.</p>
+    <span class="badge">Binnenkort beschikbaar</span>
+  </article>
+</section>
+{% endblock %}

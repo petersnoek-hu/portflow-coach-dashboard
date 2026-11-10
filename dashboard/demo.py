@@ -7,7 +7,8 @@ of spec 001, so the progress rules can be tried out and tested later.
 
 import sqlite3
 
-SKILLS = ["OC", "KO", "JKO", "KPM", "PL", "BD", "SW", "FO", "PH", "RE"]
+from . import guilds, projects, roles, semesters
+from .skills import SKILLS
 
 STAFF = ["Marieke Ploeg", "Joost Hendriks", "Femke Bos", "Ruben Smit"]
 
@@ -16,10 +17,10 @@ STAFF = ["Marieke Ploeg", "Joost Hendriks", "Femke Bos", "Ruben Smit"]
 UNKNOWN_ASSESSOR = "Kevin Brandsma"
 
 SQUADS = [
-    # (name, full name, colour)
-    ("Horizon", "04 Horizon", "#7D6BA8"),
-    ("Lantaarn", "11 Lantaarn", "#C17661"),
-    ("Noorderlicht", "15 Noorderlicht", "#5E8C74"),
+    # (number, name, client, colour); spec 012. All invented.
+    ("04", "Horizon", "Stichting Verzonnen Zorg", "#7D6BA8"),
+    ("11", "Lantaarn", "Gemeente Denkbeeldig", "#C17661"),
+    ("15", "Noorderlicht", "Fictief Logistiek BV", "#5E8C74"),
 ]
 
 
@@ -34,6 +35,30 @@ def _req(request_id, title, status, skills, date):
 
 
 GM, CO, GM2, CO2 = "Joost Hendriks", "Marieke Ploeg", "Femke Bos", "Ruben Smit"
+
+# Roles and guilds of the demo staff (specs 006, 007); Ruben Smit is coach and guild master.
+STAFF_ROLES = {CO: ("coach",), CO2: ("coach", "guild_master"), GM: ("guild_master",), GM2: ("guild_master",)}
+STAFF_GUILDS = {GM: ["FE", "UX"], GM2: ["AI", "BE"], CO2: ["GD"]}
+
+# Demo professional roles (spec 002, F18): an invented short description and a colour per role.
+# Only used for roles the demo adds itself; existing roles are never changed.
+ROLE_DETAILS = {
+    "UX": ("Onderzoekt gebruikers en ontwerpt bruikbare, toegankelijke interfaces.", "#C17661"),
+    "BIT": ("Verbindt bedrijfsprocessen, informatie en technologie.", "#5E8C74"),
+    "CS": ("Beveiligt systemen, netwerken en gegevens.", "#3F5578"),
+    "CI": ("Bouwt en beheert cloud- en infrastructuuromgevingen.", "#4F8FA8"),
+    "FE": ("Bouwt de kant van een webapplicatie die de gebruiker ziet.", "#7D6BA8"),
+    "BE": ("Bouwt servers, API's en de opslag van gegevens.", "#5B76A8"),
+    "AI": ("Ontwikkelt toepassingen met data en machine learning.", "#A86B8A"),
+    "GD": ("Ontwerpt en bouwt games en interactieve ervaringen.", "#B58A4A"),
+    "TI": ("Ontwikkelt software voor apparaten en sensoren.", "#6B8F3F"),
+}
+
+# Custom columns (spec 001, F8) with a few values per student name.
+CUSTOM_COLUMNS = [("AW", "Aanwezigheid", "Aanwezigheid bij de stand-ups", "percentage"),
+                  ("NT", "Notitie", "Eigen aantekening van de coach", "text")]
+CUSTOM_VALUES = {"Lieke Jansen": {"AW": "92", "NT": "Wil richting UX-onderzoek groeien"},
+                 "Sem Bakker": {"AW": "75"}, "Daan Mulder": {"AW": "60", "NT": "Plant deze week een coachgesprek"}}
 
 STUDENTS = [
     {
@@ -168,7 +193,8 @@ STUDENTS = [
 ]
 
 COUNT_TABLES = {"students": "Studenten", "squads": "Squads", "staff": "Coaches en gildemeesters",
-                "evaluations": "Evaluaties"}
+                "evaluations": "Evaluaties", "custom_columns": "Eigen kolommen", "guilds": "Gildes",
+                "professional_roles": "Beroepsrollen", "semesters": "Semesters"}
 
 
 def has_demo_data(conn: sqlite3.Connection) -> bool:
@@ -178,25 +204,63 @@ def has_demo_data(conn: sqlite3.Connection) -> bool:
     )
 
 
-def demo_counts(conn: sqlite3.Connection) -> list[tuple[str, int]]:
-    """Number of demo records per kind, as (Dutch label, count)."""
-    return [
-        (label, conn.execute(f"SELECT COUNT(*) FROM {table} WHERE is_demo = 1").fetchone()[0])
-        for table, label in COUNT_TABLES.items()
-    ]
+SHARED_TABLES = {"professional_roles", "guilds", "semesters"}   # the demo reuses existing ones (F18)
+
+
+def demo_counts(conn: sqlite3.Connection) -> list[tuple[str, int | str]]:
+    """Number of demo records per kind, as (Dutch label, count or explanation).
+
+    For roles, guilds and semesters that the demo did not add because they already
+    existed, the text says that the demo uses the existing ones (spec 002, F18).
+    """
+    result = []
+    for table, label in COUNT_TABLES.items():
+        demo = conn.execute(f"SELECT COUNT(*) FROM {table} WHERE is_demo = 1").fetchone()[0]
+        total = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        if table in SHARED_TABLES and demo == 0 and total:
+            result.append((label, f"gebruikt je bestaande {total}"))
+        elif table in SHARED_TABLES and demo < total:
+            result.append((label, f"{demo} (plus je bestaande {total - demo})"))
+        else:
+            result.append((label, demo))
+    return result
 
 
 def load_demo_data(conn: sqlite3.Connection) -> bool:
     """Insert the demo set. Returns False if demo data is already present."""
     if has_demo_data(conn):
         return False
+    # Demo roles and guilds: the Open-ICT ones that do not exist yet, marked as demo
+    # (spec 008 F5, spec 006 F14), so removing the demo data removes only those.
+    roles.add_preset(conn, is_demo=True)
+    guilds.add_preset(conn, is_demo=True)
+    semesters.add_preset(conn, is_demo=True)  # spec 009
     with conn:
+        # Spec 002, F18: description and colour for the roles the demo added; its guilds get the role colour.
+        for code, (description, color) in ROLE_DETAILS.items():
+            conn.execute("UPDATE professional_roles SET description = ?, color = ? WHERE code = ? AND is_demo = 1",
+                         (description, color, code))
+            conn.execute("UPDATE guilds SET color = ? WHERE is_demo = 1 AND role_id IN "
+                         "(SELECT id FROM professional_roles WHERE code = ?)", (color, code))
         for name in STAFF:
-            conn.execute("INSERT INTO staff (name, is_demo) VALUES (?, 1)", (name,))
-        for name, full_name, color in SQUADS:
+            staff_roles = STAFF_ROLES[name]
+            cursor = conn.execute(
+                "INSERT INTO staff (name, is_coach, is_guild_master, is_demo) VALUES (?, ?, ?, 1)",
+                (name, int("coach" in staff_roles), int("guild_master" in staff_roles)),
+            )
+            for code in STAFF_GUILDS.get(name, []):
+                conn.execute("INSERT OR IGNORE INTO staff_guilds (staff_id, guild_id) "
+                             "SELECT ?, id FROM guilds WHERE code = ?", (cursor.lastrowid, code))
+        for position, (code, name, description, kind) in enumerate(CUSTOM_COLUMNS):
+            conn.execute("INSERT INTO custom_columns (code, name, description, type, position, is_demo) "
+                         "VALUES (?, ?, ?, ?, ?, 1)", (code, name, description, kind, position))
+        for number, name, client, color in SQUADS:
+            # Skip a demo project whose number is already used by a real one (numbers are unique).
+            if conn.execute("SELECT 1 FROM squads WHERE number = ?", (number,)).fetchone():
+                number = None
             conn.execute(
-                "INSERT INTO squads (name, full_name, color, is_demo) VALUES (?, ?, ?, 1)",
-                (name, full_name, color),
+                "INSERT INTO squads (number, name, client, full_name, color, is_demo) VALUES (?, ?, ?, ?, ?, 1)",
+                (number, name, client, projects.full_name(number, name), color),
             )
         for student in STUDENTS:
             _insert_student(conn, student)
@@ -207,9 +271,13 @@ def remove_demo_data(conn: sqlite3.Connection) -> None:
     """Delete all demo records and nothing else."""
     with conn:
         conn.execute("DELETE FROM evaluations WHERE is_demo = 1")
+        conn.execute("DELETE FROM custom_columns WHERE is_demo = 1")
         conn.execute("DELETE FROM students WHERE is_demo = 1")
         conn.execute("DELETE FROM squads WHERE is_demo = 1")
         conn.execute("DELETE FROM staff WHERE is_demo = 1")
+        conn.execute("DELETE FROM guilds WHERE is_demo = 1")
+        conn.execute("DELETE FROM professional_roles WHERE is_demo = 1")
+        conn.execute("DELETE FROM semesters WHERE is_demo = 1")
 
 
 def _lookup(conn, sql, value):
@@ -221,27 +289,31 @@ def _lookup(conn, sql, value):
 def _insert_student(conn: sqlite3.Connection, student: dict) -> None:
     staff_id = "SELECT id FROM staff WHERE name = ? AND is_demo = 1"
     cursor = conn.execute(
-        """INSERT INTO students (name, semester, squad_id, squad_role, track, primary_role_id,
-                                 coach_id, guild_master_id, has_access, is_demo)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)""",
+        """INSERT INTO students (name, semester, squad_id, squad_role, track, coach_id, has_access, is_demo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
         (
             student["name"],
             student["semester"],
             _lookup(conn, "SELECT id FROM squads WHERE name = ? AND is_demo = 1", student["squad"]),
             student.get("squad_role"),
             student["track"],
-            _lookup(conn, "SELECT id FROM professional_roles WHERE code = ?", student["role"]),
             _lookup(conn, staff_id, student["coach"]),
-            _lookup(conn, staff_id, student["guild_master"]),
             int(student.get("has_access", True)),
         ),
     )
     student_id = cursor.lastrowid
 
-    for code in student.get("secondary_roles", []):
+    for code, value in CUSTOM_VALUES.get(student["name"], {}).items():
+        conn.execute("INSERT INTO custom_values (student_id, column_id, value) "
+                     "SELECT ?, id, ? FROM custom_columns WHERE code = ? AND is_demo = 1", (student_id, value, code))
+
+    # Spec 016: the guilds of the student; the guild master belongs to the first one ("role").
+    codes = ([student["role"]] if student["role"] else []) + student.get("secondary_roles", [])
+    for index, code in enumerate(codes):
         conn.execute(
-            "INSERT INTO student_secondary_roles (student_id, role_id) VALUES (?, ?)",
-            (student_id, _lookup(conn, "SELECT id FROM professional_roles WHERE code = ?", code)),
+            "INSERT OR IGNORE INTO student_guilds (student_id, role_id, guild_master_id) VALUES (?, ?, ?)",
+            (student_id, _lookup(conn, "SELECT id FROM professional_roles WHERE code = ?", code),
+             _lookup(conn, staff_id, student["guild_master"]) if index == 0 else None),
         )
 
     for ev in student["evaluations"]:

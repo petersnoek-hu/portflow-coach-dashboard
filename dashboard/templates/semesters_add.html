@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{# Semester toevoegen (spec 009, F5, F6). #}
+{% block content %}
+<section class="add-methods">
+  <article class="card add-method">
+    <h2>Zelf een semester aanmaken</h2>
+    <p class="muted">Vul het semesternummer in en, als je wilt, de Osiris-code en de eisen uit het toetsprogramma.</p>
+    <a class="button button-primary" href="{{ url_for('pages.semester_new') }}">Semester aanmaken</a>
+  </article>
+  {% if preset %}
+  <article class="card add-method">
+    <h2>Open-ICT-semesters toevoegen</h2>
+    <p class="muted">Voegt in één keer {{ preset|length }} semesters toe uit het toetsprogramma, elk met Osiris-code, minimum niveau toetsing, niveau KPM en beheersingsniveau. Een semester waarvan het nummer al bestaat, wordt overgeslagen.</p>
+    <form method="post" action="{{ url_for('pages.semesters_add_preset') }}">
+      <button class="button button-primary" type="submit">Open-ICT-semesters toevoegen</button>
+    </form>
+  </article>
+  {% endif %}
+</section>
+<p><a href="{{ url_for('pages.semesters') }}">← Terug naar Semesters</a></p>
+{% endblock %}

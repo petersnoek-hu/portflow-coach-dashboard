@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{# "Uit Portflow kiezen" (spec 004, F5-F11). #}
+{% block content %}
+{% if not connected %}
+<section class="card">
+  <h2>Verbinden met Portflow</h2>
+  <p class="muted">
+    Zodra je verbonden bent, zie je hier de studenten die hun portfolio al met je gedeeld hebben.
+  </p>
+  <div id="portflow-reload-watch">
+    {% include "_portflow_details.html" %}
+  </div>
+</section>
+
+{% elif loading %}
+<section class="card" id="portflow-list-loading" data-fragment-url="{{ fragment_url }}">
+  <p class="muted">Bezig met ophalen van je gedeelde portfolio's…</p>
+  <noscript><meta http-equiv="refresh" content="0; url={{ fallback_url }}"></noscript>
+</section>
+
+{% else %}
+{% include "_add_students_portflow_result.html" %}
+{% endif %}
+{% endblock %}

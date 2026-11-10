@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{# Project handmatig toevoegen (F5) en bewerken (F8), met de controle van F7. #}
+{% block content %}
+<form method="post" class="card names-form project-form">
+  {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+  <label>Nummer <span class="muted">(niet verplicht, 1 of 2 cijfers, bijvoorbeeld 02)</span>
+    <input name="nummer" value="{{ form.nummer }}" inputmode="numeric" maxlength="2" class="input-short">
+  </label>
+  <label>Naam
+    <input name="naam" value="{{ form.naam }}" required>
+  </label>
+  <label>Opdrachtgever <span class="muted">(niet verplicht)</span>
+    <input name="opdrachtgever" value="{{ form.opdrachtgever }}">
+  </label>
+  <label>Kleur
+    <input type="color" name="kleur" value="{{ form.kleur }}">
+  </label>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.squads') }}">Annuleren</a>
+    <button class="button button-primary" type="submit">Opslaan</button>
+  </div>
+</form>
+{% endblock %}

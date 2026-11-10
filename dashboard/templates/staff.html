@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{# Coaches (spec 007) and Gildemeesters (spec 006): one template, `role` decides. #}
+{% block page_actions %}
+<a class="button button-primary" href="{{ url_for('pages.staff_add', kind=words.plural) }}">+ {{ words.Single }} toevoegen</a>
+{% endblock %}
+{% block content %}
+{% if added %}
+<div class="alert-success" role="status">
+  {% if added == "0" %}Niemand toegevoegd: die namen stonden er al.{% else %}{{ added }} {{ words.single if added == "1" else words.plural }} toegevoegd.{% endif %}
+</div>
+{% endif %}
+
+{% if confirm %}
+<div class="confirm" role="alertdialog" aria-labelledby="remove-title">
+  <p id="remove-title">
+    <strong>{{ confirm.name }} verwijderen als {{ words.single }}?</strong>
+    {% if confirm.students %}
+    {{ confirm.name }} is bij {{ confirm.students|length }} student{{ "en" if confirm.students|length != 1 }} ingevuld als {{ words.single }}. Daar wordt het veld leeg.
+    {% endif %}
+    {% if role == "coach" and confirm.is_guild_master or role == "guild_master" and confirm.is_coach %}
+    {{ confirm.name }} blijft {{ words.other }}; de evaluaties tellen dus nog mee.
+    {% else %}
+    De evaluaties van {{ confirm.name }} tellen daarna niet meer mee.
+    {% endif %}
+  </p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.' + words.endpoint) }}">Annuleren</a>
+    <form method="post" action="{{ url_for('pages.staff_remove', kind=words.plural, staff_id=confirm.id) }}">
+      <button class="button button-danger" type="submit">Verwijderen</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if not people %}
+<section class="card empty-state">
+  <h2>Nog geen {{ words.plural }}</h2>
+  <p class="muted">
+    {% if role == "guild_master" %}Evaluaties van productvaardigheden tellen pas mee als hun beoordelaar hier staat.
+    {% else %}Evaluaties van sociale en persoonsvormende vaardigheden tellen pas mee als hun beoordelaar hier staat.{% endif %}
+  </p>
+  <a class="button button-primary" href="{{ url_for('pages.staff_add', kind=words.plural) }}">+ {{ words.Single }} toevoegen</a>
+</section>
+{% else %}
+<section class="summary-bar card">
+  <span><strong>{{ people|length }}</strong> {{ words.single if people|length == 1 else words.plural }}</span>
+  <span><strong>{{ evaluations_total }}</strong> evaluaties tellen mee</span>
+  <span class="muted">Alleen evaluaties van mensen op de pagina's Coaches en Gildemeesters tellen mee.</span>
+</section>
+
+<section class="staff-cards">
+  {% for person in people %}
+  <article class="card staff-card">
+    <div class="staff-card-head">
+      <span class="avatar">{{ person.name|initials }}</span>
+      <div>
+        <h2>{{ person.name }}
+          {% if person.is_user %}<span class="tag tag-user">Jij</span>{% endif %}
+          {% if role == "coach" and person.is_guild_master %}<span class="tag">Ook gildemeester</span>{% endif %}
+          {% if role == "guild_master" and person.is_coach %}<span class="tag">Ook coach</span>{% endif %}
+        </h2>
+        {% if role == "guild_master" %}
+        <p class="staff-guilds">
+          {% for guild in person.guilds %}<span class="tag tag-guild" title="{{ guild.name }}" style="box-shadow: inset 3px 0 0 {{ guild.color }}">{{ guild.code }}</span>{% else %}<span class="muted">Nog geen gilde</span>{% endfor %}
+        </p>
+        {% endif %}
+      </div>
+    </div>
+    <p class="muted staff-sub">{{ person.students|length }} student{{ "en" if person.students|length != 1 }} · {{ person.evaluations }} evaluatie{{ "s" if person.evaluations != 1 }} tellen mee</p>
+    {% if person.students %}
+    <div class="avatar-stack" aria-label="Studenten">
+      {% for s in person.students[:8] %}<span class="avatar avatar-tiny" title="{{ s.name }}">{{ s.name|initials }}</span>{% endfor %}
+      {% if person.students|length > 8 %}<span class="avatar avatar-tiny avatar-more">+{{ person.students|length - 8 }}</span>{% endif %}
+    </div>
+    {% endif %}
+    <div class="actions">
+      <a class="button button-secondary" href="{{ url_for('pages.staff_edit', kind=words.plural, staff_id=person.id) }}">Bewerken</a>
+      <a class="button button-secondary" href="{{ url_for('pages.' + words.endpoint, verwijder=person.id) }}">Verwijderen</a>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

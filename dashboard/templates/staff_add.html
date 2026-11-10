@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{# Manieren om toe te voegen (spec 006 F4 en F11, spec 007 F3). #}
+{% block content %}
+<section class="add-methods">
+  <article class="card add-method">
+    <h2>Uit Portflow kiezen</h2>
+    <p class="muted">Kies uit iedereen die evaluaties heeft beoordeeld in de opgehaalde portfolio's van je studenten{% if role == "guild_master" %} en kies wie de gildemeesters zijn{% endif %}.</p>
+    <a class="button button-primary" href="{{ url_for('pages.staff_add_portflow', kind=kind) }}">Uit Portflow kiezen</a>
+  </article>
+  <article class="card add-method">
+    <h2>Namen typen of plakken</h2>
+    <p class="muted">Typ of plak één naam per regel, precies zoals de naam in Portflow staat.</p>
+    <a class="button button-primary" href="{{ url_for('pages.staff_add_names', kind=kind) }}">Namen typen of plakken</a>
+  </article>
+  {% if preset %}
+  <article class="card add-method">
+    <h2>Open-ICT-gildemeesters toevoegen</h2>
+    <p class="muted">Voegt in één keer {{ preset|length }} gildemeesters toe, elk met hun gilde:
+      {% for name, code in preset %}{{ name }} ({{ code }}){% if not loop.last %}, {% endif %}{% endfor %}.
+      Wie er al staat, krijgt alleen de rol en het gilde erbij.</p>
+    <form method="post" action="{{ url_for('pages.guild_masters_add_preset') }}">
+      <button class="button button-primary" type="submit">Open-ICT-gildemeesters toevoegen</button>
+    </form>
+  </article>
+  {% endif %}
+</section>
+<p><a href="{{ url_for('pages.' + words.endpoint) }}">← Terug naar {{ words.plural|capitalize }}</a></p>
+{% endblock %}

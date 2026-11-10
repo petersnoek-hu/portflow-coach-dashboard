@@ -36,16 +36,18 @@ class ShellTestCase(unittest.TestCase):
 
 
 class TestPages(ShellTestCase):
-    def test_database_is_created_with_default_roles(self):  # F3
+    def test_database_is_created_without_roles(self):  # F3; spec 008, F9
         self.assertTrue(self.db_path.exists())
         with self.db() as conn:
-            codes = [row[0] for row in conn.execute("SELECT code FROM professional_roles")]
-        self.assertEqual(len(codes), 9)
-        create_app(self.db_path)  # a second start reuses the database without errors
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM professional_roles").fetchone()[0], 0)
+            conn.execute("INSERT INTO professional_roles (code, name) VALUES ('FE', 'Front-end developer')")
+        create_app(self.db_path)  # a second start reuses the database and adds no roles
         with self.db() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM professional_roles").fetchone()[0], 9)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM professional_roles").fetchone()[0], 1)
 
     def test_every_page_loads_with_shell(self):  # F5, F7, F8, F9
+        with self.db() as conn:  # a student, so Overzicht shows its placeholder (spec 004, F1)
+            conn.execute("INSERT INTO students (name) VALUES ('Verzonnen Student')")
         for page in PAGES:
             with self.subTest(page=page["label"]):
                 response = self.client.get(page["path"])
@@ -59,6 +61,22 @@ class TestPages(ShellTestCase):
                 self.assertIn(page["intro"], html)
                 if page["placeholder"]:
                     self.assertIn(page["placeholder"], html)
+
+    def test_management_menu_group(self):  # F17
+        html = self.client.get("/").get_data(as_text=True)
+        group = re.search(r'<details class="nav-group"([^>]*)>(.*?)</details>', html, re.S)
+        self.assertNotIn("open", group.group(1))
+        self.assertIn("Beheer", group.group(2))
+        order = re.findall(r'href="(/[a-z]+)"', group.group(2))
+        self.assertEqual(order, ["/semesters", "/beroepsrollen", "/gildes", "/gildemeesters", "/coaches", "/projecten",
+                                 "/kolommen"])
+        outside = html.replace(group.group(0), "")
+        for path in ("/", "/studenten", "/evaluaties", "/instellingen"):
+            self.assertIn(f'href="{path}"', outside)
+        html = self.client.get("/gildes").get_data(as_text=True)
+        group = re.search(r'<details class="nav-group"([^>]*)>(.*?)</details>', html, re.S)
+        self.assertIn("open", group.group(1))
+        self.assertIn('aria-current="page"', group.group(2))
 
     def test_no_external_resources(self):  # F14
         html = self.client.get("/").get_data(as_text=True)
@@ -108,6 +126,8 @@ class TestDemoData(ShellTestCase):
 
     def test_remove_keeps_real_records(self):  # F11, F12
         self.add_real_student()
+        with self.db() as conn:  # a real role stays; the demo only removes the roles it added
+            conn.execute("INSERT INTO professional_roles (code, name) VALUES ('FE', 'Front-end developer')")
         self.client.post("/instellingen/demodata/laden")
         response = self.client.post("/instellingen/demodata/verwijderen", follow_redirects=True)
         self.assertNotIn("Je bekijkt demodata", response.get_data(as_text=True))
@@ -115,7 +135,7 @@ class TestDemoData(ShellTestCase):
             names = [row[0] for row in conn.execute("SELECT name FROM students")]
             for table in ("squads", "staff", "evaluations"):
                 self.assertEqual(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0], 0, table)
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM professional_roles").fetchone()[0], 9)
+            self.assertEqual([r[0] for r in conn.execute("SELECT code FROM professional_roles")], ["FE"])
         self.assertEqual(names, ["Echte Student"])
 
 

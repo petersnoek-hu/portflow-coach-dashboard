@@ -1,0 +1,62 @@
+{# Studenten (spec 010): the basic data of every followed student, without progress.
+   Same toolbar, groups, search and sorting as the progress table (spec 001). #}
+{% set t = table %}
+{% set squad_roles = {"PO": "product owner", "SM": "scrum master", "2ePO": "tweede product owner", "2eSM": "tweede scrum master"} %}
+<section class="card student-table-card" id="student-table">
+  {% include "_table_toolbar.html" %}
+
+  {% if t.matching == 0 %}
+  <p class="muted table-empty">Geen studenten die aan deze filters voldoen.</p>
+  {% else %}
+  <div class="table-scroll">
+  <table class="student-table student-list" id="students">
+    <thead>
+      <tr>
+        <th scope="col" class="col-student" data-sort="name" aria-sort="ascending"><button type="button">Student</button></th>
+        {% for key, label in [("semester", "Semester"), ("project", "Project"), ("track", "Invulling"), ("squadrole", "Rol"),
+                              ("guild", "Gilde"), ("coach", "Coach"), ("guildmaster", "Gildemeester"), ("portflow", "Portflow")] %}
+        <th scope="col" data-sort="{{ key }}"><button type="button">{{ label }}</button></th>
+        {% endfor %}
+      </tr>
+    </thead>
+    {% for group in t.groups %}
+    <tbody class="table-group">
+      {% if group.title %}
+      <tr class="group-header">
+        <th colspan="9" scope="rowgroup">
+          <span class="group-stripe" style="background: {{ group.colour }}"></span>
+          <span class="group-title">{{ group.title }}</span>
+          {% if group.full_name %}<span class="muted">{{ group.full_name }}</span>{% endif %}
+          <span class="group-count">{{ group.rows|length }} student{{ "en" if group.rows|length != 1 }}</span>
+        </th>
+      </tr>
+      {% endif %}
+      {% for row in group.rows %}
+      {% set portflow = "Portfolio niet gedeeld" if row.linked and not row.has_access else ("Gekoppeld" if row.linked else "Niet gekoppeld") %}
+      <tr class="student-row"
+          data-search="{{ (row.name ~ ' ' ~ (row.squad or '') ~ ' ' ~ (row.squad_full_name or '') ~ ' ' ~ row.guild_codes ~ ' ' ~ row.guild_names)|lower }}"
+          data-sort-name="{{ row.name|lower }}">
+        <th scope="row" class="col-student">
+          <span class="avatar avatar-small">{{ row.initials }}</span>
+          <a class="student-name student-link" href="{{ url_for('pages.student_edit_page', student_id=row.id, terug=request.full_path.rstrip('?')) }}">{{ row.name }}</a>
+        </th>
+        <td data-sort-value="{{ row.semester or 99 }}">{{ row.semester or "–" }}</td>
+        <td data-sort-value="{{ (row.squad_full_name or '~')|lower }}">{{ row.squad_full_name or "–" }}</td>
+        <td data-sort-value="{{ (row.track or '~')|lower }}">{{ row.track or "–" }}</td>
+        <td data-sort-value="{{ row.squad_role or '~' }}">{% if row.squad_role %}<span class="role-label" title="{{ squad_roles.get(row.squad_role, '') }}">{{ row.squad_role }}</span>{% else %}–{% endif %}</td>
+        <td data-sort-value="{{ row.guild_codes or '~' }}">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}–{% endif %}</td>
+        <td class="col-extra" data-sort-value="{{ (row.coach or '~')|lower }}">{{ row.coach or "–" }}</td>
+        <td class="col-extra" data-sort-value="{{ (row.guild_master or '~')|lower }}">{{ row.guild_master or "–" }}</td>
+        <td class="col-extra{% if portflow != 'Gekoppeld' %} muted{% endif %}" data-sort-value="{{ portflow }}">{{ portflow }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% endfor %}
+  </table>
+  </div>
+  {% endif %}
+
+  <footer class="table-footer">
+    <span id="table-count" data-total="{{ t.total }}">{{ t.shown }} van {{ t.total }} studenten</span>
+  </footer>
+</section>

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{# Bewerken (spec 006 F7, spec 007 F2): naam, en bij een gildemeester de gildes. #}
+{% block content %}
+<form method="post" class="card names-form">
+  {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+  <label>Naam <span class="muted">(precies zoals in Portflow)</span>
+    <input name="naam" value="{{ name }}" required>
+  </label>
+  {% if role == "guild_master" %}
+  <fieldset class="guild-choice">
+    <legend>Gilde(s)</legend>
+    {% for g in guild_options %}
+    <label class="checkbox"><input type="checkbox" name="gilde" value="{{ g.id }}" {% if g.id in chosen %}checked{% endif %}> {{ g.code }} · {{ g.name }}</label>
+    {% else %}
+    <p class="muted">Er zijn nog geen gildes. <a href="{{ url_for('pages.guilds_add') }}">Voeg eerst gildes toe</a>.</p>
+    {% endfor %}
+  </fieldset>
+  {% endif %}
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.' + words.endpoint) }}">Annuleren</a>
+    <button class="button button-primary" type="submit">Opslaan</button>
+  </div>
+</form>
+{% endblock %}

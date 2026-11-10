@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{# Nieuw project (spec 012, F5). #}
+{% block content %}
+<section class="add-methods">
+  <article class="card add-method">
+    <h2>Handmatig toevoegen</h2>
+    <p class="muted">Vul een nummer, de naam, de opdrachtgever en een kleur in.</p>
+    <a class="button button-primary" href="{{ url_for('pages.project_new') }}">Handmatig toevoegen</a>
+  </article>
+  {% if preset %}
+  <article class="card add-method">
+    <h2>Open-ICT-projecten (sept 2026) toevoegen</h2>
+    <p class="muted">Voegt in één keer {{ preset|length }} projecten toe, met nummer, naam en opdrachtgever:
+      {% for p in preset %}{{ p.number }} {{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}.
+      Een project waarvan het nummer al bestaat, wordt overgeslagen.</p>
+    <form method="post" action="{{ url_for('pages.projects_add_preset') }}">
+      <button class="button button-primary" type="submit">Open-ICT-projecten (sept 2026) toevoegen</button>
+    </form>
+  </article>
+  {% endif %}
+</section>
+<p><a href="{{ url_for('pages.squads') }}">← Terug naar Projecten</a></p>
+{% endblock %}

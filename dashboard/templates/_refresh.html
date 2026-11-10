@@ -1,0 +1,17 @@
+{# "Verversen" with "Bijgewerkt om …" inside the button, built like the Portflow status button
+   so both are equally high (spec 005, F6-F9, F12, F13). #}
+<form method="post" action="{{ url_for('portflow.refresh_data') }}" class="refresh">
+  <input type="hidden" name="next" value="{{ next_path or request.path }}">
+  <button class="refresh-button" type="submit"
+          {% if not fetch.can_start %}disabled{% endif %}
+          title="{% if not fetch.running and not fetch.can_start %}Verbind eerst met Portflow{% elif not fetch.running and (fetch.failed or fetch.unlinked) %}{% if fetch.failed %}Niet gelukt: {{ fetch.failed|join(', ') }}. {% endif %}{% if fetch.unlinked %}Niet gekoppeld aan Portflow: {{ fetch.unlinked|join(', ') }}{% endif %}{% else %}Evaluaties ophalen uit Portflow{% endif %}">
+    <svg class="icon{% if fetch.running %} is-spinning{% endif %}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/>
+    </svg>
+    <span class="status-text">
+      <span class="status-value">Verversen</span>
+      <span class="status-sub" role="status">{{ fetch.text }}{% if fetch.failed and not fetch.running %}<span class="refresh-failed"> · {{ fetch.failed|length }} student{{ "en" if fetch.failed|length != 1 }} niet gelukt</span>{% endif %}{% if fetch.unlinked and not fetch.running %}<span class="refresh-failed"> · {{ fetch.unlinked|length }} niet gekoppeld</span>{% endif %}</span>
+    </span>
+  </button>
+</form>

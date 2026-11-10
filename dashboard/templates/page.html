@@ -1,4 +1,9 @@
 {% extends "base.html" %}
+{% block page_actions %}
+{% if page.show_add_student %}
+<a class="button button-primary" href="{{ url_for('pages.add_students') }}">+ Student toevoegen</a>
+{% endif %}
+{% endblock %}
 {% block content %}
 <section class="card placeholder">
   <p>{{ page.placeholder }}</p>

@@ -26,13 +26,19 @@ def back(open_panel: bool = False):
 def status():
     """Live status for app.js (F14): state plus freshly rendered pieces of the page."""
     portflow = connection().status()
-    context = {"portflow": portflow, "portflow_open": False, "next_path": request.args.get("pad", "/")}
+    fetch = current_app.extensions["fetcher"].status()
+    context = {"portflow": portflow, "fetch": fetch, "portflow_open": False,
+               "next_path": request.args.get("pad", "/")}
     return jsonify(
         state=portflow["state"],
-        poll_ms=portflow["poll_ms"],
+        poll_ms=1500 if fetch["running"] else portflow["poll_ms"],
+        fetch_running=fetch["running"],
+        fetch_last=fetch["last"],
         fingerprint="|".join(str(portflow[k]) for k in
-                             ("state", "sub", "message", "user_name", "last_refresh", "busy")),
+                             ("state", "sub", "message", "user_name", "last_refresh", "busy"))
+                    + "|" + fetch["text"] + str(fetch["can_start"]) + str(len(fetch["unlinked"])),
         status_html=render_template("_portflow_status.html", **context),
+        refresh_html=render_template("_refresh.html", **context),
         banner_html=render_template("_portflow_banner.html", **context),
         user_html=render_template("_sidebar_user.html", **context),
         avatar_html=render_template("_topbar_avatar.html", **context),
@@ -43,6 +49,13 @@ def status():
 def connect():
     connection().connect()
     return back(open_panel=True)
+
+
+@bp.post("/verversen")
+def refresh_data():
+    """Spec 005, F6: start a fetch round (does nothing while one runs or when not connected)."""
+    current_app.extensions["fetcher"].start()
+    return back()
 
 
 @bp.post("/annuleren")

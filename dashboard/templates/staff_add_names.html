@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{# "Namen typen of plakken" (spec 006 F6, spec 007 F3). #}
+{% block content %}
+<form method="post" class="card names-form">
+  {% if empty %}<p class="panel-message" role="alert">Vul minstens één naam in.</p>{% endif %}
+  {% if unknown %}
+  <div class="confirm" role="alert">
+    <p><strong>Nog geen evaluaties van deze naam gevonden; controleer of de naam precies zo in Portflow staat.</strong></p>
+    <ul>{% for name in unknown %}<li>{{ name }}</li>{% endfor %}</ul>
+    <label class="checkbox"><input type="checkbox" name="toch" value="1"> Toch toevoegen</label>
+  </div>
+  {% endif %}
+  <label>Eén naam per regel
+    <textarea name="namen" rows="8" required spellcheck="false">{{ text }}</textarea>
+  </label>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.staff_add', kind=kind) }}">Terug</a>
+    <button class="button button-primary" type="submit">{{ words.plural|capitalize }} toevoegen</button>
+  </div>
+</form>
+{% endblock %}

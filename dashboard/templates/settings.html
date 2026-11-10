@@ -29,6 +29,18 @@
   </form>
 </section>
 
+<section class="card" id="semesterperiode">
+  <h2>Semesterperiode</h2>
+  <p class="muted">Alleen evaluaties binnen deze periode tellen mee in het studentenoverzicht.
+    {% if not semester_saved %}Nog niet opgeslagen: het lopende semester is vooringevuld.{% endif %}</p>
+  {% if semester_error %}<p class="panel-message" role="alert">{{ semester_error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('pages.save_semester_period') }}" class="period-form">
+    <label>Begindatum <input type="date" name="start" value="{{ semester_start }}" required></label>
+    <label>Einddatum <input type="date" name="end" value="{{ semester_end }}" required></label>
+    <button class="button button-secondary" type="submit">Opslaan</button>
+  </form>
+</section>
+
 <section class="card">
   <h2>Demodata</h2>
   <p class="muted">
@@ -67,6 +79,48 @@
     <a class="button button-secondary" href="{{ url_for('pages.settings', bevestig='demodata-verwijderen') }}">
       Demodata verwijderen
     </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="card reset-card" id="alles-verwijderen">
+  <h2>Alles verwijderen</h2>
+  <p class="muted">Zet het dashboard terug in de begintoestand: alle gegevens en de Portflow-koppeling worden verwijderd.
+    Er wordt eerst een reservekopie gemaakt.</p>
+  {% if reset_error %}<p class="panel-message" role="alert">{{ reset_error }}</p>{% endif %}
+
+  {% if reset_step == "alles-verwijderen" %}
+  <div class="confirm" role="alertdialog" aria-labelledby="reset-title-1">
+    <p id="reset-title-1"><strong>Alle gegevens verwijderen?</strong> Dit verdwijnt:</p>
+    <ul class="reset-list">
+      {% for label, count in reset_summary %}<li>{{ count }} {{ label }}</li>{% endfor %}
+      <li>de Portflow-koppeling (het token) en de HU-login in het browserprofiel</li>
+    </ul>
+    <div class="actions">
+      <a class="button button-secondary" href="{{ url_for('pages.settings') }}#alles-verwijderen">Annuleren</a>
+      <a class="button button-danger" href="{{ url_for('pages.settings', bevestig='alles-verwijderen-2') }}#alles-verwijderen">Doorgaan</a>
+    </div>
+  </div>
+  {% elif reset_step == "alles-verwijderen-2" %}
+  <form method="post" action="{{ url_for('pages.reset_everything') }}" class="confirm" role="alertdialog" aria-labelledby="reset-title-2">
+    <p id="reset-title-2"><strong>Weet je het zeker? Dit kun je in de app niet ongedaan maken.</strong>
+      Er wordt eerst een reservekopie gemaakt in data/reservekopieen/.</p>
+    <label class="reset-word">Typ <strong>{{ confirm_word }}</strong> om te bevestigen
+      <input name="bevestiging" autocomplete="off" required id="reset-word" data-word="{{ confirm_word }}">
+    </label>
+    <div class="actions">
+      <a class="button button-secondary" href="{{ url_for('pages.settings') }}#alles-verwijderen">Annuleren</a>
+      <button class="button button-danger" type="submit" id="reset-submit" {% if reset_busy %}disabled{% endif %}>Definitief verwijderen</button>
+    </div>
+  </form>
+  {% else %}
+  <div class="actions">
+    {% if reset_busy %}
+    <button class="button button-danger" type="button" disabled title="Wacht tot het inloggen of ophalen klaar is.">Alles verwijderen…</button>
+    <span class="muted">Wacht tot het inloggen of ophalen klaar is.</span>
+    {% else %}
+    <a class="button button-danger" href="{{ url_for('pages.settings', bevestig='alles-verwijderen') }}#alles-verwijderen">Alles verwijderen…</a>
     {% endif %}
   </div>
   {% endif %}

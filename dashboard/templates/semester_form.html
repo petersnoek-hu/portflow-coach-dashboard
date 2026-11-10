@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{# Semester aanmaken (F5) en bewerken (F8), met de controle van F7. #}
+{% block content %}
+<form method="post" class="card names-form">
+  {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+  <label>Semesternummer <span class="muted">(1 tot en met 8)</span>
+    <input name="number" value="{{ form.number }}" required inputmode="numeric" maxlength="1" class="input-short">
+  </label>
+  {% if editing %}<p class="muted">Wijzig je het nummer, dan verhuizen de studenten van dit semester mee.</p>{% endif %}
+  <label>Osiris-code <span class="muted">(niet verplicht, bijvoorbeeld TICT-OV1SE1-26)</span>
+    <input name="osiris_code" value="{{ form.osiris_code }}">
+  </label>
+  <label>Minimum niveau toetsing (LEF) <span class="muted">(bijvoorbeeld "4 van 10 op 1" of "3 op 3, 7 op 2")</span>
+    <input name="min_level" value="{{ form.min_level }}">
+  </label>
+  <label>Niveau KPM <span class="muted">(bijvoorbeeld "Minimaal KPM op 1")</span>
+    <input name="kpm_level" value="{{ form.kpm_level }}">
+  </label>
+  <label>Beheersingsniveau <span class="muted">(bijvoorbeeld "Taakgericht", "Probleemgericht" of "Situatiegericht")</span>
+    <input name="mastery" value="{{ form.mastery }}">
+  </label>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.semesters') }}">Annuleren</a>
+    <button class="button button-primary" type="submit">Opslaan</button>
+  </div>
+</form>
+{% endblock %}

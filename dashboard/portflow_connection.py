@@ -345,7 +345,7 @@ class PortflowConnection:
             name = self.api.own_name(result.token, portfolio_id)
             if name:
                 db.set_setting(self.database, S_USER_NAME, name)
-                db.add_staff_name(self.database, name)
+                db.add_user_as_coach(self.database, name)
         db.set_setting(self.database, S_LAST_REFRESH, self.now().isoformat())
         db.set_setting(self.database, S_LAST_REFRESH_KIND, kind)
         self.state, self.message = State.CONNECTED, None

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{# Semesters (spec 009, F1-F4, F10). #}
+{% block page_actions %}
+<a class="button button-primary" href="{{ url_for('pages.semesters_add') }}">+ Semester toevoegen</a>
+{% endblock %}
+{% block content %}
+{% if added %}
+<div class="alert-success" role="status">
+  {% if added == "0" %}Geen semesters toegevoegd: ze stonden er al.{% else %}{{ added }} semester{{ "s" if added != "1" }} toegevoegd.{% endif %}
+</div>
+{% endif %}
+
+{% if confirm %}
+<div class="confirm" role="alertdialog" aria-labelledby="remove-title">
+  <p id="remove-title">
+    <strong>Semester {{ confirm.number }} verwijderen?</strong>
+    {% if confirm.students %}In semester {{ confirm.number }} zitten {{ confirm.students|length }} student{{ "en" if confirm.students|length != 1 }}; {{ "zij komen" if confirm.students|length != 1 else "die komt" }} bij Nog in te delen.
+    {% else %}Er zitten geen studenten in dit semester.{% endif %}
+  </p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.semesters') }}">Annuleren</a>
+    <form method="post" action="{{ url_for('pages.semester_delete', semester_id=confirm.id) }}">
+      <button class="button button-danger" type="submit">Verwijderen</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if not items %}
+<section class="card empty-state">
+  <h2>Nog geen semesters.</h2>
+  <p class="muted">Voeg de 8 semesters van Open-ICT in één keer toe, of maak er zelf een. Het semester van je studenten blijft gewoon staan.</p>
+  <a class="button button-primary" href="{{ url_for('pages.semesters_add') }}">+ Semester toevoegen</a>
+</section>
+{% else %}
+<section class="summary-bar card">
+  <span><strong>{{ student_total }} student{{ "en" if student_total != 1 }}</strong> <span class="muted">verdeeld over {{ active_count }} actieve semester{{ "s" if active_count != 1 }}</span></span>
+  <span class="muted summary-note">Iedere student is aan precies één semester gekoppeld.</span>
+</section>
+
+<section class="semester-cards">
+  {% for s in items %}
+  <article class="card staff-card semester-card">
+    <div class="staff-card-head">
+      <span class="code-block semester-number" style="background: {{ s.color }}">{{ s.number }}</span>
+      <div>
+        <p class="eyebrow">{{ s.phase }}</p>
+        <h2>Semester {{ s.number }}</h2>
+      </div>
+    </div>
+    <p class="semester-count"><strong>{{ s.students|length }}</strong> <span class="muted">student{{ "en" if s.students|length != 1 }}</span></p>
+    <dl class="semester-fields">
+      {% if s.osiris_code %}<dt>Osiris-code</dt><dd>{{ s.osiris_code }}</dd>{% endif %}
+      {% if s.min_level %}<dt>Minimum niveau toetsing (LEF)</dt><dd>{{ s.min_level }}</dd>{% endif %}
+      {% if s.kpm_level %}<dt>Niveau KPM</dt><dd>{{ s.kpm_level }}</dd>{% endif %}
+      {% if s.mastery %}<dt>Beheersingsniveau</dt><dd>{{ s.mastery }}</dd>{% endif %}
+    </dl>
+    {% if s.students %}
+    <div class="avatar-stack" aria-label="Studenten">
+      {% for st in s.students[:8] %}<span class="avatar avatar-tiny" title="{{ st.name }}">{{ st.name|initials }}</span>{% endfor %}
+      {% if s.students|length > 8 %}<span class="avatar avatar-tiny avatar-more">+{{ s.students|length - 8 }}</span>{% endif %}
+    </div>
+    {% endif %}
+    <div class="actions">
+      <a class="button button-secondary button-compact" href="{{ url_for('pages.semester_edit', semester_id=s.id) }}">Bewerken</a>
+      <a class="button button-secondary button-compact" href="{{ url_for('pages.semesters', verwijder=s.id) }}">Verwijderen</a>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

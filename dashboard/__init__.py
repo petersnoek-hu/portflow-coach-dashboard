@@ -7,8 +7,9 @@ from urllib.parse import urlparse
 
 from flask import Flask, abort, request
 
-from . import db, portflow_routes, routes
+from . import db, excel_routes, portflow_routes, routes
 from .portflow_connection import PortflowConnection
+from .portflow_fetch import Fetcher
 from .portflow_token import TokenStore
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +28,7 @@ def create_app(
     """start_background=True (only from app.py) connects to Portflow and starts the refresh timer."""
     app = Flask(__name__)
     app.config["DATABASE"] = str(database_path or DEFAULT_DATABASE)
+    app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024  # Excel import: files up to 10 MB (spec 013)
 
     db.init_app(app)
     app.extensions["portflow"] = PortflowConnection(
@@ -34,10 +36,12 @@ def create_app(
         TokenStore(env_file or DEFAULT_ENV_FILE),
         DEFAULT_BROWSER_PROFILE,
     )
+    app.extensions["fetcher"] = Fetcher(app.config["DATABASE"], app.extensions["portflow"])  # spec 005
     app.add_url_rule("/favicon.ico", "favicon",
                      lambda: app.send_static_file("favicon.svg"))
     app.register_blueprint(routes.bp)
     app.register_blueprint(portflow_routes.bp)
+    app.register_blueprint(excel_routes.bp)  # spec 013
 
     if start_background:
         start_portflow(app.extensions["portflow"])

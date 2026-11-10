@@ -21,6 +21,9 @@ Volg dit bij **elke** functie, ook als de gebruiker alleen "bouw X" zegt:
 | Vaardigheden: volledige LEF-tekst per niveau | `docs/vaardigheden-niveaus-LEF.md` |
 | Evaluaties, toetsprogramma per semester, semester behaald, weergave van niveaus | `docs/voortgangsregels.md` |
 | Beroepsrollen en codes | `docs/beroepsrollen.md` |
+| Gildes van Open-ICT (code en naam) | `docs/gildes-openict.md` |
+| Projecten van Open-ICT (sept 2026) met opdrachtgever | `docs/openict-projecten.md` |
+| Gildemeesters Open-ICT (sept 2026) met hun gilde | `docs/gildemeesters-sept2026.md` |
 | HBO-i-beroepstaken | `docs/HBOi-beroepstaken.md` |
 | Gegevens: bron, studentvelden, studenten toevoegen, kolommen, gebruiker | `docs/gegevensmodel.md` |
 | Schermen, kleuren, niveaulabels, componenten, toon | `docs/design-system.md` |

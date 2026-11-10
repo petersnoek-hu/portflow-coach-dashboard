@@ -1,0 +1,11 @@
+{# Werkblad kiezen (spec 013, F3). #}
+{% if sheet_choices|length > 1 %}
+<form method="get" action="{{ url_for('excel.preview', key=key) }}" class="sheet-choice">
+  <label>Werkblad
+    <select name="blad" onchange="this.form.submit()">
+      {% for index, label in sheet_choices %}<option value="{{ index }}" {% if index == job_sheet %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  <noscript><button class="button button-secondary" type="submit">Kiezen</button></noscript>
+</form>
+{% endif %}

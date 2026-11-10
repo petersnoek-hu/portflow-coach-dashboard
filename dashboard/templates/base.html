@@ -18,15 +18,29 @@
 
     <p class="eyebrow sidebar-eyebrow">Werkruimte</p>
     <nav aria-label="Hoofdmenu">
-      <ul class="nav">
-        {% for item in pages %}
-        <li>
+      {% macro nav_link(item) -%}
           <a class="nav-item{% if item.endpoint == active %} is-active{% endif %}"
              href="{{ url_for('pages.' + item.endpoint) }}"
              {% if item.endpoint == active %}aria-current="page"{% endif %}>
             {{ icon(item.icon) }}<span>{{ item.label }}</span>
           </a>
+      {%- endmacro %}
+      {% set group_items = pages|selectattr("group")|list %}
+      <ul class="nav">
+        {% for item in pages %}
+        {% if not item.group %}
+        <li>{{ nav_link(item) }}</li>
+        {% elif item is sameas group_items[0] %}
+        {# Spec 002, F17: closed, except on a page inside the group. #}
+        <li>
+          <details class="nav-group" {% if active in group_items|map(attribute="endpoint")|list %}open{% endif %}>
+            <summary class="nav-item">{{ icon("grid") }}<span>Beheer</span><span class="nav-chevron" aria-hidden="true">›</span></summary>
+            <ul class="nav nav-sub">
+              {% for sub in group_items %}<li>{{ nav_link(sub) }}</li>{% endfor %}
+            </ul>
+          </details>
         </li>
+        {% endif %}
         {% endfor %}
       </ul>
     </nav>
@@ -39,6 +53,7 @@
   <div class="main">
     <header class="topbar">
       {% include "_portflow_status.html" %}
+      <div id="refresh">{% include "_refresh.html" %}</div>
       <span id="topbar-avatar">{% include "_topbar_avatar.html" %}</span>
     </header>
 
@@ -54,9 +69,12 @@
 
     <main class="content">
       <header class="page-header">
-        <p class="eyebrow">{{ page.eyebrow }}</p>
-        <h1>{{ page.title }}</h1>
-        <p class="page-intro">{{ page.intro }}</p>
+        <div class="page-header-text">
+          <p class="eyebrow">{{ page.eyebrow }}</p>
+          <h1>{{ page.title }}</h1>
+          <p class="page-intro">{{ page.intro }}</p>
+        </div>
+        {% block page_actions %}{% endblock %}
       </header>
       {% block content %}{% endblock %}
     </main>

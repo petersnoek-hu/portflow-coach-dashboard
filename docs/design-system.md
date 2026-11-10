@@ -12,19 +12,19 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
 
 ### Schil (alle schermen)
 
-- **Zijbalk** (donkergroen) met bovenaan het terminal-woordmerk `>_ portflow` / "coach dashboard" (in plaats van het Kompas-logo), het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), Projecten, Kolommen (in het ontwerp nog "Leerdoelen"), Beroepsrollen, Semesters, Instellingen. Onderaan de gebruiker met naam en rollen ("Coach · Gildemeester"). De hulpkaart uit het ontwerp ("Hulp nodig?", "Open handleiding") komt pas als er een handleiding is.
-- **Bovenbalk** met de verbindingsstatus van Portflow (een statusknop met gekleurde stip: grijs, blauw, groen, oranje of rood, en een paneel met details; zie [spec 003](../features/003-portflow-verbinden/spec.md)) en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
+- **Zijbalk** (donkergroen) met bovenaan het terminal-woordmerk `>_ portflow` / "coach dashboard" (in plaats van het Kompas-logo), het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), **Beheer** (een uitklapbare groep met Semesters, Beroepsrollen, Gildes, Gildemeesters, Coaches, Projecten en Kolommen, in het ontwerp nog "Leerdoelen"; dicht, behalve op een pagina daarbinnen; [spec 002](../features/002-app-schil/spec.md), F17), Instellingen. De groep Beheer en Coaches, Gildemeesters en Gildes staan niet in het ontwerp ([spec 007](../features/007-coaches/spec.md), [spec 006](../features/006-gildemeesters/spec.md)). Onderaan de gebruiker met naam en rollen ("Coach · Gildemeester"). De hulpkaart uit het ontwerp ("Hulp nodig?", "Open handleiding") komt pas als er een handleiding is.
+- **Bovenbalk** met de verbindingsstatus van Portflow (een statusknop met gekleurde stip: grijs, blauw, groen, oranje of rood, en een paneel met details; zie [spec 003](../features/003-portflow-verbinden/spec.md)), daarnaast de knop **"Verversen"**, even hoog en even breed als de statusknop (260 × 52 pixels; een te lange onderregel wordt afgekapt met "…", de volledige tekst staat bij hover) en met dezelfde opbouw: "Verversen" met daaronder "Bijgewerkt om …" of de voortgang van het ophalen ([spec 005](../features/005-gegevens-ophalen/spec.md)), en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
 - **Paginakop:** klein kopje in hoofdletters (bijvoorbeeld "Beheer", "Studievoortgang"), titel, één zin uitleg, en rechts de primaire knop (bijvoorbeeld "+ Nieuw project").
 
 <a id="overzicht"></a>
 ### Overzicht ([`kompas-dashboard-ontwerp.png`](../screenshots/kompas-dashboard-ontwerp.png))
 
-- Kop met datum, begroeting ("Goedemorgen, …"), subtitel "Dit vraagt vandaag je aandacht." en "Bijgewerkt om …".
+- Kop met datum, begroeting ("Goedemorgen, …") en subtitel "Dit vraagt vandaag je aandacht." **Afwijking:** "Bijgewerkt om …" staat niet in deze kop, maar in de bovenbalk naast de knop "Verversen".
 - **Drie signaalkaarten** met een getal, een label en "Bekijken →": evaluaties te beoordelen, studenten zonder recente update (geen activiteit in Portflow in de laatste *X* dagen; *X* instelbaar, standaard 14), actieve coachstudenten.
-- **Studentenoverzicht:** tabel met student (avatar met initialen, naam, squad en semester), profiel (primaire beroepsrol) en per vaardigheid (OC … RE) een niveaulabel. Daarboven een zoekveld (sneltoets ⌘K; **afwijking:** zoeken op naam, squad of profiel, niet op tribe), een filter en een legenda. Rijen zijn standaard gegroepeerd per squad (groepskop met gekleurde streep, naam, volledige squadnaam en aantal studenten), met "Nog in te delen" en "Zonder project" als laatste groepen. Onderaan "7 van 18 studenten" en "Alle studenten bekijken →".
+- **Studentenoverzicht:** tabel met student (avatar met initialen, naam, squad en semester), gilde (alle codes, bijvoorbeeld "FE, UX") en per vaardigheid (OC … RE) een niveaulabel. Daarboven een zoekveld (sneltoets ⌘K; **afwijking:** zoeken op naam, squad of profiel, niet op tribe), een filter en een legenda. Rijen zijn standaard gegroepeerd per squad (groepskop met gekleurde streep, naam, volledige squadnaam en aantal studenten), met "Nog in te delen" en "Zonder project" als laatste groepen. Onderaan "7 van 18 studenten". **Afwijking:** de tabel staat volledig op Overzicht, zonder "Alle studenten bekijken →"; de pagina Studenten toont de basisgegevens zonder voortgang ([spec 001](../features/001-studentenoverzicht/spec.md), F1; [spec 010](../features/010-studentenlijst/spec.md)).
   - Een rij kan het **rol-label** van de student tonen (PO, SM, 2ePO, 2eSM) en de markering **"Assessment ingeleverd"**.
   - Een student zonder toegang staat grijs, met `n/b` in de cellen.
-  - **Signaallabels** bij de naam (rood "Product nog leeg", oranje of geel "Coach nog leeg") volgens [voortgangsregels.md](voortgangsregels.md#signalen), met een filter "Aan te sporen".
+  - **Geen signaallabels** bij de naam: de signalen uit [voortgangsregels.md](voortgangsregels.md#signalen) bepalen alleen het filter "Aan te sporen". Onder de naam staat alleen het semester ("Sem 3"); het project staat al in de groepskop.
   - Extra kolommen Coach, Gildemeester en Invulling, aan en uit te zetten; standaard alleen Gildemeester. De pijl naar de detailpagina komt pas met die pagina.
   - De uitgewerkte eisen staan in [spec 001](../features/001-studentenoverzicht/spec.md).
 - **Weekgrafiek** (uit de console-app): een staafgrafiek met per week van de semesterperiode het aantal evaluaties, gestapeld als *behaald* (groen) en *ingediend, nog te beoordelen* (`?`, blauw). Plaats in het ontwerp nog bepalen.
@@ -33,21 +33,30 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
   - **Afwijking:** het ontwerp toont één getal per cel. De cel toont alle behaalde niveaus volgens [voortgangsregels.md](voortgangsregels.md#weergave-per-vaardigheid), bijvoorbeeld `1/2`.
 - **Zijpaneel "Te beoordelen"** met openstaande evaluatieverzoeken aan de gebruiker: student, titel van het verzoek (door de student gekozen, bijvoorbeeld "OC & KO 1ste evaluatie"), inleverdatum en gewenste datum ("Vandaag", "Morgen", datum), plus "Alle evaluaties bekijken →". Een klik opent het verzoek in Portflow; beoordelen gebeurt daar.
 
+<a id="projecten"></a>
 ### Projecten ([`projecten-CRUD-met-studenten.png`](../screenshots/projecten-CRUD-met-studenten.png))
 
-Beheer van squads ("Beheer de projectgroepen waarin je studenten zijn ingedeeld."). Een samenvattingsbalk (actieve projecten, studenten, zonder project), een kaart per squad (initialen in een gekleurd vlak, naam, volledige naam, avatars, aantal studenten, knoppen Bewerken en Verwijderen), een kaart "Project toevoegen" en een balk "Zonder project" ("Studenten blijven hier zichtbaar nadat een project is verwijderd.").
+Beheer van squads ("Beheer de projectgroepen waarin je studenten zijn ingedeeld."). Uitgewerkt in [spec 012](../features/012-projecten/spec.md); **afwijkingen**: de kaart toont ook de opdrachtgever; "+ Nieuw project" opent een keuze tussen handmatig toevoegen en de Open-ICT-projecten; de knoppen Bewerken en Verwijderen staan onderaan de kaart, zoals op de andere beheerpagina's. **Kleurreeks** voor projecten (uit de ontwerpen): `#7D6BA8`, `#C17661`, `#5E8C74`, `#5B76A8`, `#B58A4A`, `#A86B8A`, `#4F8FA8`, `#6B8F3F`. Een samenvattingsbalk (actieve projecten, studenten, zonder project), een kaart per squad (initialen in een gekleurd vlak, naam, volledige naam, avatars, aantal studenten, knoppen Bewerken en Verwijderen), een kaart "Project toevoegen" en een balk "Zonder project" ("Studenten blijven hier zichtbaar nadat een project is verwijderd.").
 
+<a id="semesters"></a>
 ### Semesters ([`semesters-CRUD-met-studenten.png`](../screenshots/semesters-CRUD-met-studenten.png))
 
 "Bekijk de bezetting van semester 1 tot en met 8 en verplaats studenten." Een samenvattingsbalk ("7 studenten verdeeld over 3 actieve semesters", "Iedere student is aan exact één semester gekoppeld") en acht kaarten: nummer, fase, naam, aantal studenten, avatars en "Open semester →".
 
 - **Afwijking:** het ontwerp zet semester 7 in de afstudeerfase. Juist is: propedeuse 1–2, hoofdfase 3–7, afstudeerfase 8 (zie [begrippen](begrippen.md)).
+- **Kleur per fase** (nummervlak, uit het ontwerp): propedeuse `#5B76A8` (blauw), hoofdfase `#4F6F62` (groen), afstudeerfase `#7D6BA8` (paars).
+- **Afwijkingen** ([spec 009](../features/009-semesters/spec.md)): het dashboard start zonder semesters, met een knop voor de 8 Open-ICT-semesters; de kaart toont ook de eisen uit het toetsprogramma (Osiris-code, minimum niveau toetsing, niveau KPM, beheersingsniveau) en de knoppen Bewerken en Verwijderen. "Open semester →" en studenten verplaatsen komen pas met de spec *Studenten beheren*.
 
+<a id="beroepsrollen"></a>
 ### Beroepsrollen ([`beroepsrollen-CRUD-met-studenten.png`](../screenshots/beroepsrollen-CRUD-met-studenten.png))
 
-"Beheer rollen en zie direct welke studenten primair of secundair gekoppeld zijn." Een samenvattingsbalk ("Iedere student heeft precies één primaire rol; secundaire rollen zijn optioneel.") en een kaart per rol: code, naam, korte beschrijving, aantal primair en secundair, avatars, "Studenten beheren →", Bewerken en Verwijderen.
+"Beheer rollen en zie direct welke studenten primair of secundair gekoppeld zijn." **Afwijking** ([spec 016](../features/016-gildes-van-een-student/spec.md)): er is geen primair of secundair meer; de kaart toont "N studenten" en de samenvattingsbalk "Een student kan een of meer gildes hebben, elk met een eigen gildemeester." Een samenvattingsbalk en een kaart per rol: code, naam, korte beschrijving, aantal primair en secundair, avatars, "Studenten beheren →", Bewerken en Verwijderen.
 
-- **Afwijking:** het ontwerp toont vier rollen met eigen namen ("BIT engineer"). Standaard zijn de negen rollen met de namen uit [beroepsrollen.md](beroepsrollen.md).
+- **Afwijkingen** ([spec 008](../features/008-beroepsrollen/spec.md)):
+  - Het ontwerp toont vier rollen met eigen namen ("BIT engineer"). Het dashboard start zonder rollen; de negen Open-ICT-rollen met de namen uit [beroepsrollen.md](beroepsrollen.md) zijn met één knop toe te voegen.
+  - De knop heet "+ Beroepsrol toevoegen" (zoals op de andere beheerpagina's), niet "Nieuwe beroepsrol".
+  - "Studenten beheren →" komt pas met de spec *Studenten beheren*.
+  - De kaart toont ook het gilde van de rol.
 
 ### Kolommen ([`leerdoelen-CRUD.png`](../screenshots/leerdoelen-CRUD.png))
 
@@ -85,9 +94,11 @@ De **tekst** in de cel volgt [voortgangsregels.md](voortgangsregels.md#weergave-
 | 0 | `#E1BFAE` (rood/zalm) | `-/-` |
 | 1 | `#ECDDA4` (geel) | `2` |
 | 2 of meer | `#A7CBB1` (groen) | `1/2`, `1/1/2` |
-| semester 1–2, nog niet geëvalueerd | grijs (*waarde nog bepalen*) | geen tekst |
+| semester 1–2 of semester onbekend, nog niet geëvalueerd | grijs `#ECEEEA` | geen tekst |
 
-Een openstaande evaluatie (`?`, bijvoorbeeld `1/?`) krijgt een eigen accent, los van de kleur voor het aantal evaluaties (in de console blauw; waarde nog bepalen). Een cel zonder toegang toont `n/b` in grijze tekst.
+Een cel met een openstaande evaluatie (`?`, bijvoorbeeld `1/?`) krijgt **altijd een blauwe achtergrond** `#D6E2F5` met tekst `#2F4F86` en een vet `?` in `#1F4A9A`, in plaats van de kleur voor het aantal evaluaties ([spec 001](../features/001-studentenoverzicht/spec.md), F7). Een cel zonder toegang toont `n/b` in grijze tekst (`#9AA29E`).
+
+Het label "Assessment ingeleverd" is paars (`#EDE9F6` / `#5A4A8A`), het rol-label (PO, SM, …) blauwgrijs (`#E6ECF5` / `#3F5578`).
 
 Achtergrond- en tekstkleur van het label zelf (gemeten in het eerste ontwerp):
 
@@ -98,7 +109,7 @@ Achtergrond- en tekstkleur van het label zelf (gemeten in het eerste ontwerp):
 | Groen | `#DAE9DD` | `#406B52` |
 
 - Het label groeit mee met de tekst. Het meest voorkomende geval (`1/2`) blijft compact. Een langere waarde zoals `0/1/1/2` mag de kolom breder maken of afbreken, maar wordt niet afgekapt.
-- De legenda boven de tabel toont: 0 evaluaties, 1 evaluatie, 2 evaluaties, en de kolomtypen % Percentage en Aa Tekst.
+- De legenda boven de tabel toont: 0 evaluaties, 1 evaluatie, 2 evaluaties en openstaand, elk met een vinkje. Een uitgezet vinkje maakt die cellen wit met zwarte letters ([spec 001](../features/001-studentenoverzicht/spec.md), F23).
 
 ### Vaardigheidscategorieën (uit LEF)
 
@@ -118,6 +129,7 @@ Kleuren van de tegels op [lef.hu.nl](https://lef.hu.nl) (zie [`screenshots/vaard
 - Iconen: eenvoudige, zelfgetekende **SVG-lijniconen** in de stijl van het ontwerp, in `dashboard/templates/_icons.html`; geen icoonbibliotheek.
 - Kleine koppen in hoofdletters met extra letterafstand (zoals "WERKRUIMTE", "BEHEER" en kolomkoppen).
 
+<a id="componenten"></a>
 ## Componenten
 
 Herbruikbare onderdelen uit de ontwerpen:
@@ -131,7 +143,6 @@ Herbruikbare onderdelen uit de ontwerpen:
 - **Beheerkaart**: gekleurd vlak met initialen of code, naam, subregel, avatars, aantal, Bewerken / Verwijderen
 - **Toevoegkaart** met stippellijn ("Project toevoegen")
 - **Signaalkaart**: icoon, getal, label, link
-- **Signaallabel**: klein gekleurd label bij een naam (rood, oranje, geel), met uitleg bij hover
 - **Niveaulabel**: label met de behaalde niveaus, gekleurd naar aantal evaluaties
 - **Studentrij**: avatar met initialen, naam, subregel, profiel, tien niveaulabels (plus eigen kolommen), pijl naar detail
 - **Groepskop** in een tabel: gekleurde streep, naam, aantal studenten
@@ -150,8 +161,9 @@ Herbruikbare onderdelen uit de ontwerpen:
 
 - [x] De kleur van een label hangt af van het aantal evaluaties (0, 1, 2 of meer), niet van het niveau.
 - [x] Semester 1–2, niet geëvalueerd: grijs.
-- [ ] Welke grijswaarde krijgt een niet-geëvalueerde cel in semester 1–2?
+- [x] Grijswaarde van een niet-geëvalueerde cel in semester 1–2: `#ECEEEA`.
 - [x] Categoriekleuren van LEF: ja, in de kolomkoppen.
 - [ ] Wat meldt het belletje in de bovenbalk? (Later bepalen.)
-- [ ] Kleur van het `?`-accent en van de signaallabels, en waar de weekgrafiek staat (op het Overzicht of op een eigen pagina).
+- [x] Kleur van het `?`-accent en van de signaallabels: zie [Niveaulabels](#niveaulabels).
+- [ ] Waar staat de weekgrafiek: op het Overzicht of op een eigen pagina?
 - [ ] De link naar een evaluatieverzoek in Portflow: welke URL opent een verzoek? Nog uitzoeken.

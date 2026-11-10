@@ -2,7 +2,7 @@
 {% set next_path = next_path or request.path %}
 <details class="portflow" id="portflow-status" data-state="{{ portflow.state }}" data-poll="{{ portflow.poll_ms }}"
          {% if portflow_open %}open{% endif %}>
-  <summary class="portflow-status" aria-label="Portflow-verbinding: {{ portflow.label }}">
+  <summary class="portflow-status" aria-label="Portflow-verbinding: {{ portflow.label }}" title="Portflow: {{ portflow.label }}{% if portflow.sub %}, {{ portflow.sub }}{% endif %}">
     <span class="status-dot dot-{{ portflow.dot }}{% if portflow.pulse %} is-pulsing{% endif %}"></span>
     <span class="status-text">
       <span class="status-label">Portflow</span>

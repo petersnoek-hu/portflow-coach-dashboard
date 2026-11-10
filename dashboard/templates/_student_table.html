@@ -1,0 +1,147 @@
+{# Student overview with progress (spec 001); shown on Overzicht (F1).
+   Filters and grouping work without JavaScript (GET form); app.js adds search, sorting and
+   submitting on change. #}
+{% set t = table %}
+<section class="card student-table-card{% for kind in t.colours_off %} colour-off-{{ kind }}{% endfor %}" id="student-table" data-reload-after-fetch>
+  {% include "_table_toolbar.html" %}
+
+  <div class="table-subbar">
+    {# F23: a tick per legend item; switched off, those cells become white with black text. #}
+    <form method="post" action="{{ url_for('pages.save_colours') }}" class="legend" id="colour-form" aria-label="Legenda en kleuren">
+      <input type="hidden" name="next" value="{{ request.full_path }}">
+      {% for kind, sample, label in [("n0", "-/-", "0 evaluaties"), ("n1", "1", "1 evaluatie"), ("n2", "1/2", "2 evaluaties"), ("pending", "1/?", "openstaand")] %}
+      <label class="legend-item">
+        <input type="checkbox" name="kleur" value="{{ kind }}" {% if kind not in t.colours_off %}checked{% endif %}>
+        {% if kind == "pending" %}<span class="level has-pending legend-sample">1/<b class="pending">?</b></span>{% else %}<span class="level level-{{ kind }} legend-sample">{{ sample }}</span>{% endif %}
+        {{ label }}
+      </label>
+      {% endfor %}
+      <button class="button button-secondary button-compact js-hide" type="submit">Toepassen</button>
+    </form>
+
+    <details class="column-menu">
+      <summary class="button button-secondary">Kolommen</summary>
+      <form method="post" action="{{ url_for('pages.save_columns') }}" class="column-menu-panel" id="column-form">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <p class="panel-title">Extra kolommen</p>
+        {% for key, label in t.all_extra_columns %}
+        <label class="checkbox"><input type="checkbox" name="kolom" value="{{ key }}" {% if key in t.visible %}checked{% endif %}> {{ label }}</label>
+        {% endfor %}
+        {% if t.all_custom_columns %}
+        <p class="panel-title">Eigen kolommen</p>
+        {% for c in t.all_custom_columns %}
+        <label class="checkbox"><input type="checkbox" name="kolom" value="custom:{{ c.id }}" {% if "custom:" ~ c.id in t.visible %}checked{% endif %}> {{ c.code }} · {{ c.name }}</label>
+        {% endfor %}
+        {% endif %}
+        <button class="button button-secondary js-hide" type="submit">Opslaan</button>
+      </form>
+    </details>
+  </div>
+
+  {% if t.error %}<p class="panel-message" role="alert">{{ t.error }}</p>{% endif %}
+
+  {% if t.matching == 0 %}
+  <p class="muted table-empty">Geen studenten die aan deze filters voldoen.</p>
+  {% else %}
+  <div class="table-scroll">
+  <table class="student-table" id="students">
+    <thead>
+      <tr>
+        <th scope="col" class="col-student" data-sort="name" aria-sort="ascending"><button type="button">Student</button></th>
+        <th scope="col" data-sort="profile"><button type="button">Gilde</button></th>
+        {% for code in skills %}
+        <th scope="col" class="col-skill cat-{{ skill_category[code] }}" data-sort="{{ code }}" title="{{ skill_names[code] }}"><button type="button">{{ code }}</button></th>
+        {% endfor %}
+        {% for c in t.custom_columns %}
+        <th scope="col" class="col-custom" data-sort="custom-{{ c.id }}" title="{{ c.name }}{% if c.description %}: {{ c.description }}{% endif %}"><button type="button">{{ c.code }} <span class="col-type">{{ "%" if c.type == "percentage" else "Aa" }}</span></button></th>
+        {% endfor %}
+        {% for key, label in t.extra_columns %}
+        <th scope="col" data-sort="{{ key }}"><button type="button">{{ label }}</button></th>
+        {% endfor %}
+      </tr>
+    </thead>
+    {% for group in t.groups %}
+    <tbody class="table-group">
+      {% if group.title %}
+      <tr class="group-header">
+        <th colspan="{{ 12 + t.custom_columns|length + t.extra_columns|length }}" scope="rowgroup">
+          <span class="group-stripe" style="background: {{ group.colour }}"></span>
+          <span class="group-title">{{ group.title }}</span>
+          {% if group.full_name %}<span class="muted">{{ group.full_name }}</span>{% endif %}
+          <span class="group-count">{{ group.rows|length }} student{{ "en" if group.rows|length != 1 }}</span>
+        </th>
+      </tr>
+      {% endif %}
+      {% for row in group.rows %}
+      {% set p = row.progress %}
+      <tr class="student-row{% if not row.has_access %} is-no-access{% endif %}"
+          data-search="{{ (row.name ~ ' ' ~ (row.squad or '') ~ ' ' ~ (row.squad_full_name or '') ~ ' ' ~ row.guild_codes ~ ' ' ~ row.guild_names)|lower }}"
+          data-sort-name="{{ row.name|lower }}" data-sort-profile="{{ (row.guild_codes or '~')|lower }}"
+          data-sort-coach="{{ (row.coach or '~')|lower }}" data-sort-guild-master="{{ (row.guild_master or '~')|lower }}"
+          data-sort-track="{{ (row.track or '~')|lower }}">
+        <th scope="row" class="col-student">
+          <span class="avatar avatar-small">{{ row.initials }}</span>
+          <span class="student-text">
+            <span class="student-name">
+              {{ row.name }}
+              {% if row.squad_role %}<span class="role-label">{{ row.squad_role }}</span>{% endif %}
+              {% if p.full_assessment %}<span class="mark-assessment">Assessment ingeleverd</span>{% endif %}
+            </span>
+            <span class="student-sub">
+              {% if not row.has_access %}portfolio niet gedeeld{% else %}{{ row.sub }}{% endif %}
+            </span>
+          </span>
+        </th>
+        <td class="col-profile">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+        {% for code in skills %}
+        {% set cell = p.cells[code] %}
+        <td class="col-skill" data-sort-value="{{ cell.count * 100 + cell.highest + 1 }}">
+          <span class="level level-{{ cell.colour }}{% if cell.pending %} has-pending{% endif %}" tabindex="0"
+                aria-label="{{ code }}: {{ cell.text or 'nog geen evaluatie' }}">
+            {%- for e in cell.evaluations %}{% if not loop.first %}/{% endif %}{{ e.level }}{% endfor -%}
+            {%- if cell.pending %}{% if cell.evaluations %}/{% endif %}<b class="pending">?</b>{% endif -%}
+            {%- if not cell.evaluations and not cell.pending %}{{ cell.text }}{% endif -%}
+          </span>
+          {% if cell.evaluations or cell.pending %}
+          <span class="level-details" role="tooltip">
+            <strong>{{ skill_names[code] }}</strong>
+            {% for e in cell.evaluations %}
+            <span>Niveau {{ e.level }} · {{ e.date|nl_date }} · {{ e.assessor }}</span>
+            {% endfor %}
+            {% if cell.pending %}
+            <span class="pending-line">? {{ cell.pending.title or "Evaluatieverzoek" }} · ingediend {{ cell.pending.date|nl_date }}</span>
+            {% endif %}
+          </span>
+          {% endif %}
+        </td>
+        {% endfor %}
+        {% for c in t.custom_columns %}
+        {% set value = row.custom.get(c.id, "") %}
+        <td class="col-custom" data-sort-value="{{ value|lower }}">
+          <form method="post" action="{{ url_for('pages.save_custom_value', student_id=row.id, column_id=c.id) }}" class="custom-cell">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            {% if c.type == "percentage" %}
+            <input name="waarde" value="{{ value }}" inputmode="numeric" class="custom-input custom-percentage"
+                   aria-label="{{ c.name }} van {{ row.name }} (0 tot en met 100)" placeholder="–"><span class="custom-suffix">{% if value %}%{% endif %}</span>
+            {% else %}
+            <input name="waarde" value="{{ value }}" class="custom-input" title="{{ value }}"
+                   aria-label="{{ c.name }} van {{ row.name }}" placeholder="–">
+            {% endif %}
+          </form>
+        </td>
+        {% endfor %}
+        {% for key, label in t.extra_columns %}
+        <td class="col-extra">{{ row[key] or "–" }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% endfor %}
+  </table>
+  </div>
+  {% endif %}
+
+  <footer class="table-footer">
+    <span id="table-count" data-total="{{ t.total }}">{{ t.shown }} van {{ t.total }} studenten</span>
+  </footer>
+</section>

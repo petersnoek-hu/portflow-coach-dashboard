@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{# Excelbestand uploaden (spec 013, F1, F2). #}
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="card names-form">
+  {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+  <label>Excelbestand (.xlsx, hooguit 10 MB)
+    <input type="file" name="bestand" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+  </label>
+  <p class="muted">De app herkent kolommen als Nummer, Naam, Semester, Project, Coach, Gilde en Eventueel 2e gilde, in elke volgorde.
+    Kolommen die hij niet kent, komen als notitie bij de student; dat kun je in het voorbeeld per kolom uitzetten.
+    Er wordt niets opgeslagen voordat je het voorbeeld hebt gezien. Het bestand zelf bewaart de app niet.</p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.add_students') }}">Terug</a>
+    <button class="button button-primary" type="submit">Inlezen</button>
+  </div>
+</form>
+{% endblock %}
