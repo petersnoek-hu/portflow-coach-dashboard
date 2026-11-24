@@ -308,10 +308,12 @@ class TestWizard(AdviceCase):   # F11, F12
         self.assertEqual(ai_advice.settings(self.db_path), ("http://localhost:11434", "qwen3.5:9b"))
 
     def test_section_in_settings(self):   # F11
-        with FakeOllama():
-            html = self.client.get("/instellingen").get_data(as_text=True)
+        html = self.client.get("/instellingen").get_data(as_text=True)
         self.assertIn("AI-advies instellen", html)
-        self.assertIn(f"model <strong>{ollama.DEFAULT_MODEL}</strong> is geïnstalleerd", html)
+        self.assertIn('data-load-fragment="/instellingen/ollama"', html)   # the state follows separately
+        with FakeOllama():
+            status = self.client.get("/instellingen/ollama").get_data(as_text=True)
+        self.assertIn(f"model <strong>{ollama.DEFAULT_MODEL}</strong> is geïnstalleerd", status)
 
 
 class TestOwnJudgment(TestJobsAndPage):   # F24, F25, F26
@@ -401,20 +403,20 @@ class TestModelChoice(TestJobsAndPage):   # F14 (2026-11-24), F27, F28
     def test_default_model_in_settings(self):   # F27
         with FakeOllama() as fake:
             self.two_models(fake)
-            html = self.client.get("/instellingen").get_data(as_text=True)
+            html = self.client.get("/instellingen/ollama").get_data(as_text=True)
             self.assertIn(f"{ollama.DEFAULT_MODEL} (aangeraden)", html)
             self.assertIn("Standaardmodel", html)
             response = self.client.post("/instellingen/ai-advies", data={"model": "gemma4:e4b", "terug": "instellingen"})
             self.assertTrue(response.headers["Location"].endswith("/instellingen?model=ok#ai-advies"))
             self.assertEqual(ai_advice.settings(self.db_path)[1], "gemma4:e4b")
-            self.assertIn("✓ Opgeslagen", self.client.get("/instellingen?model=ok").get_data(as_text=True))
+            self.assertIn("✓ Opgeslagen", self.client.get("/instellingen/ollama?model=ok").get_data(as_text=True))
         self.assertEqual(self.client.post("/instellingen/ai-advies", data={"model": "a; rm"}).status_code, 400)
 
     def test_download_tested_or_named_model(self):   # F28 acceptance
         started = []
         pull = self.app.extensions["ollama_pull"]
         with FakeOllama(), mock.patch.object(pull, "start", lambda url, model: started.append(model) or True):
-            html = self.client.get("/instellingen").get_data(as_text=True)
+            html = self.client.get("/instellingen/ollama").get_data(as_text=True)
             self.assertIn("Modellen downloaden", html)
             self.assertIn("geïnstalleerd", html)                                  # the recommended one is there
             self.assertIn('<input type="hidden" name="model" value="gemma4:e4b">', html)
@@ -438,12 +440,14 @@ class TestLaptopLimits(TestJobsAndPage):   # F29-F32
 
     def test_settings_are_saved_and_sent_along(self):   # F29, F30, F31 acceptance
         with FakeOllama() as fake, mock.patch.object(ollama, "cores", lambda: 8):
-            html = self.client.get("/instellingen").get_data(as_text=True)
+            html = self.client.get("/instellingen/ollama").get_data(as_text=True)
             self.assertIn("De laptop ontlasten", html)
             self.assertIn('max="8"', html)
             response = self.client.post("/instellingen/ai-advies/laptop", data={"kernen": "2", "materiaal": "weinig", "vrijgeven": "1"})
             self.assertTrue(response.headers["Location"].endswith("/instellingen?laptop=ok#ai-laptop"))
-            html = self.client.get("/instellingen?laptop=ok").get_data(as_text=True)
+            page = self.client.get("/instellingen?laptop=ok").get_data(as_text=True)
+            self.assertIn('data-load-fragment="/instellingen/ollama?laptop=ok"', page)   # F11: loaded separately
+            html = self.client.get("/instellingen/ollama?laptop=ok").get_data(as_text=True)
             self.assertIn("2 van 8", html)
             self.assertRegex(html, r'value="weinig"\s+checked')
             self.client.post("/evaluaties/70/advies", data=JUDGMENT)

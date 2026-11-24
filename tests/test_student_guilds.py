@@ -77,7 +77,7 @@ class TestGuilds(GuildsTestCase):
         db.set_setting(str(self.db_path), "portflow_user_name", "Bas Gilde")
         html = self.client.get("/studenten?wie=gilde").get_data(as_text=True)
         self.assertIn("Eva Kok", html)
-        self.assertIn(">FE, UX<", html)
+        self.assertRegex(html, r'guild-badge"[^>]*>FE</span><span class="guild-badge"[^>]*>UX<')
         self.assertIn(f'Eva Kok', self.client.get(f"/studenten?gilde={self.ux}").get_data(as_text=True))
         grouped = self.client.get("/?groep=guild").get_data(as_text=True)
         self.assertEqual(grouped.count('data-sort-name="eva kok"'), 2)

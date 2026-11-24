@@ -78,6 +78,22 @@
     });
   }
 
+  // "Verversen": update the button's attributes and text in place, so the spinning icon
+  // (CSS, driven by aria-busy) keeps turning instead of restarting at every update.
+  function updateRefresh(html) {
+    const form = document.getElementById("refresh");
+    const button = form?.querySelector("button.refresh-button");
+    const template = document.createElement("template");
+    template.innerHTML = html.trim();
+    const fresh = template.content.querySelector("button.refresh-button");
+    if (!button || !fresh) return replace("refresh", html);
+    for (const name of ["aria-busy", "title", "disabled"]) {
+      if (fresh.hasAttribute(name)) button.setAttribute(name, fresh.getAttribute(name));
+      else button.removeAttribute(name);
+    }
+    button.querySelector(".status-text").innerHTML = fresh.querySelector(".status-text").innerHTML;
+  }
+
   function replace(id, html, keepOpen) {
     const old = document.getElementById(id);
     if (!old) return;
@@ -150,7 +166,7 @@
         replace("portflow-banner", status.banner_html);
         replace("sidebar-user", status.user_html);
         replace("topbar-avatar", status.avatar_html);
-        replace("refresh", status.refresh_html);
+        updateRefresh(status.refresh_html);
       }
       if (!typing) fingerprint = status.fingerprint;
     } catch {
@@ -170,11 +186,22 @@
   // on Overzicht and Beheer › Studenten (after filters and search), the table on Evaluaties, the
   // student of a student page or an evaluation page. A page without students sends none and no
   // "scherm": then everyone is fetched (F4).
+  // Spec 042, F3: Shift+click fetches these students fully instead of only the changed ones.
+  let refreshFull = false;
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("form.refresh button")) refreshFull = event.shiftKey;
+  }, true);
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!form.matches("form.refresh")) return;
     sessionStorage.setItem(REFRESH_KEY, String(Date.now()));
-    form.querySelectorAll("input[name=student], input[name=scherm]").forEach((el) => el.remove());
+    form.querySelectorAll("input[name=student], input[name=scherm], input[name=full]").forEach((el) => el.remove());
+    if (refreshFull) {
+      const full = document.createElement("input");
+      full.type = "hidden"; full.name = "full"; full.value = "1";
+      form.appendChild(full);
+      refreshFull = false;
+    }
     const add = (value) => {
       const input = document.createElement("input");
       input.type = "hidden"; input.name = "student"; input.value = value;
@@ -251,6 +278,25 @@
 
     updateSubmit();
   }
+
+  // A piece of a page that is slow to make (Instellingen: the state of Ollama, spec 040 F11) is
+  // loaded after the page and replaces its placeholder.
+  document.querySelectorAll("[data-load-fragment]").forEach((placeholder) => {
+    fetch(placeholder.dataset.loadFragment, { headers: { Accept: "text/html" } })
+      .then((response) => (response.ok ? response.text() : Promise.reject(new Error("fragment"))))
+      .then((html) => {
+        const template = document.createElement("template");
+        template.innerHTML = html.trim();
+        const fresh = template.content.firstElementChild;
+        placeholder.replaceWith(template.content);
+        // Scripts for the new piece (spec 040, F28/F29) hook in, and a link to an anchor inside it
+        // (#ai-laptop after saving) still lands there.
+        document.dispatchEvent(new CustomEvent("fragment-loaded", { detail: fresh }));
+        const target = window.location.hash && document.getElementById(window.location.hash.slice(1));
+        if (target && fresh && fresh.contains(target)) target.scrollIntoView();
+      })
+      .catch(() => { placeholder.textContent = "De status kon niet worden opgehaald."; });
+  });
 
   const loading = document.getElementById("portflow-list-loading");
   if (loading) {
@@ -782,8 +828,10 @@
   document.addEventListener("change", updateAsk);
   watch();
 
-  // Spec 040, F12, step 3: downloading the model, with a progress bar.
-  const pull = document.querySelector("[data-pull-status]");
+  // Spec 040, F12, step 3: downloading the model, with a progress bar. In Instellingen (F28) this
+  // part arrives after the page (spec 040, F11), hence also on "fragment-loaded".
+  const initAiSettings = (root) => {
+  const pull = root.querySelector("[data-pull-status]");
   if (pull) {
     const bar = pull.querySelector("progress");
     const text = pull.querySelector("[data-pull-text]");
@@ -817,10 +865,13 @@
   }
 
   // Spec 040, F29: show the chosen number of cores next to the slider.
-  document.querySelectorAll("[data-cores-output]").forEach((slider) => {
+  root.querySelectorAll("[data-cores-output]").forEach((slider) => {
     const output = document.getElementById(slider.dataset.coresOutput);
     slider.addEventListener("input", () => { output.textContent = `${slider.value} van ${slider.max}`; });
   });
+  };
+  initAiSettings(document);
+  document.addEventListener("fragment-loaded", (event) => { if (event.detail) initAiSettings(event.detail); });
 
   // Spec 040, F12, step 4: the trial question.
   const trial = document.querySelector("[data-trial]");

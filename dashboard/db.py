@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS students (
 CREATE TABLE IF NOT EXISTS student_portfolios (
     student_id   INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     portfolio_id INTEGER NOT NULL,
+    reviews_signature TEXT,               -- spec 042: review list at the last full fetch
     PRIMARY KEY (student_id, portfolio_id)
 );
 
@@ -154,6 +155,9 @@ CREATE TABLE IF NOT EXISTS evaluations (
     text                  TEXT,               -- the comment (HTML) of the student or assessor, spec 037
     is_demo               INTEGER NOT NULL DEFAULT 0
 );
+-- Spec 042: without these, every lookup per student or per request read the whole table.
+CREATE INDEX IF NOT EXISTS idx_evaluations_student ON evaluations (student_id);
+CREATE INDEX IF NOT EXISTS idx_evaluations_request ON evaluations (review_request_id);
 
 -- Evidence of a student (spec 034), fetched when his page is opened; replaced per student.
 -- skills: the codes OC ... RE it is linked to, comma separated; other = 1 when linked to no skill.
@@ -262,6 +266,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE students ADD COLUMN notes TEXT")
     if "is_hidden" not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0")   # spec 019, F4
+    if "reviews_signature" not in {row["name"] for row in conn.execute("PRAGMA table_info(student_portfolios)")}:
+        conn.execute("ALTER TABLE student_portfolios ADD COLUMN reviews_signature TEXT")   # spec 042
     evaluation_columns = {row["name"] for row in conn.execute("PRAGMA table_info(evaluations)")}
     if "text" not in evaluation_columns:
         conn.execute("ALTER TABLE evaluations ADD COLUMN text TEXT")   # spec 037, F1
@@ -333,6 +339,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_students_portflow_user "
         "ON students(portflow_user_id) WHERE portflow_user_id IS NOT NULL"
     )
+    if not conn.execute("SELECT 1 FROM settings WHERE key = 'guild_colors_lef'").fetchone():
+        # Spec 006, F14 (2026-11-23): once, Open-ICT guilds still in the default colour get their LEF colour.
+        from .guilds import apply_preset_colors
+        apply_preset_colors(conn)
+        conn.execute("INSERT INTO settings (key, value) VALUES ('guild_colors_lef', '1')")
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:

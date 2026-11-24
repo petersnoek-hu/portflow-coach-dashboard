@@ -74,6 +74,11 @@ def initials_filter(name: str | None) -> str:
     return initials(name)
 
 
+@bp.app_template_filter("text_on")
+def text_on_filter(background: str | None) -> str:
+    return guilds.text_color(background or "")
+
+
 @bp.app_template_filter("nl_date")
 def nl_date(value: str | None) -> str:
     """'2026-10-27' -> '27-10-2026'; an unknown date shows as 'datum onbekend'."""
@@ -767,14 +772,7 @@ def settings():
         version_check=request.args.get("versie") if request.args.get("versie") in ("nieuw", "actueel", "mislukt") else None,
         latest_release=current_app.extensions["updater"].latest(),  # spec 020, U6
         always_visible=connection.always_visible,
-        ai=ai_routes.readiness(current_app.config["DATABASE"]),     # spec 040, F11
-        ai_tested=ai_routes.ollama.TESTED_MODELS,                   # spec 040, F28
-        ai_default=ai_routes.ollama.DEFAULT_MODEL,                  # spec 040, F27
-        ai_pull=current_app.extensions["ollama_pull"].status(),     # spec 040, F28
-        ai_saved=request.args.get("model") == "ok",
-        ai_laptop=ai_routes.ai_advice.laptop(current_app.config["DATABASE"]),   # spec 040, F29-F31
-        ai_cores=ai_routes.ollama.cores(),
-        ai_laptop_saved=request.args.get("laptop") == "ok",
+        # Spec 040, F11: the Ollama state comes from GET /instellingen/ollama (no 2 s wait here).
     )
 
 

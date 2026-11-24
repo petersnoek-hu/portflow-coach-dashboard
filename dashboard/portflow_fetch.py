@@ -1,11 +1,13 @@
 """Fetching evaluations from Portflow and keeping a local copy (spec 005).
 
-A fetch round runs in a background thread, started with the "Verversen" button (F5, F6),
+A fetch round runs in a background thread, started with the "Verversen" button (F5, F6;
+Shift+click for a full round, spec 042),
 or by itself once after the very first connection (spec 019, F2). Every round adds the
 students who shared their portfolio and are not in the dashboard yet (spec 019, F1, F3).
 Pages read `status()`; the token never leaves the connection object.
 """
 
+import hashlib
 import json
 import uuid
 import threading
@@ -22,6 +24,7 @@ MAX_WORKERS = 8  # architectuur.md#verversen
 S_LAST_FETCH = "fetch_last_finished"
 S_REQUESTS_FETCHED = "requests_last_fetched"   # spec 030, F5
 S_LAST_FETCH_FAILED = "fetch_last_failed"   # JSON list of student names
+S_LAST_CHANGED = "fetch_last_changed"      # spec 042, F4: students fetched fully ('' after Shift+click)
 
 MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli",
           "augustus", "september", "oktober", "november", "december"]
@@ -104,6 +107,31 @@ def parse_feedback_item(item: dict, skill: str, request_statuses: dict[int, str]
     }
 
 
+# Skipping unchanged students (spec 042) -----------------------------------------------
+
+def reviews_signature(reviews: list[dict] | None) -> str | None:
+    """Fingerprint of a portfolio's review list: the review ids with their `updated_at`.
+    A review that is added, changed or removed changes it. None if the list is unusable (F2)."""
+    if reviews is None:
+        return None
+    pairs = []
+    for review in reviews:
+        if not isinstance(review, dict) or not isinstance(review.get("id"), int):
+            return None
+        pairs.append([review["id"], str(review.get("updated_at") or "")])
+    return hashlib.sha256(json.dumps(sorted(pairs)).encode()).hexdigest()
+
+
+def is_unchanged(student: dict, signatures: dict[int, str | None]) -> bool:
+    """F1, F2: skip a student only if it was fetched before and every portfolio's review list
+    is known and equal to the one at its last full fetch."""
+    if not student.get("fetched_at"):
+        return False
+    stored = student.get("signatures") or {}
+    return all(signatures.get(pid) is not None and signatures.get(pid) == stored.get(pid)
+               for pid in student["portfolios"])
+
+
 # Formatting -----------------------------------------------------------------------
 
 def updated_text(finished: datetime | None, now: datetime) -> str:
@@ -138,15 +166,18 @@ class Fetcher:
         self.total = 0
         self.round = ""                  # spec 039: which round, so a page reloads once per round
         self.fetched: set[int] = set()   # spec 039: the students done in this round
+        self.skipped = 0                 # spec 042: students left alone in this round (unchanged)
+        self.full = False                # spec 042, F3: Shift+click round
         self._lock = threading.Lock()
 
     # Starting -------------------------------------------------------------
 
-    def start(self, student_ids: list[int] | None = None, *, screen: bool = False) -> bool:
+    def start(self, student_ids: list[int] | None = None, *, screen: bool = False, full: bool = False) -> bool:
         """F6: start a round; False if one is running or not connected.
         Spec 041: with `screen` (a page that shows students) only `student_ids`, the students on
         the screen, are fetched (plus students added in this round). Without it (a page without
-        students) every student that is not hidden, `student_ids` first (spec 019, F14)."""
+        students) every student that is not hidden, `student_ids` first (spec 019, F14).
+        Spec 042: unchanged students are skipped unless `full` (Shift+click)."""
         token = self.connection.token
         if not token:
             return False
@@ -154,8 +185,8 @@ class Fetcher:
             if self.running:
                 return False
             self.running, self.done, self.total = True, 0, 0
-            self.round, self.fetched = uuid.uuid4().hex, set()
-        self.spawn(lambda: self._run(token, student_ids, screen))
+            self.round, self.fetched, self.skipped, self.full = uuid.uuid4().hex, set(), 0, full
+        self.spawn(lambda: self._run(token, student_ids, screen, full))
         return True
 
     def start_first(self) -> bool:
@@ -170,10 +201,14 @@ class Fetcher:
         last = db.get_setting(self.database, S_LAST_FETCH)
         failed = json.loads(db.get_setting(self.database, S_LAST_FETCH_FAILED) or "[]")
         if self.running:
-            text = (f"Ophalen… {self.done} van {self.total} student{'' if self.total == 1 else 'en'}"
-                    if self.total else "Ophalen…")
+            students = f"student{'' if self.total == 1 else 'en'}"
+            text = (f"Ophalen… {self.done} van {self.total} {students}" if self.full
+                    else f"Controleren… {self.done} van {self.total}") if self.total else "Ophalen…"   # spec 042, F4
         else:
             text = updated_text(datetime.fromisoformat(last) if last else None, self.now())
+            changed = db.get_setting(self.database, S_LAST_CHANGED)
+            if last and changed:
+                text += " · niets nieuw" if changed == "0" else f" · {changed} nieuw"
         return {
             "running": self.running,
             "text": text,
@@ -190,7 +225,7 @@ class Fetcher:
         conn = db.connect(self.database)
         try:
             rows = conn.execute(
-                "SELECT s.id, s.name, s.is_hidden, sp.portfolio_id FROM students s "
+                "SELECT s.id, s.name, s.is_hidden, s.fetched_at, sp.portfolio_id, sp.reviews_signature FROM students s "
                 "JOIN student_portfolios sp ON sp.student_id = s.id "
                 "WHERE s.is_demo = 0 AND s.portflow_user_id IS NOT NULL ORDER BY s.name, sp.portfolio_id"
             ).fetchall()
@@ -201,8 +236,10 @@ class Fetcher:
         for row in rows:
             if (row["id"] not in wanted) if wanted is not None else row["is_hidden"]:
                 continue   # spec 019, F14
-            students.setdefault(row["id"], {"id": row["id"], "name": row["name"], "portfolios": []})
+            students.setdefault(row["id"], {"id": row["id"], "name": row["name"], "fetched_at": row["fetched_at"],
+                                            "portfolios": [], "signatures": {}})
             students[row["id"]]["portfolios"].append(row["portfolio_id"])
+            students[row["id"]]["signatures"][row["portfolio_id"]] = row["reviews_signature"]
         return list(students.values())
 
     def _student_ids(self) -> set[int]:
@@ -281,6 +318,21 @@ class Fetcher:
             conn.close()
         db.set_setting(self.database, S_REQUESTS_FETCHED, self.now().isoformat())
 
+    def _all_signatures(self, token: str, students: list[dict], pool) -> dict[int, dict[int, str | None]]:
+        """Spec 042: the fingerprint of every portfolio's review list (None after an error, F2), for
+        all students at once and in parallel, so unchanged students can be skipped right away."""
+        def one(pair):
+            student_id, portfolio_id = pair
+            status, reviews = self.api.reviews(token, portfolio_id, **self.retry)
+            if status == 401:
+                raise Unauthorized
+            return student_id, portfolio_id, reviews_signature(reviews) if status == 200 else None
+        pairs = [(s["id"], pid) for s in students for pid in s["portfolios"]]
+        result: dict[int, dict[int, str | None]] = {s["id"]: {} for s in students}
+        for student_id, portfolio_id, signature in pool.map(one, pairs):
+            result[student_id][portfolio_id] = signature
+        return result
+
     def _fetch_student(self, token: str, student: dict, statuses: dict[int, str], pool) -> tuple[str, list]:
         """Returns ('ok', rows), ('no_access', []) or ('failed', [])."""
         rows, not_found, failed = [], 0, False
@@ -318,10 +370,16 @@ class Fetcher:
             return "no_access", []
         return "ok", rows
 
-    def _save(self, student_id: int, outcome: str, rows: list) -> None:
+    def _save(self, student_id: int, outcome: str, rows: list,
+              signatures: dict[int, str | None] | None = None) -> None:
         conn = db.connect(self.database)
         try:
             with conn:
+                # Spec 042: the fingerprint belongs to this fetch; without a full fetch it is cleared,
+                # so the next round fetches the student fully again.
+                for portfolio_id, signature in (signatures or {}).items():
+                    conn.execute("UPDATE student_portfolios SET reviews_signature = ? WHERE student_id = ? "
+                                 "AND portfolio_id = ?", (signature if outcome == "ok" else None, student_id, portfolio_id))
                 if outcome == "no_access":
                     conn.execute("UPDATE students SET has_access = 0 WHERE id = ?", (student_id,))
                 elif outcome == "ok":
@@ -338,6 +396,27 @@ class Fetcher:
         finally:
             conn.close()
 
+    def _update_statuses(self, student_ids: list[int], statuses: dict[int, str]) -> None:
+        """Spec 042, F5: skipped students still get the current status of requests to the user
+        (a denied request does not change the review list). One statement for all of them that
+        only touches rows whose status changed: one UPDATE per request and student took 25 s."""
+        if not statuses or not student_ids:
+            return
+        conn = db.connect(self.database)
+        try:
+            with conn:
+                conn.execute("CREATE TEMP TABLE IF NOT EXISTS new_status (rid INTEGER PRIMARY KEY, status TEXT)")
+                conn.execute("CREATE TEMP TABLE IF NOT EXISTS skipped (id INTEGER PRIMARY KEY)")
+                conn.executemany("INSERT OR REPLACE INTO new_status VALUES (?, ?)", statuses.items())
+                conn.executemany("INSERT OR REPLACE INTO skipped VALUES (?)", [(i,) for i in student_ids])
+                conn.execute(
+                    "UPDATE evaluations SET review_request_status = new_status.status FROM new_status "
+                    "WHERE evaluations.review_request_id = new_status.rid AND evaluations.is_demo = 0 "
+                    "AND evaluations.student_id IN (SELECT id FROM skipped) "
+                    "AND evaluations.review_request_status IS NOT new_status.status")
+        finally:
+            conn.close()
+
     def _add_assessors(self) -> None:
         """Spec 019, F11: assessors found in the evaluations join the list of coaches and guild masters."""
         conn = db.connect(self.database)
@@ -346,7 +425,8 @@ class Fetcher:
         finally:
             conn.close()
 
-    def _run(self, token: str, student_ids: list[int] | None = None, screen: bool = False) -> None:
+    def _run(self, token: str, student_ids: list[int] | None = None, screen: bool = False,
+             full: bool = False) -> None:
         failed_names: list[str] = []
         completed = False
         first = not db.get_setting(self.database, S_LAST_FETCH)
@@ -368,14 +448,24 @@ class Fetcher:
             self.total = len(students)
             statuses = self._request_statuses(token)
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+                # Spec 042: first every review list (in parallel); only a changed student is
+                # fetched fully, everyone with Shift+click (F3).
+                all_signatures = self._all_signatures(token, students, pool)
+                skipped_ids: list[int] = []
                 for student in students:
-                    outcome, rows = self._fetch_student(token, student, statuses, pool)
-                    if outcome == "failed":
-                        failed_names.append(student["name"])  # keeps its old data (F4, F12)
+                    signatures = all_signatures[student["id"]]
+                    if not full and is_unchanged(student, signatures):
+                        skipped_ids.append(student["id"])   # statuses updated after the loop (F5)
+                        self.skipped += 1
                     else:
-                        self._save(student["id"], outcome, rows)
+                        outcome, rows = self._fetch_student(token, student, statuses, pool)
+                        if outcome == "failed":
+                            failed_names.append(student["name"])  # keeps its old data (F4, F12)
+                        else:
+                            self._save(student["id"], outcome, rows, signatures)
                     self.fetched.add(student["id"])
                     self.done += 1
+            self._update_statuses(skipped_ids, statuses)
             self._add_assessors()
             completed = True
         except Unauthorized:
@@ -385,6 +475,8 @@ class Fetcher:
         finally:
             if completed:
                 db.set_setting(self.database, S_LAST_FETCH, self.now().isoformat())
+                changed = self.done - self.skipped - len(failed_names)
+                db.set_setting(self.database, S_LAST_CHANGED, "" if full else str(changed))
                 db.set_setting(self.database, S_LAST_FETCH_FAILED, json.dumps(failed_names))
             with self._lock:
                 self.running = False

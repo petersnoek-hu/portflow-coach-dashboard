@@ -109,6 +109,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 039 | [Evaluatie voorbereiden](039-evaluatie-voorbereiden/spec.md) | `klaar` |
 | 040 | [AI-advies bij een evaluatie](040-ai-advies-niveau/spec.md) | `in bouw` |
 | 041 | [Verversen haalt alleen de studenten van het scherm op](041-verversen-contextueel/spec.md) | `in bouw` (gebouwd; nog door de gebruiker te bekijken) |
+| 042 | [Sneller verversen (caching)](042-sneller-verversen/spec.md) | `in bouw` |
 
 ## Kandidaten
 

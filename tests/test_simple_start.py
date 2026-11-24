@@ -64,6 +64,9 @@ class FakeApi:
     def feedback_items(self, token, portfolio_id, goal_id, **retry):
         return 200, self.items.get(goal_id, [])
 
+    def reviews(self, token, portfolio_id, **retry):
+        return 500, None   # spec 042: no review list, so every student is fetched fully
+
     def received_invitations(self, token, own, **retry):
         return 200, []
 

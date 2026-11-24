@@ -4,13 +4,15 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from unittest import mock
 from datetime import datetime, timezone
 from pathlib import Path
 
-from dashboard import db
+from dashboard import db, portflow_api
 from dashboard.skills import NAMES, skill_for_goal_name
 from dashboard.portflow_fetch import (
-    S_LAST_FETCH_FAILED, Fetcher, parse_feedback_item, resolve_date, resolve_level, updated_text,
+    S_LAST_FETCH_FAILED, Fetcher, is_unchanged, parse_feedback_item, resolve_date, resolve_level,
+    reviews_signature, updated_text,
 )
 
 NOW = datetime(2026, 11, 9, 13, 32, tzinfo=timezone.utc)
@@ -44,6 +46,7 @@ class FakeApi:
         self.invitations = []
         self.shares = []
         self.shares_status = 200
+        self.review_lists = {}   # spec 042; without an entry the list fails, so the student is fetched fully
 
     def goals(self, token, portfolio_id, **retry):
         self.calls.append(("goals", portfolio_id))
@@ -52,6 +55,10 @@ class FakeApi:
     def feedback_items(self, token, portfolio_id, goal_id, **retry):
         self.calls.append(("items", portfolio_id, goal_id))
         return self.items.get((portfolio_id, goal_id), (200, []))
+
+    def reviews(self, token, portfolio_id, **retry):
+        self.calls.append(("reviews", portfolio_id))
+        return self.review_lists.get(portfolio_id, (500, None))
 
     def received_invitations(self, token, own, **retry):
         return 200, self.invitations
@@ -237,6 +244,152 @@ class TestFetchRound(FetchTestCase):
         self.assertIn("Ophalen", self.fetcher.status()["text"])
         held[0]()
         self.assertFalse(self.fetcher.status()["running"])
+
+
+def review(rid, updated="2026-11-01T10:00:00.000Z"):
+    return {"id": rid, "updated_at": updated, "role": "coach"}
+
+
+class TestSignature(unittest.TestCase):  # spec 042
+    def test_signature_changes_on_add_edit_and_remove(self):
+        base = reviews_signature([review(1), review(2)])
+        self.assertEqual(base, reviews_signature([review(2), review(1)]))   # order does not matter
+        self.assertNotEqual(base, reviews_signature([review(1), review(2), review(3)]))
+        self.assertNotEqual(base, reviews_signature([review(1), review(2, "2026-11-20T09:00:00.000Z")]))
+        self.assertNotEqual(base, reviews_signature([review(1)]))
+
+    def test_unusable_list_has_no_signature(self):  # F2
+        self.assertIsNone(reviews_signature(None))
+        self.assertIsNone(reviews_signature([{"updated_at": "x"}]))
+
+    def test_is_unchanged(self):
+        sig = reviews_signature([review(1)])
+        student = {"fetched_at": "2026-11-09", "portfolios": [101], "signatures": {101: sig}}
+        self.assertTrue(is_unchanged(student, {101: sig}))
+        self.assertFalse(is_unchanged(dict(student, fetched_at=None), {101: sig}))   # never fetched
+        self.assertFalse(is_unchanged(student, {101: None}))                         # list failed
+        self.assertFalse(is_unchanged(dict(student, signatures={101: None}), {101: None}))
+
+
+class TestReviewsPaging(unittest.TestCase):  # spec 042
+    def test_a_short_page_is_the_last(self):
+        full = [{"id": i} for i in range(50)]
+        pages = [(200, full), (200, [{"id": 50}])]
+        with mock.patch.object(portflow_api, "_get_json_with_retry", side_effect=pages) as get:
+            status, items = portflow_api.reviews("t", 101)
+        self.assertEqual((status, len(items), get.call_count), (200, 51, 2))   # no call for an empty page
+
+    def test_every_list_stops_at_a_short_page(self):  # also goals, feedback items, collections, ...
+        with mock.patch.object(portflow_api, "_get_json_with_retry", return_value=(200, [{"id": 1}])) as get:
+            self.assertEqual(portflow_api.goals("t", 101), (200, [{"id": 1}]))
+        self.assertEqual(get.call_count, 1)
+
+    def test_evaluations_are_indexed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            database = str(Path(tmp) / "test.sqlite3")
+            db.init_db(database)
+            conn = sqlite3.connect(database)
+            plan = " ".join(str(r) for r in conn.execute(
+                "EXPLAIN QUERY PLAN SELECT * FROM evaluations WHERE student_id = 1 AND review_request_id = 2"))
+            conn.close()
+        self.assertIn("USING INDEX", plan)
+
+    def test_an_error_gives_none(self):
+        with mock.patch.object(portflow_api, "_get_json_with_retry", return_value=(500, None)):
+            self.assertEqual(portflow_api.reviews("t", 101), (500, None))
+
+
+class TestSkipUnchanged(FetchTestCase):  # spec 042
+    def setUp(self):
+        super().setUp()
+        self.sem = self.add_student("Sem Bakker", [101], 11)
+        self.noor = self.add_student("Noor Peters", [102], 12)
+        for portfolio in (101, 102):
+            self.skill_goals(portfolio)
+            self.api.review_lists[portfolio] = (200, [review(1), review(2)])
+        self.api.items[(101, 1)] = (200, [item("teacher", "b", "2026-10-01")])
+        self.api.items[(102, 1)] = (200, [item("self", "b", "2026-10-01", rid=7, scored=False)])
+        self.fetcher.start()   # first round: everyone fully, fingerprints stored
+        self.api.calls.clear()
+
+    def full_fetches(self):
+        return sorted({c[1] for c in self.api.calls if c[0] == "goals"})
+
+    def test_only_changed_students_are_fetched(self):  # F1
+        self.api.review_lists[102] = (200, [review(1), review(2, "2026-11-20T09:00:00.000Z")])
+        self.fetcher.start()
+        self.assertEqual(self.full_fetches(), [102])
+        self.assertIn(("reviews", 101), self.api.calls)
+        self.assertEqual(self.sql("SELECT COUNT(*) FROM evaluations WHERE student_id = ?", (self.sem,)), [(1,)])
+
+    def test_nothing_changed_means_one_call_per_portfolio(self):  # F1, F4
+        self.fetcher.start()
+        self.assertEqual(sorted(self.api.calls), [("reviews", 101), ("reviews", 102)])
+        self.assertEqual((self.fetcher.done, self.fetcher.total, self.fetcher.skipped), (2, 2, 2))
+
+    def test_removed_review_fetches_and_removes(self):  # F1
+        self.api.review_lists[101] = (200, [review(1)])
+        self.api.items[(101, 1)] = (200, [])
+        self.fetcher.start()
+        self.assertEqual(self.full_fetches(), [101])
+        self.assertEqual(self.sql("SELECT COUNT(*) FROM evaluations WHERE student_id = ?", (self.sem,)), [(0,)])
+
+    def test_failing_review_list_fetches_fully(self):  # F2
+        self.api.review_lists[101] = (500, None)
+        self.fetcher.start()
+        self.assertEqual(self.full_fetches(), [101])
+
+    def test_unauthorized_review_list_stops_the_round(self):  # F2, spec 005 F11
+        self.api.review_lists[101] = (401, None)
+        self.fetcher.start()
+        self.assertTrue(self.connection.unauthorized)
+
+    def test_failed_fetch_clears_nothing_and_is_tried_again(self):  # spec 005 F4, F12
+        self.api.review_lists[101] = (200, [review(1), review(3)])
+        self.api.goals_by_portfolio[101] = (500, None)
+        self.fetcher.start()
+        self.api.goals_by_portfolio.pop(101); self.skill_goals(101)
+        self.api.calls.clear()
+        self.fetcher.start()
+        self.assertEqual(self.full_fetches(), [101])
+
+    def test_shift_click_fetches_everyone(self):  # F3
+        self.fetcher.start(full=True)
+        self.assertEqual(self.full_fetches(), [101, 102])
+
+    def test_relinked_student_is_fetched_fully(self):  # F1: no fetched_at
+        self.sql("UPDATE students SET fetched_at = NULL WHERE id = ?", (self.noor,))
+        self.fetcher.start()
+        self.assertEqual(self.full_fetches(), [102])
+
+    def test_text_tells_how_many_were_new(self):  # F4
+        self.assertTrue(self.fetcher.status()["text"].endswith(" · 2 nieuw"))   # first round: everyone
+        self.api.review_lists[102] = (200, [review(1), review(3)])
+        self.fetcher.start()
+        self.assertTrue(self.fetcher.status()["text"].endswith(" · 1 nieuw"))
+        self.fetcher.start()
+        self.assertTrue(self.fetcher.status()["text"].endswith(" · niets nieuw"))
+        self.fetcher.start(full=True)
+        self.assertNotIn("nieuw", self.fetcher.status()["text"])
+
+    def test_progress_text_while_checking(self):  # F4
+        held = []
+        self.fetcher.spawn = held.append
+        self.fetcher.start()
+        self.fetcher.total, self.fetcher.done = 30, 12
+        self.assertEqual(self.fetcher.status()["text"], "Controleren… 12 van 30")
+        held[0]()
+        self.fetcher.start(full=True)
+        self.fetcher.total, self.fetcher.done = 30, 4
+        self.assertEqual(self.fetcher.status()["text"], "Ophalen… 4 van 30 studenten")
+        held[1]()
+
+    def test_denied_request_is_updated_for_a_skipped_student(self):  # F5
+        self.api.invitations = [{"review_request_id": 7, "status": "denied"}]
+        self.fetcher.start()
+        self.assertEqual(self.full_fetches(), [])
+        self.assertEqual(self.sql("SELECT review_request_status FROM evaluations WHERE student_id = ?", (self.noor,)),
+                         [("denied",)])
 
 
 if __name__ == "__main__":

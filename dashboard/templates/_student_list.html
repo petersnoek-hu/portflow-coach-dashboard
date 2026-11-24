@@ -1,3 +1,4 @@
+{% from "_guild_badge.html" import guild_badges %}
 {# Studenten (spec 010): the basic data of every followed student, without progress.
    Same toolbar, groups, search and sorting as the progress table (spec 001). #}
 {% set t = table %}
@@ -99,7 +100,7 @@
           <option value="">–</option>{% for value, code, text in c.squad_roles %}<option value="{{ value }}" title="{{ text }}" {% if row.squad_role_id|string == value %}selected{% endif %}>{{ code }}</option>{% endfor %}
           {% endcall %}</td>
         <td data-col="guild" data-sort-value="{{ row.guild_codes or '~' }}">
-          {%- if row.guilds|length > 1 %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{# F4: more guilds: Student bewerken #}
+          {%- if row.guilds|length > 1 %}{{ guild_badges(row.guilds) }}{# F4: more guilds: Student bewerken #}
           {%- else %}
           {% call pick(row, url_for('pages.save_student_field', student_id=row.id, field='guild'), "Gilde", reload=true) %}
           <option value="">–</option>{% for g in c.guilds %}<option value="{{ g.id }}" title="{{ g.name }}" {% if row.guild_ids and row.guild_ids[0] == g.id %}selected{% endif %}>{{ g.code }}</option>{% endfor %}

@@ -125,6 +125,7 @@ De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../f
 - Verversen haalt alleen de evaluaties op van de studenten **op het scherm**: de lijst op Overzicht en Beheer › Studenten (na filters en zoeken), de tabel op Evaluaties, de student op zijn eigen pagina of op de pagina van één evaluatie. Daarna komen studenten die in die ronde nieuw zijn toegevoegd. Op een pagina zonder studenten haalt Verversen iedereen op die niet verborgen is. De lijst met gedeelde portfolio's en de lijst Te beoordelen worden elke ronde volledig opgehaald ([spec 041](../features/041-verversen-contextueel/spec.md)).
 - De pagina werkt **zonder herladen** bij, na elke opgehaalde student: app.js haalt de pagina op de achtergrond opnieuw op en vervangt alleen de veranderde onderdelen (gemarkeerd met `data-live`). De server maakt alle HTML; JavaScript rekent niets zelf uit ([spec 041](../features/041-verversen-contextueel/spec.md), F7).
 - Tijdens het ophalen is de voortgang zichtbaar. Feedback items worden parallel opgehaald, hooguit 8 tegelijk.
+- Verversen haalt een student alleen volledig op als zijn reviewlijst in Portflow sinds de vorige volledige ronde is veranderd; **Shift+klik** op Verversen haalt iedereen volledig op ([spec 042](../features/042-sneller-verversen/spec.md)).
 - De uitgewerkte eisen staan in [spec 005](../features/005-gegevens-ophalen/spec.md).
 
 ## Privacy

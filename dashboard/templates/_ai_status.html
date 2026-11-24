@@ -1,0 +1,87 @@
+{# Spec 040, F11: the state of Ollama in Instellingen, with the default model (F27), downloading
+   models (F28) and the laptop limits (F29-F32). Loaded separately by app.js (GET /instellingen/ollama),
+   because asking a stopped Ollama takes up to 2 seconds. #}
+<div id="ai-status">
+  <p>{% if ai.ready %}<span class="ai-ok">✓</span> Ollama {{ ai.version }} draait, model <strong>{{ ai.model }}</strong> is geïnstalleerd.
+     {% elif ai.version %}Ollama {{ ai.version }} draait, maar het model <strong>{{ ai.model }}</strong> is nog niet geïnstalleerd.
+     {% else %}Ollama is niet gevonden op deze laptop.{% endif %}</p>
+  {% if ai.version %}
+  {# F27: the default model, from the models in Ollama #}
+  {% if ai.models %}
+  <form method="post" action="{{ url_for('ai.save_settings') }}" class="wizard-form">
+    <input type="hidden" name="terug" value="instellingen">
+    <label>Standaardmodel
+      <select name="model">
+        {% set names = ai.models|map(attribute="name")|list %}
+        {% if ai.model not in names %}<option value="{{ ai.model }}" selected>{{ ai.model }}{% if ai.model == ai_default %} (aangeraden){% endif %} (nog niet gedownload)</option>{% endif %}
+        {% for m in ai.models %}<option value="{{ m.name }}" {% if m.name == ai.model %}selected{% endif %}>{{ m.name }}{% if m.name == ai_default %} (aangeraden){% endif %} · {{ m.size_gb|string|replace(".", ",") }} GB</option>{% endfor %}
+      </select>
+    </label>
+    <button class="button button-secondary" type="submit">Opslaan</button>
+    {% if ai_saved %}<span class="ai-ok" role="status">✓ Opgeslagen</span>{% endif %}
+  </form>
+  <p class="muted">Op de pagina van een evaluatie staat dit model vooraan; je kunt daar per advies ook een ander model kiezen.</p>
+  {% endif %}
+
+  {# F28: downloading a tested model, or one by name #}
+  <h3>Modellen downloaden</h3>
+  <div class="wizard-pull" data-pull-status="{{ url_for('ai.pull_status') }}" data-pull-hash="ai-advies">
+    {% set installed = ai.models|map(attribute="name")|list %}
+    <table class="ai-models">
+      <thead><tr><th>Model</th><th>Grootte</th><th>Geheugen</th><th></th></tr></thead>
+      <tbody>
+        {% for m in ai_tested %}
+        <tr>
+          <td><strong>{{ m.name }}</strong><br><span class="muted">{{ m.note }}</span></td>
+          <td>{{ m.size }}</td>
+          <td>{{ m.memory }}</td>
+          <td>{% if m.name in installed %}<span class="ai-ok">✓</span> geïnstalleerd
+            {% else %}<form method="post" action="{{ url_for('ai.pull') }}" data-pull-form>
+              <input type="hidden" name="model" value="{{ m.name }}"><input type="hidden" name="terug" value="instellingen">
+              <button class="button button-secondary" type="submit" {% if ai_pull.running %}disabled{% endif %}>Downloaden</button>
+            </form>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form method="post" action="{{ url_for('ai.pull') }}" class="wizard-form" data-pull-form>
+      <input type="hidden" name="terug" value="instellingen">
+      <label>Ander model <input type="text" name="model" required maxlength="100" placeholder="bijvoorbeeld gemma4:e4b" spellcheck="false" autocapitalize="off"></label>
+      <button class="button button-secondary" type="submit" {% if ai_pull.running %}disabled{% endif %}>Downloaden</button>
+    </form>
+    <div class="wizard-progress" {% if not ai_pull.running and not ai_pull.error %}hidden{% endif %}>
+      <progress max="100" value="{{ ((ai_pull.done / ai_pull.total * 100) if ai_pull.total else 0)|round|int }}"></progress>
+      <span class="muted" data-pull-text>{{ ai_pull.error or (ai_pull.model ~ ": " ~ ai_pull.status) }}</span>
+    </div>
+    <p class="muted">De namen staan op ollama.com. Een model downloaden duurt bij een gewone verbinding 5 tot 15 minuten; je kunt intussen verder in het dashboard.</p>
+  </div>
+
+  {# F29-F32: how much of the laptop the local model may use #}
+  <h3 id="ai-laptop">De laptop ontlasten</h3>
+  <p class="muted">Een lokaal model kan de laptop flink bezighouden. Hier begrens je hoeveel het mag gebruiken; dit geldt voor alle lokale modellen, vanaf het volgende advies.</p>
+  <form method="post" action="{{ url_for('ai.laptop_save') }}" class="ai-laptop">
+    <label class="ai-laptop-row">Processorkernen voor het model
+      <span class="ai-laptop-slider">
+        <input type="range" name="kernen" min="1" max="{{ ai_cores }}" value="{{ ai_laptop.threads }}" data-cores-output="ai-kernen">
+        <output id="ai-kernen">{{ ai_laptop.threads }} van {{ ai_cores }}</output>
+      </span>
+    </label>
+    <p class="muted">Minder kernen: de laptop blijft beter bruikbaar, het advies duurt langer. Op een Mac rekent het model vooral op de grafische chip; daar maakt dit weinig uit.</p>
+    <fieldset class="ai-laptop-row">
+      <legend>Hoeveel materiaal per advies</legend>
+      {% set choices = [("weinig", "Weinig", "het minste geheugen; bij een groot verzoek gaan veel bewijsstukken mee met alleen hun naam"),
+                        ("normaal", "Normaal", "ongeveer de helft van het materiaal van Veel"),
+                        ("veel", "Veel", "het meeste materiaal; enkele GB extra geheugen bovenop het model")] %}
+      {% for value, label, note in choices %}
+      <label class="ai-laptop-choice"><input type="radio" name="materiaal" value="{{ value }}" {% if ai_laptop.context == value %}checked{% endif %}>
+        <strong>{{ label }}</strong> <span class="muted">· {{ note }}</span></label>
+      {% endfor %}
+      <p class="muted">Het model zelf moet altijd in het geheugen passen (ongeveer de grootte van het bestand); deze keuze bepaalt alleen het geheugen dat er bovenop komt.</p>
+    </fieldset>
+    <label class="ai-laptop-choice"><input type="checkbox" name="vrijgeven" value="1" {% if ai_laptop.unload %}checked{% endif %}>
+      Model na het advies uit het geheugen halen <span class="muted">· het geheugen is meteen weer vrij, maar een vervolgvraag laadt het model opnieuw (dat kan een minuut duren)</span></label>
+    <div><button class="button button-secondary" type="submit">Opslaan</button>
+      {% if ai_laptop_saved %}<span class="ai-ok" role="status">✓ Opgeslagen</span>{% endif %}</div>
+  </form>
+  {% endif %}
+</div>

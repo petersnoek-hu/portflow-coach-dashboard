@@ -1,3 +1,4 @@
+{% from "_guild_badge.html" import guild_badges %}
 {% extends "base.html" %}
 {# Coaches (spec 007) and Gildemeesters (spec 006): one template, `role` decides. #}
 {% block page_actions %}
@@ -56,7 +57,7 @@
         </h2>
         {% if role == "guild_master" %}
         <p class="staff-guilds">
-          {% for guild in person.guilds %}<span class="tag tag-guild" title="{{ guild.name }}" style="box-shadow: inset 3px 0 0 {{ guild.color }}">{{ guild.code }}</span>{% else %}<span class="muted">Nog geen gilde</span>{% endfor %}
+          {% if person.guilds %}{{ guild_badges(person.guilds) }}{% else %}<span class="muted">Nog geen gilde</span>{% endif %}
         </p>
         {% endif %}
       </div>

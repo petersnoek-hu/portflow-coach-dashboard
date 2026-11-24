@@ -74,3 +74,4 @@ Geen nieuw ontwerp; de pagina Gildes en het gildeformulier krijgen de velden van
 
 - 2026-11-10 – spec aangemaakt op verzoek van de gebruiker, na advies: beroepsrol wordt een veld van het gilde, de pagina's Beroepsrollen verdwijnen
 - 2026-11-10 – gebouwd en getest; status klaar
+- 2026-11-23 – op verzoek van de gebruiker: het gilde van een student en van een gildemeester staat overal als gildebadge (vorm van een niveaulabel, in de gildekleur; [design-system.md](../../docs/design-system.md#componenten)). Macro `_guild_badge.html`

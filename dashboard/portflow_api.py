@@ -13,6 +13,7 @@ TIMEOUT_S = 15
 RETRIES = 3        # architectuur.md#portflow-api: other errors get 3 attempts
 RETRY_DELAY_S = 5.0
 SHARES_PAGE_SIZE = 50
+PAGE_SIZE = 50     # get_all_pages and reviews: a shorter page is the last one
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -120,22 +121,25 @@ def shared_with_me(
 def get_all_pages(
     path: str, token: str, *, retries: int = RETRIES, retry_delay_s: float = RETRY_DELAY_S
 ) -> tuple[int, list[dict] | None]:
-    """GET every page of a list endpoint until an empty page (architectuur.md#portflow-api).
+    """GET every page of a list endpoint (architectuur.md#portflow-api).
 
+    These endpoints honour per_page (checked live 2026-11-23, API document §3), so a page shorter
+    than PAGE_SIZE is the last one: no extra call for an empty page (spec 042). Not for
+    /shares/shared-with-me, which ignores per_page (see shared_with_me).
     Returns (200, items) or (the failing status, None). `path` must not contain page params.
     """
     separator = "&" if "?" in path else "?"
     page, items = 1, []
     while True:
         status, data = _get_json_with_retry(
-            f"{path}{separator}page={page}&per_page=50", token, retries, retry_delay_s
+            f"{path}{separator}page={page}&per_page={PAGE_SIZE}", token, retries, retry_delay_s
         )
         if status != 200:
             return status, None
         batch = data if isinstance(data, list) else []
-        if not batch:
-            return 200, items
         items.extend(item for item in batch if isinstance(item, dict))
+        if len(batch) < PAGE_SIZE:
+            return 200, items
         page += 1
 
 
@@ -147,6 +151,14 @@ def goals(token: str, portfolio_id: int, **retry) -> tuple[int, list[dict] | Non
 def feedback_items(token: str, portfolio_id: int, goal_id: int, **retry) -> tuple[int, list[dict] | None]:
     """Self-evaluations and assessments on one goal, spec 005 F1."""
     return get_all_pages(f"/portfolios/{portfolio_id}/goals/{goal_id}/feedback-items", token, **retry)
+
+
+def reviews(token: str, portfolio_id: int, *, retries: int = RETRIES,
+            retry_delay_s: float = RETRY_DELAY_S) -> tuple[int, list[dict] | None]:
+    """All submitted reviews on a portfolio, by the student and by every assessor (spec 042).
+    `order_by` is ignored by Portflow, so every page is fetched (API document §4.12)."""
+    return get_all_pages(f"/portfolios/{portfolio_id}/progress-review/reviews", token,
+                         retries=retries, retry_delay_s=retry_delay_s)
 
 
 def received_invitations(token: str, own_portfolio_id: str, **retry) -> tuple[int, list[dict] | None]:

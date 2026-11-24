@@ -42,7 +42,7 @@
   {% for g in items %}
   <article class="card staff-card">
     <div class="staff-card-head">
-      <span class="code-block" style="background: {{ g.color }}">{{ g.code }}</span>
+      <span class="code-block{% if g.color|text_on != '#fff' %} on-light{% endif %}" style="background: {{ g.color }}; color: {{ g.color|text_on }}">{{ g.code }}</span>
       <div>
         <h2>{{ g.name }}</h2>
         <p class="muted staff-sub"{% if g.description %} title="{{ g.description }}"{% endif %}>{{ g.role_name }}</p>

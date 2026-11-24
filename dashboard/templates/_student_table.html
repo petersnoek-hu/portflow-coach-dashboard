@@ -1,3 +1,4 @@
+{% from "_guild_badge.html" import guild_badges %}
 {# Student overview with progress (spec 001); shown on Overzicht (F1).
    Filters and grouping work without JavaScript (GET form); app.js adds search, sorting and
    submitting on change. #}
@@ -100,7 +101,7 @@
             </span>
           </span>
         </th>
-        <td class="col-profile">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+        <td class="col-profile">{{ guild_badges(row.guilds) }}</td>
         {% for code in skills %}
         {{ level_cell(code, p.cells[code], row.id) }}
         {% endfor %}

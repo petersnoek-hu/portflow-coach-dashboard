@@ -1,0 +1,6 @@
+{# A guild as a badge in its own colour, shaped like the level badges (spec 006, F14 colours). Takes the
+   guilds of a student (code, guild_name, guild_color) or of a guild master (code, name, color). #}
+{% macro guild_badges(guilds, empty=true) -%}
+{%- for g in guilds %}{% set colour = g.guild_color or g.color %}<span class="guild-badge" title="{{ g.guild_name or g.name }}" style="background: {{ colour }}; color: {{ colour|text_on }}">{{ g.code }}</span>{% endfor -%}
+{%- if not guilds and empty %}<span class="muted">–</span>{% endif -%}
+{%- endmacro %}

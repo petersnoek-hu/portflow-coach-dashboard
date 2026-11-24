@@ -137,6 +137,12 @@ teruggeeft op basis van alleen het token. In plaats daarvan:
   lengte van de ontvangen pagina** als stop-conditie in plaats van een aangenomen
   constante, om deze quirk niet te hoeven kennen.
 
+  *Live nagekeken 2026-11-23 (alleen lezend):* `goals`, `feedback-items`, `invitations/received`,
+  `collections` en `progress-review/reviews` houden zich aan `per_page` (1, 2 en 50 gaven precies zoveel
+  items). Het dashboard stopt bij die endpoints bij een pagina korter dan 50, zonder extra aanroep voor een
+  lege pagina (`portflow_api.get_all_pages`, [spec 042](../features/042-sneller-verversen/spec.md)).
+  Alleen `shared-with-me` bladert door tot een lege pagina.
+
 - **Foutafhandeling (zoals toegepast in deze scripts):**
   - `401 Unauthorized` → token is verlopen/ongeldig. Geen retry; gebruiker moet een
     nieuw token ophalen (opnieuw inloggen via browser).
@@ -587,6 +593,33 @@ dashboard stopt als een pagina gelijk is aan de vorige (`portflow_api._pages_unt
 
 Gebruikt door het dashboard voor de feedbackvragen op de studentpagina
 ([spec 035](../features/035-feedbackvragen/spec.md)).
+
+---
+
+### 4.12 `GET /portfolios/{portfolio_id}/progress-review/reviews` — alle ingediende reviews op een portfolio (gevonden 2026-11-23)
+
+Gevonden in het zijproject P2M, live gecontroleerd op 2026-11-23 (alleen lezen, bij 3 studenten). Geeft
+per portfolio **alle ingediende reviews**: de zelfevaluaties van de student (`role: "self"`) én de
+beoordelingen van **alle** beoordelaars (`coach`, `teacher`, `assessor`, `supervisor`, …), niet alleen
+die van de ingelogde gebruiker. Elk `review_request_id` uit de feedback items (§4.5) kwam erin voor.
+Alleen ingediende reviews (`invitation.status: "submitted"`); concepten staan er niet in.
+
+**Paginering:** `page` en `per_page` (max. 50; zonder `per_page` 25 per pagina). `order_by` en
+`order_direction` worden **genegeerd**; de volgorde is niet op datum. Haal dus alle pagina's op, tot een
+lege pagina.
+
+**Velden per review:** `id`, `invitation_id`, `role`, `scored`, `comment` (HTML), `created_at`,
+`updated_at`, `invitation` (`id`, `reviewer_id`, `review_request_id`, `review_request_note`,
+`portfolio_id`, `status`, `submitted_at`, `denied_at`, `created_at`, `updated_at`,
+`review_request_title`, `suggested_due_date`) en `reviewer` (`name`, `user_type`, `id`,
+`current_role`, `profile_picture_url`, …). `updated_at` verandert als een review na het indienen wordt
+aangepast (bij een groot deel van de reviews ligt `updated_at` na `invitation.submitted_at`).
+
+`GET /portfolios/{portfolio_id}/progress-review/reviews/{id}` geeft één review met daarnaast
+`criterion_evaluations` (per `criterion_id`: `level`, `score`, `comment`) en `criteria` (met `goal_id`).
+
+Gebruikt door het dashboard om te zien of er bij een student iets is veranderd sinds de vorige
+ophaalronde ([spec 042](../features/042-sneller-verversen/spec.md)).
 
 ---
 

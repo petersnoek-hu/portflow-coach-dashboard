@@ -9,10 +9,36 @@ import sqlite3
 from pathlib import Path
 
 PRESET_FILE = Path(__file__).resolve().parent.parent / "docs" / "gildes-openict.md"
-_PRESET_LINE = re.compile(r"^\|\s*\*\*([A-Za-z]{2,3})\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$")
+_PRESET_LINE = re.compile(r"^\|\s*\*\*([A-Za-z]{2,3})\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|(?:\s*`?(#[0-9A-Fa-f]{6})`?\s*\|)?\s*$")
 DEFAULT_COLOR = "#909DB9"
 _CODE = re.compile(r"^[A-Za-z]{2,3}$")
 _COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+
+def text_color(background: str) -> str:
+    """White text, or dark text on a very light colour (such as the LEF green of CI, 2.2:1 with white)
+    so the code stays readable. Below 2.5:1 only, so the default colour (2.8:1) keeps its white text."""
+    if not _COLOR.match(background or ""):
+        return "#fff"
+    channels = [int(background[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    r, g, b = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    return "#fff" if 1.05 / (luminance + 0.05) >= 2.5 else "#1f1f1f"
+
+
+def preset_colors(path: Path = PRESET_FILE) -> dict[str, str]:
+    """The colour per code from docs/gildes-openict.md (the LEF colours); a row without one is left out."""
+    if not path.exists():
+        return {}
+    return {m.group(1).upper(): m.group(4).upper()
+            for m in map(_PRESET_LINE.match, path.read_text(encoding="utf-8").splitlines()) if m and m.group(4)}
+
+
+def apply_preset_colors(conn: sqlite3.Connection) -> None:
+    """Once: Open-ICT guilds that still have the default colour get their LEF colour.
+    A colour the user chose is kept."""
+    for code, color in preset_colors().items():
+        conn.execute("UPDATE guilds SET color = ? WHERE code = ? AND upper(color) = ?", (color, code, DEFAULT_COLOR.upper()))
 
 
 def read_preset(path: Path = PRESET_FILE) -> list[tuple[str, str, str]]:
@@ -91,6 +117,7 @@ def add_preset(conn: sqlite3.Connection, codes: set[str] | None = None, *, is_de
     """F14, spec 018 F4: add the Open-ICT guilds (or only `codes`) with their professional role.
     A code that exists already is skipped. Returns the number added."""
     added = 0
+    colors = preset_colors()
     with conn:
         for code, name, role_name in read_preset():
             if codes is not None and code not in codes:
@@ -98,6 +125,6 @@ def add_preset(conn: sqlite3.Connection, codes: set[str] | None = None, *, is_de
             if conn.execute("SELECT 1 FROM guilds WHERE code = ?", (code,)).fetchone():
                 continue
             conn.execute("INSERT INTO guilds (code, name, role_name, color, is_demo) VALUES (?, ?, ?, ?, ?)",
-                         (code, name, role_name, DEFAULT_COLOR, int(is_demo)))
+                         (code, name, role_name, colors.get(code, DEFAULT_COLOR), int(is_demo)))
             added += 1
     return added

@@ -45,6 +45,24 @@ def _trial(database: str, model: str) -> dict | None:
     return value if isinstance(value, dict) and value.get("model") == model else None
 
 
+@bp.get("/instellingen/ollama")
+def settings_status():
+    """F11: the state of Ollama for Instellingen, loaded after the page (a stopped Ollama takes 2 s),
+    with the default model (F27), downloading (F28) and the laptop limits (F29-F32)."""
+    database = _database()
+    return render_template(
+        "_ai_status.html",
+        ai=readiness(database),
+        ai_tested=ollama.TESTED_MODELS,
+        ai_default=ollama.DEFAULT_MODEL,
+        ai_pull=current_app.extensions["ollama_pull"].status(),
+        ai_saved=request.args.get("model") == "ok",
+        ai_laptop=ai_advice.laptop(database),
+        ai_cores=ollama.cores(),
+        ai_laptop_saved=request.args.get("laptop") == "ok",
+    )
+
+
 @bp.get("/instellingen/ai-advies")
 def setup():
     """F12: the wizard, with the checks done when the page opens (and with every "Controleren")."""

@@ -234,7 +234,7 @@ class TestStaffPages(PagesTestCase):
         with self.db() as conn:
             row = conn.execute("SELECT name, first_name, last_name FROM staff WHERE id = ?", (person,)).fetchone()
         self.assertEqual(tuple(row), ("A. Gilde", "A.", "Gilde"))
-        self.assertIn('tag-guild" title="Front-end gilde"', html)
+        self.assertIn('class="guild-badge" title="Front-end gilde"', html)
 
     def test_first_and_last_name_split_at_first_space(self):  # 006 F20
         with self.db() as conn:
@@ -527,7 +527,7 @@ class TestStudentList(PagesTestCase):  # spec 010
                                  "%", ""])   # spec 024: the custom columns (the values are in the input fields)
         self.assertIn('title="scrum master" selected>SM<', row)
         julia = re.search(r'data-sort-name="julia meijer">(.*?)</tr>', html, re.S).group(1)
-        self.assertIn(">CI, CS<", julia)                     # spec 016: all guild codes
+        self.assertRegex(julia, r'guild-badge"[^>]*>CI</span><span class="guild-badge"[^>]*>CS<')   # spec 016: all guild codes
 
     def test_gear_menu_hides_columns_and_keeps_choice(self):  # F5
         self.load_demo()

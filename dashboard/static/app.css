@@ -387,8 +387,9 @@ a { color: inherit; }
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .refresh-failed { color: #8e5a49; cursor: help; }
-.is-spinning { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Spins while a round runs; app.js only toggles aria-busy, so the icon is never replaced mid-turn. */
+.refresh-button[aria-busy="true"] .refresh-icon { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(-360deg); } }  /* counter-clockwise, like the arrows of the icon */
 
 /* Student overview (spec 001) ------------------------------------------------------- */
 
@@ -508,6 +509,12 @@ thead th.col-student { display: table-cell; }
   display: inline-block; min-width: 38px; padding: 3px 7px; border-radius: 6px;
   font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center;
 }
+/* A guild in its colour, the same shape as a level (see _guild_badge.html). */
+.guild-badge {
+  display: inline-block; min-width: 38px; padding: 3px 7px; border-radius: 6px;
+  font-weight: 600; white-space: nowrap; text-align: center;
+}
+.guild-badge + .guild-badge { margin-left: 4px; }
 .level-n0 { background: #ebd5cb; color: #8e5a49; }
 .level-n1 { background: #f2eac1; color: #837031; }
 .level-n2 { background: #dae9dd; color: #406b52; }
@@ -571,7 +578,6 @@ thead th.col-student { display: table-cell; }
 .staff-sub { margin: 0; font-size: 14px; }
 .tag { margin-left: 4px; background: var(--page); color: var(--text-muted); }
 .tag-user { background: #dae9dd; color: #406b52; }
-.tag-guild { margin: 0 4px 0 0; background: #ede9f6; color: #5a4a8a; }
 .avatar-stack { display: flex; }
 .avatar-tiny { width: 28px; height: 28px; margin-right: -6px; font-size: 10px; border: 2px solid #fff; }
 .avatar-more { background: var(--page); color: var(--text-muted); }
@@ -597,6 +603,7 @@ thead th.col-student { display: table-cell; }
   width: 52px; height: 44px; border-radius: var(--radius-small);
   color: #fff; font-weight: 700; letter-spacing: 0.04em; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
 }
+.code-block.on-light { text-shadow: none; }   /* dark text on a light guild colour */
 .names-form select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
 .names-form input[name=code], .names-form input[name=naam] { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
 .names-form input[type=color] { width: 64px; height: 36px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-small); }
