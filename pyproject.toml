@@ -2,7 +2,7 @@
 # The version must equal VERSION in dashboard/version.py (tests/test_install.py checks it).
 [project]
 name = "portflow-coach-dashboard"
-version = "0.14.0"
+version = "0.15.0"
 description = "Lokaal dashboard voor Open-ICT-coaches en gildemeesters, op basis van de onofficiële Portflow API"
 requires-python = ">=3.12"
 dependencies = [
