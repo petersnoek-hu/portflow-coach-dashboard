@@ -40,18 +40,21 @@
   </figure>
 {% endmacro %}
 
+{# A feedback request (spec 035) or a remark (spec 043) with its replies; the version of the evidence
+   it belongs to as a small label, as in Portflow. #}
+{% macro version_label(m) %}{% if m.version %} <span class="version-label" title="Bij versie {{ m.version[1:] }} van het bewijsstuk">{{ m.version }}</span>{% endif %}{% endmacro %}
 {% macro feedback_request(t) %}
-  <div class="feedback-message feedback-msg-request">
-    <p class="feedback-meta"><strong>{{ t.request.author }}</strong> · {{ t.request.role }} · {{ t.request.date }} · feedbackvraag</p>
+  <div class="feedback-message {{ 'feedback-msg-request' if t.is_request is not defined or t.is_request else 'feedback-msg-remark' }}">
+    <p class="feedback-meta"><strong>{{ t.request.author }}</strong> · {{ t.request.role }} · {{ t.request.date }} · {{ t.label or "feedbackvraag" }}{{ version_label(t.request) }}</p>
     <p class="feedback-text">{{ t.request.text or "(geen tekst)" }}</p>
   </div>
   {% for r in t.replies %}
   <div class="feedback-message feedback-msg-reply">
-    <p class="feedback-meta"><strong>{{ r.author }}</strong> · {{ r.role }} · {{ r.date }}</p>
+    <p class="feedback-meta"><strong>{{ r.author }}</strong> · {{ r.role }} · {{ r.date }}{{ version_label(r) }}</p>
     <p class="feedback-text">{{ r.text or "(geen tekst)" }}</p>
   </div>
   {% else %}
-  <p class="muted feedback-none">Nog geen reacties.</p>
+  {% if t.is_request is not defined or t.is_request %}<p class="muted feedback-none">Nog geen reacties.</p>{% endif %}
   {% endfor %}
 {% endmacro %}
 

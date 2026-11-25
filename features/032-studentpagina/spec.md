@@ -33,6 +33,9 @@ Als **coach** of **gildemeester** wil ik vanuit Overzicht of Evaluaties op een s
   - *Acceptatie:* een openstaand verzoek aan de gebruiker en een aan een andere beoordelaar staan er allebei; alleen het eerste heeft "aan jou".
 - [x] **F5 – Periode.** De tabel, de tijdlijn en de openstaande evaluaties gaan over de **semesterperiode**, zoals Overzicht en Evaluaties.
 - [x] **F6 – Lege toestand.** Zonder evaluaties in de periode staat er "Nog geen evaluaties in deze semesterperiode." in plaats van de tijdlijn; zonder openstaande evaluaties "Er staan geen evaluaties open." Een student die niet (meer) bestaat geeft een melding met een link naar Overzicht.
+- [x] **F7 – Beoordeelde evaluaties** *(toegevoegd 2026-11-25 op verzoek van de gebruiker)*. Onder "Openstaande evaluaties" een kaart **"Beoordeelde evaluaties"** met alle evaluatieverzoeken van de student die in de semesterperiode zijn beoordeeld, de nieuwste bovenaan. Per verzoek: de titel, per vaardigheid het gegeven niveau in een neutraal label (`0` … `4`; niet in de kleuren van de niveaulabels, want die staan voor het aantal evaluaties; een beoordeling zonder niveau als "zonder niveau"), wie beoordeelde, de datum van de beoordeling en de datum van indienen. Een beoordeling door de gebruiker zelf krijgt het label **"door jou"**. Een klik opent de pagina van dat verzoek ([spec 039](../039-evaluatie-voorbereiden/spec.md)), zoals bij de openstaande evaluaties. Een eindassessment staat als één regel met "Assessment" en de niveaus. Zonder beoordelingen in de periode: "Nog geen beoordeelde evaluaties in deze semesterperiode."
+  - Welke beoordelingen: alle beoordelingen (rol niet `self`) die aan een evaluatieverzoek hangen en in de periode vallen, volgens [voortgangsregels.md](../../docs/voortgangsregels.md#welke-evaluaties-tellen): elke beoordelaar telt, behalve een **uitgesloten** beoordelaar, wiens beoordelingen hier ook verborgen blijven. Een beoordeling die om een andere reden niet meetelt (geen niveau, of het verzoek is nog niet als geheel beoordeeld) staat er met **"telt niet mee"**.
+  - *Acceptatie:* een student met in de periode twee beoordeelde verzoeken (PL 2 door de gebruiker op 20-11; OC 1 en KO 1 door een gildemeester op 10-11) toont twee regels, de nieuwste eerst, met de niveaulabels, de namen, de datums en bij de eerste "door jou".
 
 ### Buiten scope
 
@@ -58,6 +61,8 @@ Geen eigen ontwerp. Dezelfde onderdelen als de pagina Evaluaties ([design-system
 
 ## Open vragen
 
+- [x] F7: beoordelingen door iemand die niet in de lijsten staat? Beantwoord 2026-11-25: de voortgangsregels gelden al (elke beoordelaar telt, alleen uitgesloten beoordelaars zijn verborgen); "telt niet mee" alleen bij geen niveau of een nog niet beoordeeld verzoek. De gebruiker koos "tonen met telt niet mee"; dat is zo toegepast op wat volgens de regels niet meetelt
+
 - [x] Vorm van de tijdlijn: staven per week, opgebouwd uit blokjes per vaardigheid met het niveau (F3).
 - [x] Openstaande evaluaties: alle, met het label "aan jou" (F4).
 - [x] Links vanaf Overzicht en Evaluaties (F1); niet vanaf Studenten.
@@ -71,3 +76,5 @@ Geen eigen ontwerp. Dezelfde onderdelen als de pagina Evaluaties ([design-system
 - 2026-11-18 – gebouwd: route `/studenten/<id>` (`routes.student_page`), template `student.html`, gedeelde tabel `_compact_table.html`, blokjes in `timeline.student_weeks`, openstaande verzoeken in `timeline.student_open_requests` (de voortgang onthoudt nu per openstaande evaluatie het verzoek); links op Overzicht, Evaluaties en Studenten (met potlood naar Bewerken). Tests in `tests/test_student_page.py`; in de browser bekeken met echte gegevens. Status klaar
 - 2026-11-18 – op verzoek van de gebruiker teruggedraaid: op Studenten opent de naam weer Student bewerken, zonder potlood en zonder link naar de studentpagina (F1)
 - 2026-11-18 – uitgebreid met de tijdlijn van bewijsstukken onder de tijdlijn met evaluaties ([spec 034](../034-bewijsstukken-tijdlijn/spec.md))
+- 2026-11-25 – F7 toegevoegd op verzoek van de gebruiker: een lijst met de beoordeelde evaluaties van de semesterperiode, onder de openstaande evaluaties
+- 2026-11-25 – F7 gebouwd: `timeline.student_assessed_requests` (dezelfde regel `progress._counts` voor "telt niet mee"), kaart in `student.html` met `data-live`, zodat Verversen hem bijwerkt. Tests in `tests/test_student_page.py` (TestAssessed); in de ontwikkelversie bekeken met een echte student (6 beoordeelde verzoeken)

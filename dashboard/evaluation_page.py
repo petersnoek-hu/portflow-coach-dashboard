@@ -12,7 +12,7 @@ from datetime import date
 from . import lef
 from .evaluation_panel import _role, _staff
 from .evidence import KINDS, _local_day, _nl, safe_html
-from .feedback import _requests as feedback_requests
+from .feedback import _remarks as feedback_remarks, _requests as feedback_requests
 from .requests_to_review import OPEN_STATUSES, open_requests, waiting_text
 from .skills import CATEGORY, NAMES, PRODUCT_SKILLS, SKILLS
 
@@ -144,21 +144,27 @@ def _skill(conn, student_id: int, code: str, rows: list[dict], request_id: int, 
                          "collections": item["collections"] or "", "created": _nl(created),
                          "updated": _nl(updated) if updated and updated != created else "",
                          "new": bool(last_assessed and newest > last_assessed),     # F8
-                         "mentioned": item["evidence_id"] in mentioned, "requests": 0, "replies": 0})
+                         "mentioned": item["evidence_id"] in mentioned, "requests": 0, "replies": 0, "remarks": 0})
         ids.append(item["evidence_id"])
 
     by_evidence = {e["id"]: e for e in evidence}
     threads = []
-    for r in feedback_requests(conn, student_id, start, end):   # F12
+    # F12; spec 043, F4: the feedback requests and the remarks on this evidence, in the period
+    for r in feedback_requests(conn, student_id, start, end) + feedback_remarks(conn, student_id, start, end):
         item = by_evidence.get(r["evidence_id"])
         if item is None:
             continue
-        item["requests"] += 1
-        item["replies"] += len(r["from_others"])
+        is_request = r["kind"] == "feedback_request"
+        if is_request:
+            item["requests"] += 1
+            item["replies"] += len(r["from_others"])
+        else:
+            item["remarks"] += 1
         threads.append({"id": r["comment_id"], "evidence": item["name"], "author": r["author_name"] or "Onbekend",
-                        "date": _nl(r["day"]), "replies": len(r["from_others"]),
+                        "date": _nl(r["day"]), "replies": len(r["from_others"]), "is_request": is_request,
+                        "role": r["role"], "sort": (r["created_at"], r["comment_id"]),
                         "roles": sorted({reply["role"] for reply in r["from_others"]})})
-    threads.reverse()   # newest first
+    threads.sort(key=lambda t: t["sort"], reverse=True)   # newest first
 
     return {
         "code": code, "name": NAMES[code], "category": CATEGORY[code],
@@ -172,4 +178,6 @@ def _skill(conn, student_id: int, code: str, rows: list[dict], request_id: int, 
         "lef_claimed": lef.level_text(code, claimed),
         "lef_current": lef.level_text(code, current) if current != claimed else None,
         "evidence": evidence, "threads": threads, "thread_ids": ",".join(str(t["id"]) for t in threads),
+        "request_count": sum(1 for t in threads if t["is_request"]),
+        "remark_count": sum(1 for t in threads if not t["is_request"]),
     }

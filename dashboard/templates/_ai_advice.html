@@ -39,7 +39,7 @@
       <li>De toelichting en de zelfevaluatie van {{ advice_counts.skills }} vaardighe{{ "id" if advice_counts.skills == 1 else "den" }}, met het niveau dat de student vraagt.</li>
       <li>De LEF-teksten van alle niveaus van die vaardigheden.</li>
       <li>{{ advice_counts.evidence }} bewijsstuk{{ "ken" if advice_counts.evidence != 1 }} uit deze semesterperiode{% if advice_counts.files %}, waarvan {{ advice_counts.files }} met bestanden (de tekst, of een afbeelding als afbeelding){% endif %}.</li>
-      <li>{{ advice_counts.earlier }} eerdere beoordeling{{ "en" if advice_counts.earlier != 1 }} en {{ advice_counts.feedback }} feedbackbericht{{ "en" if advice_counts.feedback != 1 }}.</li>
+      <li>{{ advice_counts.earlier }} eerdere beoordeling{{ "en" if advice_counts.earlier != 1 }} en {{ advice_counts.feedback }} feedbackbericht{{ "en" if advice_counts.feedback != 1 }}{% if advice_counts.remarks %} en {{ advice_counts.remarks }} opmerking{{ "en" if advice_counts.remarks != 1 }}{% endif %}.</li>
     </ul>
     <p class="muted">Namen worden vervangen door "Student", "Coach 1", "Medestudent 1" enzovoort; in afbeeldingen kan dat niet. Met het lokale model blijft alles op deze laptop; met een AI "via internet" gaat het naar die dienst.</p>
     {% if advice and (advice.counts.names_only or advice.counts.cut) %}

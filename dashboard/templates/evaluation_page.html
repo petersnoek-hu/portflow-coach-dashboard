@@ -129,6 +129,7 @@
       {% if e.mentioned %}<span class="mark-label mark-mentioned">genoemd in zelfevaluatie</span>{% endif %}
       {% if e.new %}<span class="mark-label mark-new" title="Toegevoegd of bijgewerkt na de vorige beoordeling ({{ s.last_assessed }})">nieuw sinds vorige beoordeling</span>{% endif %}
       {% if e.requests %}<span class="muted evaluation-evidence-feedback">{{ e.requests }} feedbackvra{{ "ag" if e.requests == 1 else "gen" }}, {{ e.replies }} reactie{{ "s" if e.replies != 1 }}</span>{% endif %}
+      {% if e.remarks %}<span class="muted evaluation-evidence-feedback">{{ e.remarks }} opmerking{{ "en" if e.remarks != 1 }}</span>{% endif %}{# spec 043, F4 #}
     </li>
     {% endfor %}
   </ul>
@@ -136,15 +137,16 @@
   {% else %}<p class="muted" data-evidence-pending>De bewijsstukken worden opgehaald…</p>{% endif %}
 
   {# F12 #}
-  <h3>Feedbackvragen <span class="muted">· {{ s.threads|length }}</span></h3>
+  <h3>Feedback <span class="muted">· {{ s.request_count }} feedbackvra{{ "ag" if s.request_count == 1 else "gen" }} · {{ s.remark_count }} opmerking{{ "en" if s.remark_count != 1 }}</span></h3>{# spec 043, F4 #}
   {% if s.threads %}
   <ul class="evaluation-threads">
     {% for t in s.threads %}
     <li><a href="{{ url_for('pages.feedback_panel', student_id=r.student_id, vragen=t.id) }}" data-feedback>{{ t.evidence }}</a>
-      <span class="muted">{{ t.author }} · {{ t.date }} · {% if t.replies %}{{ t.replies }} reactie{{ "s" if t.replies != 1 }} ({{ t.roles|join(", ") }}){% else %}nog geen reactie{% endif %}</span></li>
+      <span class="muted">{% if t.is_request %}{{ t.author }} · {{ t.date }} · {% if t.replies %}{{ t.replies }} reactie{{ "s" if t.replies != 1 }} ({{ t.roles|join(", ") }}){% else %}nog geen reactie{% endif %}
+        {% else %}opmerking van {{ t.author }} ({{ t.role }}) · {{ t.date }}{% if t.replies %} · {{ t.replies }} reactie{{ "s" if t.replies != 1 }}{% endif %}{% endif %}</span></li>
     {% endfor %}
   </ul>
-  {% else %}<p class="muted">Geen feedbackvragen op deze bewijsstukken in deze semesterperiode.</p>{% endif %}
+  {% else %}<p class="muted">Geen feedbackvragen of opmerkingen op deze bewijsstukken in deze semesterperiode.</p>{% endif %}
 </section>
 {% endfor %}
 

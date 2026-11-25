@@ -167,3 +167,47 @@ def student_open_requests(conn: sqlite3.Connection, row: dict, today: date) -> l
                            waiting=waiting_text((today - day).days) if day else "",
                            to_me=item["request_id"] in to_me))
     return sorted(result, key=lambda r: (r["date"] or "~", r["title"]))
+
+
+def student_assessed_requests(conn: sqlite3.Connection, student_id: int, start: date, end: date) -> list[dict]:
+    """Spec 032, F7: the review requests of the student assessed in the period, newest assessment
+    first; per skill the level, who and when. Assessments of an excluded assessor stay hidden
+    (voortgangsregels.md#welke-evaluaties-tellen); one that does not count otherwise (no level, or
+    the request not scored as a whole) is shown with "telt niet mee"."""
+    from .portflow_connection import S_USER_NAME
+    from .progress import _counts, normalize_name
+    excluded = {r[0] for r in conn.execute("SELECT name_key FROM excluded_assessors")}
+    me = normalize_name(next((r[0] for r in conn.execute("SELECT value FROM settings WHERE key = ?", (S_USER_NAME,))), ""))
+    rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM evaluations WHERE student_id = ? AND review_request_id IS NOT NULL ORDER BY date, id", (student_id,))]
+    submitted = {}
+    for r in rows:
+        if r["kind"] == "self" and r["date"]:
+            submitted.setdefault(r["review_request_id"], r["date"])
+    grouped: dict[int, dict] = {}
+    for r in rows:
+        if r["kind"] != "assessed" or r["skill"] not in SKILLS or normalize_name(r["assessor"]) in excluded:
+            continue
+        day = _day(r["date"] or "")
+        if day is None or not start <= day <= end:
+            continue
+        item = grouped.setdefault(r["review_request_id"], {
+            "request_id": r["review_request_id"], "title": r["review_request_title"] or "Evaluatieverzoek",
+            "skills": {}, "assessed": day})
+        item["assessed"] = max(item["assessed"], day)
+        item["skills"][r["skill"]] = {
+            "code": r["skill"], "level": r["level"] if r["level"] not in (None, "") else None,
+            "assessor": r["assessor"] or "Onbekend", "by_me": bool(me) and normalize_name(r["assessor"]) == me,
+            "counts": _counts(r, excluded, start, end)}
+    result = []
+    for item in grouped.values():
+        skills = [item["skills"][c] for c in SKILLS if c in item["skills"]]
+        sent = _day(submitted.get(item["request_id"]) or "")
+        result.append({
+            "request_id": item["request_id"], "title": item["title"], "skills": skills,
+            "full_assessment": len(skills) == len(SKILLS),
+            "assessors": list(dict.fromkeys(s["assessor"] for s in skills)),
+            "by_me": any(s["by_me"] for s in skills),
+            "assessed": item["assessed"], "assessed_text": _nl_date(item["assessed"]),
+            "submitted_text": _nl_date(sent) if sent else ""})
+    return sorted(result, key=lambda r: (r["assessed"], r["request_id"]), reverse=True)

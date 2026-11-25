@@ -143,3 +143,52 @@ class TestPage(StudentPageCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAssessed(StudentPageCase):   # F7
+    def assessed(self):
+        conn = self.conn()
+        try:
+            return timeline.student_assessed_requests(conn, 1, date(2026, 9, 1), date(2027, 1, 31))
+        finally:
+            conn.close()
+
+    def test_newest_first_with_levels_who_and_dates(self):   # F7 acceptance
+        self.add("PL", "self", "2026-11-12", "2", rid=70, title="Plannen 2")
+        self.add("PL", "assessed", "2026-11-20", "2", rid=70, assessor=USER, title="Plannen 2")
+        self.add("OC", "self", "2026-11-03", "1", rid=60, title="OC en KO")
+        self.add("OC", "assessed", "2026-11-10", "1", rid=60, title="OC en KO")
+        self.add("KO", "assessed", "2026-11-10", "1", rid=60, title="OC en KO")
+        items = self.assessed()
+        self.assertEqual([r["request_id"] for r in items], [70, 60])
+        self.assertTrue(items[0]["by_me"])
+        self.assertEqual([(s["code"], s["level"]) for s in items[1]["skills"]], [("OC", "1"), ("KO", "1")])
+        self.assertEqual((items[1]["assessed_text"], items[1]["submitted_text"]), ("10-11-2026", "3-11-2026"))
+        html = self.html()
+        self.assertIn("Beoordeelde evaluaties", html)
+        self.assertLess(html.index("Plannen 2"), html.index("OC en KO"))
+        self.assertIn("door jou", html)
+        self.assertIn('<span class="level assessed-level">1</span>', html)
+        self.assertIn('href="/evaluaties/70', html)
+        self.assertIn("beoordeeld 20-11-2026", html)
+
+    def test_outside_period_excluded_and_not_counting(self):   # F7, voortgangsregels
+        self.add("PL", "assessed", "2026-06-10", "1", rid=50)                        # before the period
+        self.add("SW", "assessed", "2026-11-11", "2", rid=51, assessor="Oud Student")
+        conn = self.conn()
+        with conn:
+            conn.execute("INSERT INTO excluded_assessors (name_key, name) VALUES ('oud student', 'Oud Student')")
+        conn.close()
+        self.add("FO", "assessed", "2026-11-12", None, rid=52, title="Zonder niveau")   # no level: does not count
+        self.add("BD", "assessed", "2026-11-13", "2", rid=53, status="not_scored", title="Nog niet af")
+        items = {r["request_id"]: r for r in self.assessed()}
+        self.assertEqual(set(items), {52, 53})                                         # 50: old; 51: excluded assessor
+        self.assertIsNone(items[52]["skills"][0]["level"])
+        self.assertFalse(items[52]["skills"][0]["counts"])
+        self.assertFalse(items[53]["skills"][0]["counts"])
+        html = self.html()
+        self.assertIn("zonder niveau", html)
+        self.assertIn("telt niet mee", html)
+
+    def test_empty(self):   # F7
+        self.assertIn("Nog geen beoordeelde evaluaties in deze semesterperiode.", self.html())

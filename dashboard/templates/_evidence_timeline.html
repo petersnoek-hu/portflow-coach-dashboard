@@ -15,9 +15,10 @@
     · <strong>{{ feedback_stats.answered }}</strong> beantwoord
     · <strong>{{ feedback_stats.replies }}</strong> reactie{{ "s" if feedback_stats.replies != 1 }}
     · van <strong>{{ feedback_stats.people }}</strong> {{ "persoon" if feedback_stats.people == 1 else "mensen" }}
-    {% if feedback_stats.first_reply_days is not none %}· eerste reactie gemiddeld na <strong>{{ feedback_stats.first_reply_days|string|replace(".", ",")|replace(",0", "") }}</strong> dag{{ "en" if feedback_stats.first_reply_days != 1 }}{% endif %}</p>
+    {% if feedback_stats.first_reply_days is not none %}· eerste reactie gemiddeld na <strong>{{ feedback_stats.first_reply_days|string|replace(".", ",")|replace(",0", "") }}</strong> dag{{ "en" if feedback_stats.first_reply_days != 1 }}{% endif %}
+    {% if feedback_stats.staff_remarks %}· <strong>{{ feedback_stats.staff_remarks }}</strong> opmerking{{ "en" if feedback_stats.staff_remarks != 1 }} van coaches en gildemeesters{% endif %}{# spec 043, F6 #}</p>
   {% elif evidence_fetched %}
-  <p class="muted feedback-stats">Nog geen feedbackvragen in deze semesterperiode.</p>
+  <p class="muted feedback-stats">Nog geen feedbackvragen in deze semesterperiode.{% if feedback_stats and feedback_stats.staff_remarks %} Wel <strong>{{ feedback_stats.staff_remarks }}</strong> opmerking{{ "en" if feedback_stats.staff_remarks != 1 }} van coaches en gildemeesters.{% endif %}</p>
   {% endif %}
   {% if evidence_collections == 0 %}
   <p class="timeline-empty">De student heeft (nog) geen collecties met je gedeeld.</p>{# F5 #}

@@ -76,9 +76,9 @@ def fetch_for_student(conn: sqlite3.Connection, student_id: int, token: str | No
         conn.execute("DELETE FROM evidence_comments WHERE student_id = ?", (student_id,))
         conn.executemany(
             "INSERT OR REPLACE INTO evidence_comments (comment_id, student_id, evidence_id, parent_id, kind, text, "
-            "created_at, author_id, author_name, author_role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "created_at, author_id, author_name, author_role, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [(c["comment_id"], student_id, c["evidence_id"], c["parent_id"], c["kind"], c["text"], c["created_at"],
-              c["author_id"], c["author_name"], c["author_role"]) for c in comments])
+              c["author_id"], c["author_name"], c["author_role"], c.get("version")) for c in comments])
         conn.executemany(
             "INSERT INTO evidence_items (student_id, evidence_id, name, kind, created_at, updated_at, collections, skills) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -99,15 +99,20 @@ def _in_period(item: dict, period: tuple[date, date] | None) -> bool:
                for day in (_local_day(item["created_at"]), _local_day(item["updated_at"])))
 
 
-def _comment(raw: dict, evidence_id: int, parent_id: int | None) -> dict | None:
-    if not isinstance(raw.get("id"), int):
+def _comment(raw: dict, evidence_id: int, parent_id: int | None, version: int | None = None) -> dict | None:
+    """One comment; spec 043: hidden comments are left out (F1, open question 3), and the version
+    of the evidence it belongs to is kept (a reply without one takes `version`, that of its parent)."""
+    if not isinstance(raw.get("id"), int) or raw.get("hidden") is True:
         return None
     author = raw.get("created_by") if isinstance(raw.get("created_by"), dict) else {}
+    own = raw.get("evidence_version") if isinstance(raw.get("evidence_version"), dict) else {}
+    number = own.get("version_number")
     return {"comment_id": raw["id"], "evidence_id": evidence_id, "parent_id": parent_id,
             "kind": str(raw.get("comment_type") or ""), "text": str(raw.get("text") or ""),
             "created_at": str(raw.get("created_at") or ""),
             "author_id": author.get("id") if isinstance(author.get("id"), int) else None,
-            "author_name": str(author.get("name") or ""), "author_role": str(raw.get("created_by_role") or "")}
+            "author_name": str(author.get("name") or ""), "author_role": str(raw.get("created_by_role") or ""),
+            "version": number if isinstance(number, int) and not isinstance(number, bool) else version}
 
 
 def _fetch_comments(api, token: str, items: list[dict]) -> list[dict]:
@@ -124,7 +129,7 @@ def _fetch_comments(api, token: str, items: list[dict]) -> list[dict]:
             if raw.get("child_count"):
                 status, children = api.comment_children(token, item["portfolio_id"], comment["comment_id"])
                 for child in children or [] if status == 200 else []:
-                    reply = _comment(child, item["evidence_id"], comment["comment_id"])
+                    reply = _comment(child, item["evidence_id"], comment["comment_id"], comment["version"])
                     if reply is not None and reply["comment_id"] != comment["comment_id"]:
                         result.append(reply)
         return result

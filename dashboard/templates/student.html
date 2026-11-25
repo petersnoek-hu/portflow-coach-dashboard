@@ -43,5 +43,30 @@
   <p class="muted">Er staan geen evaluaties open.</p>
   {% endif %}
 </section>
+
+{# F7: the requests assessed in the period, newest first; a click opens the request (spec 039). #}
+<section class="card to-review student-assessed" aria-labelledby="student-assessed-title" data-live="student-assessed">
+  <h2 id="student-assessed-title">Beoordeelde evaluaties{% if assessed %} <span class="muted">· {{ assessed|length }}</span>{% endif %}</h2>
+  {% if assessed %}
+  <ul class="to-review-list">
+    {% for r in assessed %}
+    <li><a class="to-review-item to-review-link" href="{{ url_for('pages.evaluation_page', request_id=r.request_id, van=active) }}">
+      <span class="to-review-main">
+        <span class="to-review-student">{{ r.title }}{% if r.by_me %} <span class="role-label">door jou</span>{% endif %}</span>
+        <span class="to-review-title">{{ r.assessors|join(", ") }}</span>
+      </span>
+      <span class="to-review-skills assessed-skills">
+        {% if r.full_assessment %}<span class="mark-assessment">Assessment</span>{% endif %}
+        {% for sk in r.skills %}<span class="assessed-skill" title="{{ skill_names[sk.code] }}: {% if sk.level is none %}zonder niveau{% else %}niveau {{ sk.level }}{% endif %}, door {{ sk.assessor }}{% if not sk.counts %} · telt niet mee{% endif %}">
+          <span class="skill-code">{{ sk.code }}</span>{% if sk.level is none %}<span class="muted assessed-none">zonder niveau</span>{% else %}<span class="level assessed-level">{{ sk.level }}</span>{% endif %}{% if not sk.counts %}<span class="muted assessed-not-counted">telt niet mee</span>{% endif %}</span>{% endfor %}
+      </span>
+      <span class="to-review-date">beoordeeld {{ r.assessed_text }}{% if r.submitted_text %}<br><span class="muted">ingediend {{ r.submitted_text }}</span>{% endif %}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Nog geen beoordeelde evaluaties in deze semesterperiode.</p>
+  {% endif %}
+</section>
 {% endif %}
 {% endblock %}

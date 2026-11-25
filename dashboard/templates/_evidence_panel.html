@@ -3,7 +3,12 @@
 {% for e in items %}
 <article class="feedback-thread">
   {{ evidence_head(e) }}
-  {% for t in e.threads %}{{ feedback_request(t) }}{% else %}<p class="muted feedback-none">Geen feedbackvragen bij dit bewijsstuk.</p>{% endfor %}
+  {% for t in e.threads %}{{ feedback_request(t) }}{% endfor %}
+  {% if e.remarks %}{# spec 043, F2 #}
+  <h3 class="feedback-remarks-title">Opmerkingen</h3>
+  {% for t in e.remarks %}{{ feedback_request(t) }}{% endfor %}
+  {% endif %}
+  {% if not e.threads and not e.remarks %}<p class="muted feedback-none">Nog geen feedback bij dit bewijsstuk.</p>{% endif %}
 </article>
 {% else %}
 <p class="muted">Dit bewijsstuk is niet (meer) gevonden.</p>

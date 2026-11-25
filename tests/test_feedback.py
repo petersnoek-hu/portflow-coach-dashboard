@@ -99,7 +99,10 @@ class TestRows(FeedbackCase):   # F3
     def test_requests_and_replies_by_role(self):
         requests, replies = feedback.rows(self.conn, 1, START, END)
         self.assertEqual([(m["kind"], m["ids"]) for m in requests["marks"]], [("answered", "100"), ("open", "101")])
-        self.assertEqual([(m["count"], m["kind"]) for m in replies["marks"]], [(1, "medestudent"), (2, "gemengd")])
+        # spec 043, F3: the remark of the guild master (102, 3 Oct) is in the row Reactie too
+        self.assertEqual([(m["count"], m["kind"], m["ids"]) for m in replies["marks"]],
+                         [(1, "gildemeester", "102"), (1, "medestudent", "100"), (2, "gemengd", "100")])
+        self.assertIn("Opmerking van Joost Visser (gildemeester) bij Sprintverslag", replies["marks"][0]["tip"])
         self.assertIn("Feedbackvraag bij Sprintverslag · 2 reacties", requests["marks"][0]["tip"])
         html = self.client.get("/studenten/1").get_data(as_text=True)
         self.assertIn('href="/studenten/1/feedback?vragen=100" data-feedback', html)
@@ -149,3 +152,64 @@ class TestEmpty(unittest.TestCase):   # F6
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRemarks(FeedbackCase):   # spec 043
+    def add(self, cid, day, author, author_id, role, version=None, parent=None, evidence_id=10, kind="comment"):
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO evidence_comments (comment_id, student_id, evidence_id, parent_id, kind, text, created_at, "
+                "author_id, author_name, author_role, version) VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (cid, evidence_id, parent, kind, f"<p>Bericht {cid}</p>", f"{day}T10:00:00Z", author_id, author, role, version))
+
+    def test_version_and_hidden_when_fetched(self):   # F1, open question 3
+        raw = comment(300, "2026-10-01", "Joost Visser", 50, role="coach", kind="comment")
+        stored = evidence._comment(dict(raw, evidence_version={"evidence_id": 10, "version_number": 2}), 10, None)
+        self.assertEqual(stored["version"], 2)
+        reply = evidence._comment(comment(301, "2026-10-02", "Noor Smit", 21, kind="comment"), 10, 300, stored["version"])
+        self.assertEqual(reply["version"], 2)                                    # a reply takes the version of its parent
+        self.assertIsNone(evidence._comment(dict(raw, hidden=True), 10, None))  # hidden: not kept
+        columns = [r[1] for r in self.conn.execute("PRAGMA table_info(evidence_comments)")]
+        self.assertIn("version", columns)
+
+    def test_side_panel_shows_every_remark_with_version(self):   # F2 acceptance
+        with self.conn:
+            self.conn.execute("DELETE FROM evidence_comments")
+        self.add(400, "2026-08-21", "Joost Visser", 50, "coach", version=1)    # before the period: still shown here
+        self.add(401, "2026-09-25", "Lotte Bakker", 11, "student", version=2)
+        html = self.client.get("/studenten/1/bewijsstuk?ids=10").get_data(as_text=True)
+        self.assertIn("Opmerkingen", html)
+        self.assertIn("Bericht 400", html)
+        self.assertIn("Bericht 401", html)
+        self.assertIn(">V1</span>", html)
+        self.assertIn(">V2</span>", html)
+        self.assertIn("opmerking", html)
+        self.assertNotIn("Geen feedbackvragen bij dit bewijsstuk", html)
+        with self.conn:
+            self.conn.execute("DELETE FROM evidence_comments")
+        self.assertIn("Nog geen feedback bij dit bewijsstuk.",
+                      self.client.get("/studenten/1/bewijsstuk?ids=10").get_data(as_text=True))
+
+    def test_timeline_leaves_out_own_and_old_remarks(self):   # F3
+        with self.conn:
+            self.conn.execute("DELETE FROM evidence_comments")
+        self.add(400, "2026-08-21", "Joost Visser", 50, "coach")                 # before the period
+        self.add(401, "2026-09-25", "Lotte Bakker", 11, "student")              # by the student himself
+        self.add(402, "2026-09-26", "Noor Smit", 21, "student", parent=401)     # a fellow student replies
+        _, replies = feedback.rows(self.conn, 1, START, END)
+        self.assertEqual([(m["kind"], m["ids"]) for m in replies["marks"]], [("medestudent", "401")])
+        self.assertIn("Reactie op een opmerking van Noor Smit (medestudent)", replies["marks"][0]["tip"])
+        panel = self.client.get("/studenten/1/feedback?vragen=401").get_data(as_text=True)
+        self.assertIn("Bericht 401", panel)
+        self.assertIn("Bericht 402", panel)
+
+    def test_key_figures_count_remarks_of_coaches(self):   # F6
+        stats = feedback.summary(self.conn, 1, START, END)
+        self.assertEqual(stats["staff_remarks"], 1)                               # 102 by the guild master
+        self.assertEqual(stats["requests"], 2)                                    # requests unchanged
+        self.assertIn("opmerking van coaches en gildemeesters", self.client.get("/studenten/1").get_data(as_text=True))
+
+    def test_remarks_go_to_the_ai(self):   # F5
+        from dashboard import ai_advice
+        texts = ai_advice._feedback_texts(self.conn, 1, START, END)
+        self.assertIn("Opmerking bij Sprintverslag van Joost Visser (gildemeester)", texts[102])

@@ -214,7 +214,8 @@ def overview(data: dict) -> dict:
     files = {e["id"] for s in skills for e in s["evidence"] if e["raw_kind"] == "file"}
     return {"skills": len(skills), "evidence": len(evidence_ids), "files": len(files),
             "earlier": sum(len(s["earlier"]) for s in skills),
-            "feedback": sum(1 + t["replies"] for s in skills for t in s["threads"])}
+            "feedback": sum(1 + t["replies"] for s in skills for t in s["threads"] if t.get("is_request", True)),
+            "remarks": sum(1 for s in skills for t in s["threads"] if not t.get("is_request", True))}   # spec 043, F5
 
 
 def collect(conn: sqlite3.Connection, database: str, token: str | None, request_id: int, today: date,
@@ -257,7 +258,7 @@ def collect(conn: sqlite3.Connection, database: str, token: str | None, request_
             lines.append("Bewijsstukken bij deze vaardigheid: geen.")
         threads = [feedback_text[t["id"]] for t in s["threads"] if t["id"] in feedback_text]
         if threads:
-            lines.append("Feedbackvragen en reacties op deze bewijsstukken:\n" + "\n".join(threads))
+            lines.append("Feedbackvragen, opmerkingen en reacties op deze bewijsstukken:\n" + "\n".join(threads))
         sections.append("\n\n".join(lines))
         for e in s["evidence"]:
             all_evidence.setdefault(e["id"], dict(e, skills=[]))["skills"].append(s["code"])
@@ -306,16 +307,25 @@ def collect(conn: sqlite3.Connection, database: str, token: str | None, request_
 
 
 def _feedback_texts(conn, student_id: int, start: date, end: date) -> dict[int, str]:
-    from .feedback import _requests
+    """F2: the feedback requests and (spec 043, F5) the remarks on the evidence, with their replies,
+    per top-level comment id; names are replaced later (F3)."""
+    from .feedback import ROLES, _remarks, _requests
     result = {}
     names = {r["evidence_id"]: r["name"] for r in conn.execute(
         "SELECT evidence_id, name FROM evidence_items WHERE student_id = ?", (student_id,))}
+    version = lambda c: f", bij versie {c['version']}" if c.get("version") else ""
     for request in _requests(conn, student_id, start, end):
-        lines = [f"- Feedbackvraag bij {names.get(request['evidence_id'], 'een bewijsstuk')} van {request['author_name']}: "
-                 f"{plain_text(request['text'])}"]
+        lines = [f"- Feedbackvraag bij {names.get(request['evidence_id'], 'een bewijsstuk')} van {request['author_name']}"
+                 f"{version(request)}: {plain_text(request['text'])}"]
         lines += [f"  - Reactie van {reply['author_name']} ({reply['role']}): {plain_text(reply['text'])}"
                   for reply in request["replies"]]
         result[request["comment_id"]] = "\n".join(lines)
+    for remark in _remarks(conn, student_id, start, end):
+        lines = [f"- Opmerking bij {names.get(remark['evidence_id'], 'een bewijsstuk')} van {remark['author_name']} "
+                 f"({ROLES[remark['role']]}){version(remark)}: {plain_text(remark['text'])}"]
+        lines += [f"  - Reactie van {reply['author_name']} ({ROLES[reply['role']]}): {plain_text(reply['text'])}"
+                  for reply in remark["replies"]]
+        result[remark["comment_id"]] = "\n".join(lines)
     return result
 
 

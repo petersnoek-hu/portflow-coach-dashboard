@@ -181,7 +181,8 @@ CREATE TABLE IF NOT EXISTS evidence_comments (
     created_at   TEXT NOT NULL DEFAULT '',
     author_id    INTEGER,
     author_name  TEXT NOT NULL DEFAULT '',
-    author_role  TEXT NOT NULL DEFAULT ''      -- as Portflow gives it (student, coach, ...)
+    author_role  TEXT NOT NULL DEFAULT '',     -- as Portflow gives it (student, coach, ...)
+    version      INTEGER                       -- version of the evidence it belongs to (spec 043, F1)
 );
 
 -- When the evidence of a student was last fetched (spec 034, F1), and the last problem if any.
@@ -276,6 +277,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     evaluation_columns = {row["name"] for row in conn.execute("PRAGMA table_info(evaluations)")}
     if "text" not in evaluation_columns:
         conn.execute("ALTER TABLE evaluations ADD COLUMN text TEXT")   # spec 037, F1
+    if _table_exists(conn, "evidence_comments") and "version" not in {
+            r["name"] for r in conn.execute("PRAGMA table_info(evidence_comments)")}:
+        conn.execute("ALTER TABLE evidence_comments ADD COLUMN version INTEGER")   # spec 043, F1
     if "note" not in {row["name"] for row in conn.execute("PRAGMA table_info(received_requests)")}:
         conn.execute("ALTER TABLE received_requests ADD COLUMN note TEXT")   # spec 039, F5
     if _table_exists(conn, "ai_advice") and "service" not in {r["name"] for r in conn.execute("PRAGMA table_info(ai_advice)")}:

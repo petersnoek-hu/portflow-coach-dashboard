@@ -369,6 +369,7 @@ def student_page(student_id: int):
         blocks=[[row]], weeks=weeks, tallest=max((len(w["blocks"]) for w in weeks), default=0),
         period=f"{timeline.long_date(start)} – {timeline.long_date(end)}", period_saved=period_saved,
         requests=timeline.student_open_requests(conn, row, date.today()),
+        assessed=timeline.student_assessed_requests(conn, student_id, start, end),   # F7
         edit_url=url_for("pages.student_edit_page", student_id=student_id, terug=request.full_path.rstrip("?")))
 
 

@@ -100,6 +100,8 @@ Het dashboard kent twee soorten gebruik. Iemand kan van het ene naar het andere 
 | **Feedback item** | Eén zelfevaluatie of beoordeling op een doel, met niveau, datum en beoordelaar |
 | **Beoordelaar** | Wie een evaluatie geeft. Telt alleen mee als die in de lijst met coaches en gildemeesters staat ([voortgangsregels.md](voortgangsregels.md#welke-evaluaties-tellen)) |
 | **Bewijsstuk (evidence)** | Bestand dat de student in een toelichting noemt ("@bestand"); te downloaden via de API |
+| **Feedbackvraag** | Vraag om feedback die de student bij een bewijsstuk stelt (Portflow: `comment_type: feedback_request`), met reacties eronder ([spec 035](../features/035-feedbackvragen/spec.md)) |
+| **Opmerking** | Bericht bij een bewijsstuk dat geen feedbackvraag is (Portflow: `comment_type: comment`, "Opmerking toevoegen"); iedereen met toegang kan er een plaatsen, ook de coach, en er kunnen reacties onder staan. Hoort bij een versie van het bewijsstuk ("V1") ([spec 043](../features/043-opmerkingen-bewijsstukken/spec.md)) |
 
 <a id="begrippen-in-de-code"></a>
 ## Begrippen in de code
@@ -128,6 +130,7 @@ De code is Engelstalig, de interface Nederlands. Gebruik deze vertalingen, zodat
 | Evaluatieverzoek | `review_request` |
 | Zelfevaluatie | `self_evaluation` |
 | Beoordelaar | `assessor` |
+| Feedbackvraag, opmerking, reactie | `feedback_request`, `remark` (in Portflow `comment`), `reply` |
 | Coach of gildemeester in de beheerde lijst (een persoon met rollen) | `staff` (`staff_member`) |
 | Gegevens ophalen, verversen | `fetch`, `refresh` |
 | Openstaande evaluatie (`?`) | `pending_evaluation` |

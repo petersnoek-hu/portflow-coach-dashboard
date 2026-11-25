@@ -137,10 +137,20 @@ class TestData(PageCase):
 
 
 class TestPage(PageCase):
+    def test_remarks_per_skill(self):   # spec 043, F4
+        with self.conn:
+            self.conn.execute("INSERT INTO evidence_comments (comment_id, student_id, evidence_id, kind, text, created_at, "
+                              "author_id, author_name, author_role, version) VALUES (3, 1, 501, 'comment', 'Let op de planning', ?, "
+                              "50, 'Joost Visser', 'coach', 1)", (datetime.now(timezone.utc).isoformat(),))
+        html = self.page().get_data(as_text=True)
+        self.assertIn("1 feedbackvraag · 1 opmerking", html)
+        self.assertIn("opmerking van Joost Visser (coach)", html)
+        self.assertIn("1 opmerking</span>", html)
+
     def test_page_shows_everything(self):   # F1-F13
         html = self.page().get_data(as_text=True)
         for text in ("PL &amp; BD 2e evaluatie", "Stand van zaken", "Evaluaties per week", "Toelichting van de student",
-                     "Zelfevaluatie", "Eerdere evaluaties", "Bewijsstukken", "Feedbackvragen", "genoemd in zelfevaluatie",
+                     "Zelfevaluatie", "Eerdere evaluaties", "Bewijsstukken", "Feedback <span", "genoemd in zelfevaluatie",
                      "nieuw sinds vorige beoordeling", "2 van 3", "Bewijsstukken per vaardigheid"):
             self.assertIn(text, html)
         self.assertIn('class="col-skill cat-social is-requested"', html)   # F2: PL and BD marked
