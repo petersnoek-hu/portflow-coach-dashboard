@@ -12,7 +12,7 @@ import sqlite3
 import threading
 from datetime import date, datetime, timezone
 
-from . import claude_ai, db, evaluation_page, evidence, evidence_files, file_text, lef, ollama
+from . import ai_log, claude_ai, db, evaluation_page, evidence, evidence_files, file_text, lef, ollama
 from .evidence import plain_text
 from .hide_names import anonymize, numbers
 from .overview import semester_period
@@ -534,6 +534,7 @@ class Jobs:
         import time
         cancel = self.jobs[request_id]["cancel"]
         conn = db.connect(self.database)
+        what, phase, started, failure = "vervolgvraag", "voorbereiden", None, None
         try:
             row = conn.execute("SELECT * FROM ai_advice WHERE review_request_id = ?", (request_id,)).fetchone()
             if row is None or not row["prompt"]:
@@ -548,7 +549,9 @@ class Jobs:
             def written(*_):
                 self._set(request_id, step=f"Antwoord wordt gemaakt… ({int(time.monotonic() - started)} s)")
 
+            phase = "het antwoord"
             if row["service"] == "claude":
+                what = f"vervolgvraag aan Claude ({claude_ai.MODEL})"
                 if not claude_ai.ready(self.database):
                     raise ollama.OllamaError("Claude is niet meer ingesteld. Open AI-advies instellen.")
                 answer = claude_ai.chat(claude_ai.key(self.database), system_prompt(self.database), row["prompt"], None,
@@ -556,6 +559,8 @@ class Jobs:
             else:
                 url, _model = settings(self.database)
                 options = model_options(self.database)   # F29-F31
+                what = (f"vervolgvraag aan {row['model']} op {url} ({options['num_thread']} kernen, "
+                        f"{options['num_ctx']} tokens{', daarna uit het geheugen' if options['keep_alive'] == 0 else ''})")
                 answer = ollama.chat(url, row["model"], system_prompt(self.database), row["prompt"], None, history=history,
                                      num_ctx=options["num_ctx"], num_thread=options["num_thread"],
                                      keep_alive=options["keep_alive"], cancel=cancel, progress=written)
@@ -564,13 +569,16 @@ class Jobs:
             add_turn(self.database, request_id, question, question_anon, answer, round(time.monotonic() - started))
             self._set(request_id, state="done", step="Klaar")
         except ollama.OllamaError as error:
+            failure = error
             self._set(request_id, state="stopped" if cancel.is_set() else "error", error=error.message)
-        except Exception:
+        except Exception as error:
             import logging
             logging.getLogger(__name__).exception("AI follow-up failed")
+            failure = ollama.OllamaError("onverwachte fout in het dashboard", type(error).__name__)
             self._set(request_id, state="error", error="Er ging iets mis bij het beantwoorden van de vraag.")
         finally:
             conn.close()
+            self._log_end("Vervolgvraag", request_id, what, failure, cancel, started, phase)
 
     def start(self, request_id: int, service: str = "lokaal", model: str | None = None,
               judgment: dict | None = None) -> bool:
@@ -601,11 +609,27 @@ class Jobs:
         with self.lock:
             self.jobs[request_id].update(values)
 
+    def _log_end(self, topic: str, request_id: int, what: str, error: "ollama.OllamaError | None", cancel,
+                 started: float | None, phase: str) -> None:
+        """Spec 042: one line when an advice or a follow-up question ends: done, stopped or failed, with
+        the request number (no names or content, F6) and the duration."""
+        import time
+        took = f" na {round(time.monotonic() - started)} s" if started else ""
+        if error is None:
+            ai_log.add(self.database, topic, True, f"Verzoek {request_id}: {what}; klaar{took}")
+        elif cancel.is_set():
+            ai_log.add(self.database, topic, False, f"Verzoek {request_id}: {what}; gestopt door de gebruiker{took}")
+        else:
+            ai_log.add(self.database, topic, False, f"Verzoek {request_id}: {what}; mislukt bij {phase}{took}: {error.message}",
+                       error.detail)
+
     def _run(self, request_id: int, service: str, model: str | None = None, judgment: dict | None = None) -> None:
         cancel = self.jobs[request_id]["cancel"]
         url, default = settings(self.database)
         model = model or default
         conn = db.connect(self.database)
+        what = f"advies met {model} op {url}" if service != "claude" else f"advies met Claude ({claude_ai.MODEL})"
+        phase, started, failure = "de controle van het model", None, None
         try:
             if service == "claude":
                 api_key, model, vision = claude_ai.key(self.database), claude_ai.MODEL, True
@@ -621,12 +645,20 @@ class Jobs:
                     raise ollama.OllamaError("Gestopt.")
                 self._set(request_id, step=text)
 
+            phase = "het verzamelen van het materiaal"
             material = collect(conn, self.database, self.token_source(), request_id, date.today(), step, vision=vision)
             names = replacements(conn, material["student"])
             options = model_options(self.database)   # F29-F31, fixed at the start of this advice (F32)
             text, images, counts = prompt(material, names, judgment, options["budget"] if service != "claude" else None)
+            # Spec 042: numbers only (F6)
+            what += (f" ({len(material['codes'])} vaardighe{'id' if len(material['codes']) == 1 else 'den'}, "
+                     f"{len(material['contents'])} bewijsstukken, {len(images)} afbeeldingen, {len(text)} tekens"
+                     + (f", {counts['cut']} alleen met naam" if counts.get("cut") else "")
+                     + ("" if service == "claude" else f"; {options['num_thread']} kernen, {options['num_ctx']} tokens"
+                        + (", daarna uit het geheugen" if options["keep_alive"] == 0 else "")) + ")")
             step("Advies schrijven…")
             import time
+            phase = "het schrijven van het advies"
             started = time.monotonic()
 
             def written(*_):
@@ -639,17 +671,21 @@ class Jobs:
                 answer = ollama.chat(url, model, system_prompt(self.database), text, schema(material["codes"], bool(judgment)), images=[i["data"] for i in images],
                                      num_ctx=options["num_ctx"], num_thread=options["num_thread"],
                                      keep_alive=options["keep_alive"], cancel=cancel, progress=written)
+            phase = "het controleren van het antwoord"
             save(self.database, request_id, model, check(answer, material["codes"]), counts, service,
                  round(time.monotonic() - started), text, names, judgment)
             self._set(request_id, state="done", step="Klaar")
         except ollama.OllamaError as error:
+            failure = error
             self._set(request_id, state="stopped" if cancel.is_set() else "error", error=error.message)
-        except Exception:
+        except Exception as error:
             import logging
             logging.getLogger(__name__).exception("AI advice failed")
+            failure = ollama.OllamaError("onverwachte fout in het dashboard", type(error).__name__)
             self._set(request_id, state="error", error="Er ging iets mis bij het maken van het advies.")
         finally:
             conn.close()
+            self._log_end("Advies", request_id, what, failure, cancel, started, phase)
 
 
 # The trial question of the wizard (F12, step 4) ------------------------------------------------------------

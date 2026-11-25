@@ -413,7 +413,7 @@ class TestModelChoice(TestJobsAndPage):   # F14 (2026-11-24), F27, F28
     def test_download_tested_or_named_model(self):   # F28 acceptance
         started = []
         pull = self.app.extensions["ollama_pull"]
-        with FakeOllama(), mock.patch.object(pull, "start", lambda url, model: started.append(model) or True):
+        with FakeOllama(), mock.patch.object(pull, "start", lambda url, model, log=None: started.append(model) or True):
             html = self.client.get("/instellingen").get_data(as_text=True)
             self.assertIn("Modellen downloaden", html)
             self.assertIn("geïnstalleerd", html)                                  # the recommended one is there

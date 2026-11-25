@@ -219,6 +219,17 @@ CREATE TABLE IF NOT EXISTS ai_advice (
     judgment           TEXT NOT NULL DEFAULT '{}'  -- JSON: the assessor's own judgment sent with it (F25)
 );
 
+-- Spec 042: what the dashboard did for the AI advice (no names, no content, no secrets).
+CREATE TABLE IF NOT EXISTS ai_log (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    at                 TEXT NOT NULL,             -- ISO timestamp (UTC) of the last occurrence
+    topic              TEXT NOT NULL,             -- Ollama, Downloaden, Proefvraag, Advies, Vervolgvraag, Instellingen
+    ok                 INTEGER NOT NULL,          -- 1: worked, 0: failed
+    text               TEXT NOT NULL,             -- what happened, in plain Dutch
+    detail             TEXT NOT NULL DEFAULT '',  -- the technical message of the system
+    times              INTEGER NOT NULL DEFAULT 1 -- the same check repeated (F1: not a line per page view)
+);
+
 -- Spec 040, F26: the assessor's own judgment per review request, kept when the advice is asked.
 CREATE TABLE IF NOT EXISTS ai_judgment (
     review_request_id  INTEGER PRIMARY KEY,

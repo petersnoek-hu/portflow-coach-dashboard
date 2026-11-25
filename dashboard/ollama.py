@@ -59,11 +59,23 @@ def valid_name(name: str) -> bool:
 
 
 class OllamaError(Exception):
-    """`message` is shown to the user (Dutch)."""
+    """`message` is shown to the user (Dutch); `detail` is the technical message of the system, for the
+    log of spec 042 (F2)."""
 
-    def __init__(self, message: str):
+    def __init__(self, message: str, detail: str = ""):
         super().__init__(message)
         self.message = message
+        self.detail = detail
+
+
+def _reason(error: BaseException, timeout: float) -> str:
+    """Spec 042, F2: what the system said, e.g. "Connection refused" or "timed out na 5 s"."""
+    reason = getattr(error, "reason", error)
+    if isinstance(reason, (TimeoutError,)) or "timed out" in str(reason).lower():
+        return f"timed out na {timeout:g} s"
+    name = type(reason).__name__
+    text = getattr(reason, "strerror", None) or str(reason)
+    return f"{name}: {text}" if text else name
 
 
 def is_local(url: str) -> bool:
@@ -84,9 +96,10 @@ def _request(url: str, path: str, body: dict | None = None, timeout: float = 5.0
             detail = json.loads(error.read() or b"{}").get("error") or ""
         except ValueError:
             detail = ""
-        raise OllamaError(f"Ollama gaf een fout ({error.code}){': ' + detail if detail else ''}.") from None
-    except (urllib.error.URLError, TimeoutError, OSError):
-        raise OllamaError("Ollama is niet bereikbaar. Is Ollama gestart?") from None
+        raise OllamaError(f"Ollama gaf een fout ({error.code}){': ' + detail if detail else ''}.",
+                          f"HTTP {error.code} op {path}") from None
+    except (urllib.error.URLError, TimeoutError, OSError) as error:
+        raise OllamaError("Ollama is niet bereikbaar. Is Ollama gestart?", _reason(error, timeout)) from None
 
 
 def _json(url: str, path: str, body: dict | None = None, timeout: float = 5.0) -> dict:
@@ -153,15 +166,18 @@ class Pull:
         self.lock = threading.Lock()
         self.state = {"running": False, "model": "", "done": 0, "total": 0, "status": "", "error": ""}
 
-    def start(self, url: str, model: str) -> bool:
+    def start(self, url: str, model: str, log=None) -> bool:
+        """`log(ok, text, detail)` (spec 042): called when the download ends."""
         with self.lock:
             if self.state["running"]:
                 return False
             self.state = {"running": True, "model": model, "done": 0, "total": 0, "status": "Starten…", "error": ""}
-        threading.Thread(target=self._run, args=(url, model), daemon=True).start()
+        threading.Thread(target=self._run, args=(url, model, log), daemon=True).start()
         return True
 
-    def _run(self, url: str, model: str) -> None:
+    def _run(self, url: str, model: str, log=None) -> None:
+        started = time.monotonic()
+        error_seen: OllamaError | None = None
         try:
             with _request(url, "/api/pull", {"model": model, "stream": True}, timeout=600) as response:
                 for line in response:
@@ -176,11 +192,18 @@ class Pull:
                         if part.get("total"):
                             self.state["total"], self.state["done"] = part["total"], part.get("completed") or 0
         except OllamaError as error:
+            error_seen = error
             with self.lock:
                 self.state["error"] = error.message
         finally:
             with self.lock:
                 self.state["running"] = False
+            if log:
+                seconds = round(time.monotonic() - started)
+                if error_seen:
+                    log(False, f"Downloaden van {model} mislukt na {seconds} s: {error_seen.message}", error_seen.detail)
+                else:
+                    log(True, f"{model} gedownload in {seconds} s")
 
     def status(self) -> dict:
         with self.lock:
@@ -208,6 +231,7 @@ def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, i
     if schema is not None:
         body["format"] = schema
     parts: list[str] = []
+    part_done = False
     started = time.monotonic()
     with _request(url, "/api/chat", body, timeout=timeout) as response:
         for line in response:
@@ -223,10 +247,14 @@ def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, i
             if progress:
                 progress(len("".join(parts)), time.monotonic() - started)
             if part.get("done"):
+                part_done = True
                 break
     if schema is None:
         return "".join(parts).strip()
+    text = "".join(parts)
     try:
-        return json.loads("".join(parts))
-    except ValueError:
-        raise OllamaError("Het model gaf geen geldig antwoord. Probeer het opnieuw.") from None
+        return json.loads(text)
+    except ValueError:   # spec 042, F6: the size, not the content
+        raise OllamaError("Het model gaf geen geldig antwoord. Probeer het opnieuw.",
+                          f"antwoord van {len(text)} tekens was geen geldige JSON; "
+                          f"{'Ollama meldde klaar' if part_done else 'de stroom stopte zonder klaar-melding'}") from None

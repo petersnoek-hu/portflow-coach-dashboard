@@ -3,7 +3,7 @@ evaluation page (F1-F10)."""
 
 from flask import Blueprint, abort, current_app, jsonify, redirect, render_template, request, url_for
 
-from . import ai_advice, claude_ai, db, evaluation_page, ollama
+from . import ai_advice, ai_log, claude_ai, db, evaluation_page, ollama
 from .skills import NAMES as SKILL_NAMES, SKILLS
 from .db import get_db
 from .overview import semester_period
@@ -24,16 +24,48 @@ def _user() -> str | None:
 
 def readiness(database: str, timeout_ok: bool = True) -> dict:
     """The state of Ollama and the model, for the wizard, Instellingen and the evaluation page."""
+    import time
     url, model = ai_advice.settings(database)
     state = {"url": url, "model": model, "version": None, "has_model": False, "models": [], "error": ""}
+    started = time.monotonic()
+    step = "versie"
     try:
         state["version"] = ollama.version(url)
+        step = "modellen"
         state["models"] = ollama.models(url)
         state["has_model"] = ollama.has_model(url, model)
     except ollama.OllamaError as error:
         state["error"] = error.message
+        # Spec 042, F1, F2: what was asked, at which address, and what the system said.
+        ai_log.add(database, "Ollama", False, f"Vraag naar de {step} op {url}: {error.message}", error.detail, repeat=True)
+    else:
+        seconds = time.monotonic() - started
+        slow = f" (traag: {seconds:.1f} s)".replace(".", ",") if seconds >= 1 else ""
+        ai_log.add(database, "Ollama", state["has_model"],
+                   f"Ollama {state['version']} op {url}: {len(state['models'])} model(len); standaardmodel {model} "
+                   f"{'staat erin' if state['has_model'] else 'staat er niet in'}{slow}", repeat=True)
     state["ready"] = bool(state["version"] and state["has_model"])
     return state
+
+
+def log_context(conn, state: dict, back: str) -> dict:
+    """Spec 042, F3, F4: the lines and the text to copy; `back`: where "leegmaken" returns to."""
+    from .version import VERSION
+    rows = ai_log.recent(conn)
+    return {"ai_log_rows": rows, "ai_log_text": ai_log.as_text(rows, VERSION, state.get("version")), "ai_log_back": back}
+
+
+@bp.post("/instellingen/ai-advies/logboek/leegmaken")
+def log_clear():
+    """Spec 042, F5."""
+    ai_log.clear(_database())
+    if request.form.get("terug") == "wizard":
+        return redirect(url_for("ai.setup") + "#ai-logboek")
+    return redirect(url_for("pages.settings") + "#ai-logboek")
+
+
+def _log_download(database: str):
+    return lambda ok, text, detail="": ai_log.add(database, "Downloaden", ok, text, detail)
 
 
 def _trial(database: str, model: str) -> dict | None:
@@ -68,7 +100,8 @@ def setup():
                 "saved": request.args.get("claude") == "ok", "allowed": claude_allowed},
         prompt=ai_advice.system_prompt(database), prompt_is_default=ai_advice.system_prompt(database) == ai_advice.SYSTEM,
         skill_prompts=ai_advice.skill_prompts(database), skills=SKILLS, skill_names=SKILL_NAMES,
-        prompt_saved=request.args.get("opdracht") == "ok")
+        prompt_saved=request.args.get("opdracht") == "ok",
+        **log_context(get_db(), state, "wizard"))   # spec 042
 
 
 @bp.post("/instellingen/ai-advies")
@@ -81,10 +114,13 @@ def save_settings():
         if not ollama.valid_name(model):
             abort(400)
         db.set_setting(database, ollama.S_MODEL, model)
+        ai_log.add(database, "Instellingen", True, f"Standaardmodel is nu {model}")
     if url:
         if not ollama.is_local(url):
+            ai_log.add(database, "Instellingen", False, "Adres van Ollama niet opgeslagen: het moet op deze laptop zijn")
             return redirect(url_for("ai.setup", fout="adres"))
         db.set_setting(database, ollama.S_URL, url.rstrip("/"))
+        ai_log.add(database, "Instellingen", True, f"Adres van Ollama is nu {url.rstrip('/')}")
     if request.form.get("terug") == "instellingen":   # F27: the default model chosen in Instellingen
         return redirect(url_for("pages.settings", model="ok") + "#ai-advies")
     return redirect(url_for("ai.setup") + "#stap-" + request.form.get("stap", "3"))
@@ -104,6 +140,8 @@ def laptop_save():
     db.set_setting(database, ollama.S_THREADS, str(threads))
     db.set_setting(database, ollama.S_CONTEXT, context)
     db.set_setting(database, ollama.S_UNLOAD, "1" if request.form.get("vrijgeven") == "1" else "")
+    ai_log.add(database, "Instellingen", True, f"Laptop: {threads} van {ollama.cores()} kernen, materiaal {context}, "
+               f"model na het advies {'uit het geheugen' if request.form.get('vrijgeven') == '1' else 'nog 5 minuten geladen'}")
     return redirect(url_for("pages.settings", laptop="ok") + "#ai-laptop")
 
 
@@ -115,11 +153,13 @@ def pull():
     if named:
         if not ollama.valid_name(named):
             message = f"\"{named[:100]}\" is geen geldige modelnaam (bijvoorbeeld gemma4:e4b)."
+            ai_log.add(_database(), "Downloaden", False, "Geen geldige modelnaam; niet gedownload")
             if request.headers.get("X-Requested-With") == "fetch":
                 return jsonify(dict(current_app.extensions["ollama_pull"].status(), error=message, running=False))
             abort(400)
         model = named
-    current_app.extensions["ollama_pull"].start(url, model)
+    if current_app.extensions["ollama_pull"].start(url, model, _log_download(_database())):
+        ai_log.add(_database(), "Downloaden", True, f"Downloaden van {model} gestart via {url}")
     if request.headers.get("X-Requested-With") == "fetch":
         return jsonify(current_app.extensions["ollama_pull"].status())
     if request.form.get("terug") == "instellingen":
@@ -141,7 +181,9 @@ def trial():
     try:
         result = ai_advice.trial(url, model, ai_advice.system_prompt(database), ai_advice.model_options(database))
     except ollama.OllamaError as error:
+        ai_log.add(database, "Proefvraag", False, f"Proefvraag aan {model} op {url}: {error.message}", error.detail)
         return jsonify(ok=False, message=error.message)
+    ai_log.add(database, "Proefvraag", True, f"Proefvraag aan {model}: geldig antwoord in {result['seconds']} s")
     db.set_setting(database, S_TRIAL, json.dumps({"model": model, "seconds": result["seconds"]}))
     return jsonify(ok=True, seconds=result["seconds"], slow=result["seconds"] > SLOW_SECONDS)
 

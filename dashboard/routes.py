@@ -747,6 +747,7 @@ def settings():
     conn = get_db()
     connection = current_app.extensions["portflow"]
     start, end, saved = overview_data.semester_period(conn, date.today())
+    ai_state = ai_routes.readiness(current_app.config["DATABASE"])   # spec 040, F11; writes the log first (spec 042)
     return render_page(
         "settings",
         semester_start=start.isoformat(),
@@ -767,7 +768,8 @@ def settings():
         version_check=request.args.get("versie") if request.args.get("versie") in ("nieuw", "actueel", "mislukt") else None,
         latest_release=current_app.extensions["updater"].latest(),  # spec 020, U6
         always_visible=connection.always_visible,
-        ai=ai_routes.readiness(current_app.config["DATABASE"]),     # spec 040, F11
+        ai=ai_state,                                                # spec 040, F11
+        **ai_routes.log_context(conn, ai_state, "instellingen"),    # spec 042
         ai_tested=ai_routes.ollama.TESTED_MODELS,                   # spec 040, F28
         ai_default=ai_routes.ollama.DEFAULT_MODEL,                  # spec 040, F27
         ai_pull=current_app.extensions["ollama_pull"].status(),     # spec 040, F28

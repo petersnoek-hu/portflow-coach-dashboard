@@ -816,6 +816,25 @@
     if (!box.hidden) poll();
   }
 
+  // Spec 042, F4: copy the whole AI log as plain text.
+  document.querySelectorAll("[data-copy-log]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const source = document.getElementById(button.dataset.copyLog);
+      const done = button.parentElement.querySelector("[data-copy-done]");
+      const shown = () => { if (done) { done.hidden = false; setTimeout(() => { done.hidden = true; }, 3000); } };
+      const fallback = () => {
+        source.hidden = false;
+        source.select();
+        try { document.execCommand("copy"); shown(); } finally { source.hidden = true; }
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(source.value).then(shown, fallback);
+      } else {
+        fallback();
+      }
+    });
+  });
+
   // Spec 040, F29: show the chosen number of cores next to the slider.
   document.querySelectorAll("[data-cores-output]").forEach((slider) => {
     const output = document.getElementById(slider.dataset.coresOutput);
