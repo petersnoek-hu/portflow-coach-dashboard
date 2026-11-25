@@ -76,8 +76,10 @@ jobs:
           root="$PORTFLOW_INSTALL_ROOT"
           test -x "$PORTFLOW_APPLICATIONS/Portflow coach dashboard.app/Contents/MacOS/start"
           nohup "$root/venv/bin/python" "$root/app/app.py" --no-browser --port 5099 > app.log 2>&1 &
-          sleep 8
-          curl -fsS http://127.0.0.1:5099/versie | grep "\"${GITHUB_REF_NAME#v}\""
+          # The first start after installing can take a while (Python prepares its files); wait up to 60 s.
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:5099/versie > /dev/null 2>&1 && break; sleep 1; done
+          echo "Bereikbaar na ongeveer $i s"
+          curl -fsS http://127.0.0.1:5099/versie | grep "\"${GITHUB_REF_NAME#v}\"" || { echo "--- app.log ---"; cat app.log; exit 1; }
           test -f "$root/data/dashboard.sqlite3"
           curl -fsS -X POST http://127.0.0.1:5099/afsluiten > /dev/null
           sh dist/install-macos.sh --verwijderen < /dev/null || true
@@ -100,8 +102,13 @@ jobs:
           $menu = Join-Path ([Environment]::GetFolderPath("Programs")) "Portflow coach dashboard.lnk"
           if (-not (Test-Path $menu)) { throw "snelkoppeling in het Startmenu ontbreekt" }
           Start-Process -FilePath "$root\venv\Scripts\python.exe" -ArgumentList "`"$root\app\app.py`" --no-browser --port 5099" -WorkingDirectory "$root\app"
-          Start-Sleep -Seconds 10
-          $answer = Invoke-RestMethod -Uri "http://127.0.0.1:5099/versie"
+          # The first start after installing can take a while (Python prepares its files); wait up to 60 s.
+          $answer = $null
+          foreach ($i in 1..60) {
+            try { $answer = Invoke-RestMethod -Uri "http://127.0.0.1:5099/versie"; break } catch { Start-Sleep -Seconds 1 }
+          }
+          if ($null -eq $answer) { Get-Content "$root\data\dashboard.log" -ErrorAction SilentlyContinue; throw "het dashboard antwoordt niet binnen 60 s" }
+          Write-Host "Bereikbaar na ongeveer $i s"
           if ($answer.version -ne $env:GITHUB_REF_NAME.TrimStart("v")) { throw "verkeerde versie: $($answer.version)" }
           if (-not (Test-Path "$root\data\dashboard.sqlite3")) { throw "database niet in de gegevensmap" }
           try { Invoke-WebRequest -Uri "http://127.0.0.1:5099/afsluiten" -Method Post -UseBasicParsing | Out-Null } catch { }

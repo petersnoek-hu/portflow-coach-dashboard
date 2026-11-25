@@ -8,11 +8,16 @@ import json
 import threading
 from datetime import datetime, timezone
 
-import anthropic
-
 from . import db
 from .progress import name_key
 from .ollama import OllamaError as AdviceError   # one kind of error with a Dutch message for both services
+
+def _sdk():
+    """The Anthropic SDK, loaded only when Claude is really used: it is large, and loading it at
+    start-up made the first start after an installation or update slow for everyone."""
+    import anthropic
+    return anthropic
+
 
 MODEL = "claude-opus-5-5"
 # Spec 040, F22: Claude is only offered to this Portflow user (who pays for and manages the key).
@@ -69,25 +74,25 @@ def remove(database: str) -> None:
         conn.close()
 
 
-def _client(api_key: str, timeout: float = 600) -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=api_key, timeout=timeout, max_retries=2)
+def _client(api_key: str, timeout: float = 600) -> "anthropic.Anthropic":
+    return _sdk().Anthropic(api_key=api_key, timeout=timeout, max_retries=2)
 
 
 def _message(error: Exception) -> str:
     """A Dutch message for an API error (most specific first)."""
-    if isinstance(error, anthropic.AuthenticationError):
+    if isinstance(error, _sdk().AuthenticationError):
         return "Anthropic accepteert deze API-sleutel niet. Controleer de sleutel."
-    if isinstance(error, anthropic.PermissionDeniedError):
+    if isinstance(error, _sdk().PermissionDeniedError):
         return "Deze API-sleutel mag dit model niet gebruiken."
-    if isinstance(error, anthropic.NotFoundError):
+    if isinstance(error, _sdk().NotFoundError):
         return f"Het model {MODEL} is niet gevonden bij Anthropic."
-    if isinstance(error, anthropic.RateLimitError):
+    if isinstance(error, _sdk().RateLimitError):
         return "Te veel verzoeken of het tegoed is op. Probeer het later opnieuw of kijk in de Claude Console."
-    if isinstance(error, anthropic.BadRequestError):
+    if isinstance(error, _sdk().BadRequestError):
         return "Anthropic weigerde het verzoek (bijvoorbeeld te groot of geen tegoed)."
-    if isinstance(error, anthropic.APIStatusError):
+    if isinstance(error, _sdk().APIStatusError):
         return "Anthropic heeft een storing. Probeer het later opnieuw."
-    if isinstance(error, anthropic.APIConnectionError):   # includes timeouts
+    if isinstance(error, _sdk().APIConnectionError):   # includes timeouts
         return "Geen verbinding met Anthropic. Controleer je internetverbinding."
     return "Er ging iets mis bij Anthropic."
 
@@ -96,7 +101,7 @@ def check_key(api_key: str) -> None:
     """F13: is the key accepted? Asks for the model's details, which costs nothing. Raises AdviceError."""
     try:
         _client(api_key, timeout=20).models.retrieve(MODEL)
-    except anthropic.AnthropicError as error:
+    except _sdk().AnthropicError as error:
         raise AdviceError(_message(error)) from None
 
 
@@ -127,7 +132,7 @@ def chat(api_key: str, system: str, user: str, schema: dict | None, *, images: l
                 if progress:
                     progress(written)   # spec 040, F34, F35
             message = stream.get_final_message()
-    except anthropic.AnthropicError as error:
+    except _sdk().AnthropicError as error:
         raise AdviceError(_message(error)) from None
     if message.stop_reason == "refusal":
         raise AdviceError("Claude wilde dit verzoek niet behandelen.")
