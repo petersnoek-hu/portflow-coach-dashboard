@@ -2,6 +2,22 @@
    an advice is being made (F4). #}
 {% set job = advice_job %}
 {% set busy = job and job.state == "running" %}
+{% macro progress_block(p, stop_label="Stoppen") %}{# spec 040, F34, F35 #}
+  <div class="ai-progress" role="status" aria-live="polite">
+    <div class="ai-progress-head">
+      <span class="ai-spinner" aria-hidden="true"></span>
+      <strong>{{ p.label }}</strong>
+      <span class="muted">· totaal {{ p.total }}</span>
+      <form method="post" action="{{ url_for('ai.advice_stop', request_id=advice_request_id) }}" data-advice-form class="ai-progress-stop">
+        <button class="button button-secondary" type="submit">{{ stop_label }}</button>
+      </form>
+    </div>
+    <progress max="100" value="{{ p.percent }}" aria-label="Ongeveer {{ p.percent }}% klaar">{{ p.percent }}%</progress>
+    <p class="muted ai-progress-detail">{{ job.step if job.step == "Stoppen…" else p.detail }} <span class="ai-progress-estimate">(ongeveer {{ p.percent }}%; een schatting)</span></p>
+    {% if p.preview %}<div class="ai-progress-preview" aria-label="Wat het model nu schrijft"><span class="muted">Wat het model nu schrijft:</span>
+      <pre>{{ p.preview }}</pre></div>{% endif %}
+  </div>
+{% endmacro %}
 <section class="card ai-advice" id="ai-advies" aria-labelledby="ai-advice-title"
          data-advice="{{ url_for('ai.advice_card', request_id=advice_request_id) }}"{% if busy %} data-advice-busy{% endif %}>
   <div class="ai-advice-head">
@@ -33,14 +49,8 @@
   {% endif %}
 
   {% if busy and job.kind == "advice" %}{# F4 #}
-  <div class="ai-advice-busy">
-    <span class="ai-spinner" aria-hidden="true"></span>
-    <span><strong>Advies wordt gemaakt</strong> <span class="muted">({{ job.service_label }})… {{ job.step }}</span><br>
-      <span class="muted">Dit kan een paar minuten duren. Je kunt intussen verder op de pagina; het advies verschijnt hier vanzelf.</span></span>
-    <form method="post" action="{{ url_for('ai.advice_stop', request_id=advice_request_id) }}" data-advice-form>
-      <button class="button button-secondary" type="submit">Stoppen</button>
-    </form>
-  </div>
+  <p class="muted">Advies wordt gemaakt met {{ job.service_label }}. Dit kan een paar minuten duren; je kunt intussen verder op de pagina en het advies verschijnt hier vanzelf.</p>
+  {{ progress_block(advice_progress) }}
   {% else %}
   {% if job and job.kind == "advice" and job.state in ("error", "stopped") %}<p class="panel-message" role="alert">{{ job.error }}</p>{% endif %}
   <form method="post" action="{{ url_for('ai.advice_start', request_id=advice_request_id) }}" data-advice-form data-judgment-form>
@@ -96,13 +106,7 @@
     {% endfor %}
     {% if busy and job.kind == "question" %}
     <div class="ai-chat-question"><p class="feedback-meta"><strong>Jij</strong></p><p class="feedback-text">{{ job.question }}</p></div>
-    <div class="ai-advice-busy">
-      <span class="ai-spinner" aria-hidden="true"></span>
-      <span class="muted">{{ job.step }}</span>
-      <form method="post" action="{{ url_for('ai.advice_stop', request_id=advice_request_id) }}" data-advice-form>
-        <button class="button button-secondary" type="submit">Stoppen</button>
-      </form>
-    </div>
+    {{ progress_block(advice_progress) }}
     {% else %}
     {% if job and job.kind == "question" and job.state in ("error", "stopped") %}<p class="panel-message" role="alert">{{ job.error }}</p>{% endif %}
     {% if advice.can_ask %}

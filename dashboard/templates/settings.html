@@ -109,6 +109,10 @@
       {% endfor %}
       <p class="muted">Het model zelf moet altijd in het geheugen passen (ongeveer de grootte van het bestand); deze keuze bepaalt alleen het geheugen dat er bovenop komt.</p>
     </fieldset>
+    <label class="ai-laptop-row">Maximaal wachten op een teken van leven van het model
+      <span class="ai-laptop-slider"><input type="number" name="wachten" min="{{ ai_wait_range[0] }}" max="{{ ai_wait_range[1] }}" value="{{ ai_laptop.wait }}" required class="ai-wait"> minuten</span>
+    </label>
+    <p class="muted">Een groot verzoek op een laptop zonder grafische chip zwijgt vooral aan het begin lang, terwijl het model het materiaal leest. Zolang het model woorden schrijft, loopt het advies door. Van {{ ai_wait_range[0] }} tot {{ ai_wait_range[1] }} minuten; standaard {{ ai_wait_default }}.</p>
     <label class="ai-laptop-choice"><input type="checkbox" name="vrijgeven" value="1" {% if ai_laptop.unload %}checked{% endif %}>
       Model na het advies uit het geheugen halen <span class="muted">· het geheugen is meteen weer vrij, maar een vervolgvraag laadt het model opnieuw (dat kan een minuut duren)</span></label>
     <div><button class="button button-secondary" type="submit">Opslaan</button>

@@ -135,13 +135,20 @@ def laptop_save():
     except ValueError:
         abort(400)
     context = request.form.get("materiaal", "")
-    if not 1 <= threads <= ollama.cores() or context not in ollama.CONTEXTS:
+    try:
+        wait = int(request.form.get("wachten", ollama.DEFAULT_WAIT))
+    except ValueError:
         abort(400)
+    low, high = ollama.WAIT_MINUTES
+    if not 1 <= threads <= ollama.cores() or context not in ollama.CONTEXTS or not low <= wait <= high:
+        abort(400)
+    db.set_setting(database, ollama.S_WAIT, str(wait))   # F33
     db.set_setting(database, ollama.S_THREADS, str(threads))
     db.set_setting(database, ollama.S_CONTEXT, context)
     db.set_setting(database, ollama.S_UNLOAD, "1" if request.form.get("vrijgeven") == "1" else "")
     ai_log.add(database, "Instellingen", True, f"Laptop: {threads} van {ollama.cores()} kernen, materiaal {context}, "
-               f"model na het advies {'uit het geheugen' if request.form.get('vrijgeven') == '1' else 'nog 5 minuten geladen'}")
+               f"model na het advies {'uit het geheugen' if request.form.get('vrijgeven') == '1' else 'nog 5 minuten geladen'}, "
+               f"wachten op het model hoogstens {wait} min")
     return redirect(url_for("pages.settings", laptop="ok") + "#ai-laptop")
 
 
@@ -252,7 +259,9 @@ def card_context(conn, request_id: int, judgment: dict | None = None, error: str
         chosen = services[0]["key"] if services else ""
     skills = [{"code": s["code"], "name": s["name"], "assessor": s["assessor"]} for s in data["skills"]] if data else []
     own = judgment if judgment is not None else ai_advice.saved_judgment(conn, request_id)
-    return {"advice_request_id": request_id, "advice": advice, "advice_job": job,
+    import time
+    progress = ai_advice.progress_view(job, time.time()) if job and job.get("state") == "running" else None   # F34
+    return {"advice_request_id": request_id, "advice": advice, "advice_job": job, "advice_progress": progress,
             "advice_ready": readiness(database), "advice_services": services, "advice_choice": chosen,
             "advice_counts": ai_advice.overview(data) if data else None,
             "judgment_skills": skills, "judgment": own, "judgment_error": error,

@@ -92,6 +92,8 @@ class TestOllama(unittest.TestCase):
             self.assertFalse(ollama.is_local(url), url)
         with self.assertRaises(ollama.OllamaError):
             ollama.version("http://example.org:11434")
+        with self.assertRaises(ollama.OllamaError):
+            ollama.chat("http://example.org:11434", "m", "s", "u", None)
 
     def test_not_running(self):   # F10, F12 step 2
         with self.assertRaises(ollama.OllamaError) as error:
@@ -154,6 +156,48 @@ class TestCheck(unittest.TestCase):   # F5
 JUDGMENT = {"oordeel_niveau_PL": "2", "oordeel_PL": "Plant voor het team.", "oordeel_niveau_BD": "1", "oordeel_BD": "Deelt een boodschap."}
 
 
+class OllamaServer:
+    """A tiny local HTTP server that answers /api/chat like Ollama: optionally silent first (`delay`),
+    then the `chunks` one by one (`gap` seconds apart). Records the request bodies."""
+
+    def __init__(self, chunks=("ok",), delay=0.0, gap=0.0):
+        import http.server
+        self.bodies, outer = [], self
+        self.chunks, self.delay, self.gap = chunks, delay, gap
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_POST(self):
+                outer.bodies.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+                try:
+                    time.sleep(outer.delay)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/x-ndjson")
+                    self.end_headers()
+                    for i, chunk in enumerate(outer.chunks):
+                        if i:
+                            time.sleep(outer.gap)
+                        self.wfile.write(json.dumps({"message": {"content": chunk}, "done": False}).encode() + b"\n")
+                        self.wfile.flush()
+                    self.wfile.write(json.dumps({"message": {"content": ""}, "done": True}).encode() + b"\n")
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.server.daemon_threads = True
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}"
+
+    def __enter__(self):
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        return self
+
+    def __exit__(self, *exc):
+        self.server.shutdown()
+        self.server.server_close()
+
+
 class FakeOllama:
     """Patches ollama.py: running, with the model, answering ANSWER (slowly if asked)."""
 
@@ -173,7 +217,7 @@ class FakeOllama:
 
         def chat(url, model, system, user, schema, **kwargs):
             self.calls.append({"user": user, "images": kwargs.get("images"), "schema": schema, "history": kwargs.get("history"),
-                               "options": {k: kwargs.get(k) for k in ("num_ctx", "num_thread", "keep_alive")}})
+                               "options": {k: kwargs.get(k) for k in ("num_ctx", "num_thread", "keep_alive", "timeout")}})
             cancel = kwargs.get("cancel")
             end = time.monotonic() + self.delay
             while time.monotonic() < end:
@@ -432,7 +476,7 @@ class TestModelChoice(TestJobsAndPage):   # F14 (2026-11-24), F27, F28
 class TestLaptopLimits(TestJobsAndPage):   # F29-F32
     def test_defaults_are_as_before(self):
         own = ai_advice.laptop(self.db_path)
-        self.assertEqual(own, {"threads": ollama.default_threads(), "context": "veel", "unload": False})
+        self.assertEqual(own, {"threads": ollama.default_threads(), "context": "veel", "unload": False, "wait": 15})
         options = ai_advice.model_options(self.db_path)
         self.assertEqual((options["num_ctx"], options["budget"], options["keep_alive"]), (32768, 80000, None))
 
@@ -474,26 +518,13 @@ class TestLaptopLimits(TestJobsAndPage):   # F29-F32
         self.assertEqual((own["threads"], own["context"]), (ollama.cores(), "veel"))
 
     def test_chat_sends_the_options(self):   # F29, F31: what goes to Ollama
-        sent = []
-
-        class Response(io.BytesIO):
-            def __enter__(self): return self
-            def __exit__(self, *a): return False
-
-        def request(url, path, body=None, timeout=5.0):
-            sent.append(body)
-            return Response(b'{"message": {"content": "ok"}, "done": true}\n')
-        with mock.patch.object(ollama, "_request", request):
-            ollama.chat("http://127.0.0.1:11434", "m", "s", "u", None, num_thread=3, keep_alive=0)
-            ollama.chat("http://127.0.0.1:11434", "m", "s", "u", None)
-        self.assertEqual(sent[0]["options"]["num_thread"], 3)
-        self.assertEqual(sent[0]["keep_alive"], 0)
-        self.assertNotIn("num_thread", sent[1]["options"])
-        self.assertNotIn("keep_alive", sent[1])
-
-
-if __name__ == "__main__":
-    unittest.main()
+        with OllamaServer() as server:
+            ollama.chat(server.url, "m", "s", "u", None, num_thread=3, keep_alive=0)
+            ollama.chat(server.url, "m", "s", "u", None)
+        self.assertEqual(server.bodies[0]["options"]["num_thread"], 3)
+        self.assertEqual(server.bodies[0]["keep_alive"], 0)
+        self.assertNotIn("num_thread", server.bodies[1]["options"])
+        self.assertNotIn("keep_alive", server.bodies[1])
 
 
 class FakeStream:
@@ -741,3 +772,87 @@ class TestRestoreNames(TestJobsAndPage):   # F23: remember the replacement and u
         self.assertEqual(turn["answer"], answer)                         # as the AI returned it (placeholders)
         self.assertNotIn("Lotte Bakker", turn["question_anon"])
         self.assertIn("Student", turn["question_anon"])
+
+
+class TestWaitAndProgress(TestJobsAndPage):   # F33, F34, F35
+    def test_silence_longer_than_the_waiting_time(self):   # F33 acceptance
+        with OllamaServer(delay=1.5) as server, self.assertRaises(ollama.OllamaError) as error:
+            ollama.chat(server.url, "m", "s", "u", None, timeout=0.5)
+        self.assertIn("geen teken van leven", error.exception.message)
+        self.assertIn("timed out", error.exception.detail)
+        with OllamaServer(chunks=("eerst", "dan"), gap=1.5) as server, self.assertRaises(ollama.OllamaError) as error:
+            ollama.chat(server.url, "m", "s", "u", None, timeout=0.5)        # silent after the first words
+        self.assertIn("geen teken van leven", error.exception.message)
+
+    def test_stop_while_the_model_is_silent(self):   # F4 with F33
+        cancel = threading.Event()
+        threading.Timer(0.3, cancel.set).start()
+        started = time.monotonic()
+        with OllamaServer(delay=5) as server, self.assertRaises(ollama.OllamaError) as error:
+            ollama.chat(server.url, "m", "s", "u", None, timeout=60, cancel=cancel)
+        self.assertEqual(error.exception.message, "Gestopt.")
+        self.assertLess(time.monotonic() - started, 3)
+
+    def test_progress_gets_the_text_so_far(self):   # F34, F35
+        seen = []
+        with OllamaServer(chunks=("Omdat ", "de afstemming")) as server:
+            answer = ollama.chat(server.url, "m", "s", "u", None, progress=seen.append)
+        self.assertEqual(seen, ["Omdat ", "Omdat de afstemming", "Omdat de afstemming"])
+        self.assertEqual(answer, "Omdat de afstemming")
+
+    def test_waiting_time_setting(self):   # F33
+        with FakeOllama() as fake, mock.patch.object(ollama, "cores", lambda: 8):
+            html = self.client.get("/instellingen").get_data(as_text=True)
+            self.assertIn("Maximaal wachten op een teken van leven van het model", html)
+            self.assertIn('name="wachten" min="5" max="60" value="15"', html)
+            self.client.post("/instellingen/ai-advies/laptop", data={"kernen": "2", "materiaal": "veel", "wachten": "30"})
+            self.client.post("/instellingen/ai-advies/proefvraag")
+            self.client.post("/evaluaties/70/advies", data=JUDGMENT)
+            self.wait(self.app.extensions["ai_jobs"])
+        self.assertEqual(ai_advice.laptop(self.db_path)["wait"], 30)
+        self.assertEqual([c["options"]["timeout"] for c in fake.calls], [1800, 1800])
+        for wrong in ("4", "61", "x"):
+            with mock.patch.object(ollama, "cores", lambda: 8):
+                self.assertEqual(self.client.post("/instellingen/ai-advies/laptop",
+                                                  data={"kernen": "2", "materiaal": "veel", "wachten": wrong}).status_code, 400)
+
+    def test_progress_view_per_phase(self):   # F34, F35
+        now = 1000.0
+        collect = ai_advice.progress_view({"phase": "collect", "started_at": now - 5, "collect_done": 3, "collect_total": 19,
+                                           "step": "Bewijsstukken lezen (3 van 19)"}, now)
+        self.assertEqual((collect["label"], collect["detail"]), ("Materiaal verzamelen", "Bewijsstukken lezen (3 van 19)"))
+        read_early = ai_advice.progress_view({"phase": "read", "started_at": now - 20, "phase_at": now - 10, "timeout": 900}, now)
+        read_late = ai_advice.progress_view({"phase": "read", "started_at": now - 200, "phase_at": now - 190, "timeout": 900}, now)
+        self.assertEqual(read_early["label"], "Het model leest het materiaal")
+        self.assertIn("bezig sinds 10 s; het dashboard wacht hoogstens 15 min op een teken van leven", read_early["detail"])
+        self.assertLess(collect["percent"], read_early["percent"])
+        self.assertLess(read_early["percent"], read_late["percent"])
+        self.assertLessEqual(read_late["percent"], 40)
+        raw = '{"vaardigheden":[{"code":"PL","niveau":2,"onderbouwing":"Student plant voor het team.","ontbreekt":"Meer'
+        write = ai_advice.progress_view({"phase": "write", "started_at": now - 300, "phase_at": now - 30, "last_at": now - 1,
+                                         "chars": len(raw), "raw": raw, "expected_chars": 3600,
+                                         "names": {"Lotte Bakker": "Student"}}, now)
+        self.assertEqual(write["label"], "Advies schrijven")
+        self.assertIn("tekens geschreven, schrijft nu", write["detail"])
+        self.assertIn("Lotte Bakker plant voor het team.", write["preview"])   # F23: the real name back
+        self.assertIn("Nog te laten zien: Meer", write["preview"])
+        self.assertNotIn('"onderbouwing"', write["preview"])
+        self.assertGreater(write["percent"], read_late["percent"])
+        done = ai_advice.progress_view({"phase": "write", "chars": 99999, "expected_chars": 10, "last_at": now}, now)
+        self.assertEqual(done["percent"], 98)                                   # never full before it is done
+
+    def test_card_shows_the_progress(self):   # F34 acceptance
+        with FakeOllama(delay=5):
+            jobs = self.app.extensions["ai_jobs"]
+            self.client.post("/evaluaties/70/advies", data=JUDGMENT)
+            for _ in range(300):
+                if (jobs.status(70) or {}).get("phase") == "read":
+                    break
+                time.sleep(0.01)
+            card = self.client.get("/evaluaties/70/advies").get_data(as_text=True)
+            jobs.stop(70)
+            self.wait(jobs)
+        self.assertIn("<progress", card)
+        self.assertIn("Het model leest het materiaal", card)
+        self.assertIn("een schatting", card)
+        self.assertIn("Stoppen", card)

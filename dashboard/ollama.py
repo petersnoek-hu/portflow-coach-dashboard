@@ -5,10 +5,12 @@ laptop. Plain urllib, no extra package. Labels are Dutch: they are shown to the 
 """
 
 import ctypes
+import http.client
 import json
 import os
 import platform
 import re
+import socket
 import sys
 import threading
 import time
@@ -26,6 +28,9 @@ S_MODEL = "ai_model"
 S_THREADS = "ai_threads"        # F29: processor cores for the model
 S_CONTEXT = "ai_context"        # F30: how much material per advice
 S_UNLOAD = "ai_unload"          # F31: "1": unload the model right after the advice
+S_WAIT = "ai_wait_minutes"      # F33: how long the model may stay silent
+WAIT_MINUTES = (5, 60)
+DEFAULT_WAIT = 15
 # F30: per choice the tokens the model may use (memory) and the characters of material (F8).
 CONTEXTS = {"weinig": (8192, 20000), "normaal": (16384, 40000), "veel": (32768, 80000)}
 DEFAULT_CONTEXT = "veel"
@@ -212,12 +217,24 @@ class Pull:
 
 # Asking the model ----------------------------------------------------------------------------
 
+def silence_message(timeout: float) -> str:
+    """F33: the model gave no sign of life within the waiting time."""
+    minutes = max(1, round(timeout / 60))
+    return (f"Het model gaf {minutes} minu{'ut' if minutes == 1 else 'ten'} geen teken van leven. Kies een lichter model, "
+            "minder materiaal (Instellingen), of wacht langer.")
+
+
 def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, images: list[str] = (),
          history: list[dict] = (), num_ctx: int = 16384, cancel: threading.Event | None = None, progress=None,
          timeout: float = 900, num_thread: int | None = None, keep_alive: int | str | None = None):
     """F5: a question with a fixed JSON answer (Ollama's `format`); without a schema a free text answer
-    (F21, with `history`: earlier user/assistant messages after the first). Streams, so it can be
-    stopped (F4) and shows progress. Returns the parsed JSON or the text; raises OllamaError."""
+    (F21, with `history`: earlier user/assistant messages after the first). Streams; `progress(text)`
+    gets the text written so far (F34, F35). `timeout` (F33) is the longest silence allowed: while
+    the model reads the question Ollama sends nothing, and the waiting starts again with every word.
+    Stopping (F4) works at any moment, also while Ollama is silent: the connection is then closed.
+    Returns the parsed JSON or the text; raises OllamaError."""
+    if not is_local(url):
+        raise OllamaError("Het adres van Ollama moet op deze laptop zijn (bijvoorbeeld http://127.0.0.1:11434).")
     first = {"role": "user", "content": user}
     if images:
         first["images"] = list(images)
@@ -230,10 +247,35 @@ def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, i
         body["keep_alive"] = keep_alive              # F31
     if schema is not None:
         body["format"] = schema
-    parts: list[str] = []
-    part_done = False
-    started = time.monotonic()
-    with _request(url, "/api/chat", body, timeout=timeout) as response:
+    parsed = urlparse(url)
+    connection = http.client.HTTPConnection(parsed.hostname, parsed.port or 80, timeout=timeout)
+    finished = threading.Event()
+
+    def watch():   # F4: close the connection when the user stops, also while Ollama is silent
+        while not finished.is_set():
+            if cancel is not None and cancel.wait(0.5):
+                try:
+                    if connection.sock is not None:
+                        connection.sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                return
+            if cancel is None:
+                finished.wait(0.5)
+
+    text, part_done, response = "", False, None
+    watcher = threading.Thread(target=watch, daemon=True)
+    watcher.start()
+    try:
+        connection.request("POST", "/api/chat", json.dumps(body).encode(), {"Content-Type": "application/json"})
+        response = connection.getresponse()
+        if response.status >= 400:
+            try:
+                detail = json.loads(response.read() or b"{}").get("error") or ""
+            except ValueError:
+                detail = ""
+            raise OllamaError(f"Ollama gaf een fout ({response.status}){': ' + detail if detail else ''}.",
+                              f"HTTP {response.status} op /api/chat")
         for line in response:
             if cancel is not None and cancel.is_set():
                 raise OllamaError("Gestopt.")
@@ -243,15 +285,30 @@ def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, i
                 continue
             if part.get("error"):
                 raise OllamaError(f"Het model gaf een fout: {part['error']}")
-            parts.append((part.get("message") or {}).get("content") or "")
+            text += (part.get("message") or {}).get("content") or ""
             if progress:
-                progress(len("".join(parts)), time.monotonic() - started)
+                progress(text)
             if part.get("done"):
                 part_done = True
                 break
+    except OllamaError:
+        raise
+    except (TimeoutError, OSError, http.client.HTTPException) as error:
+        if cancel is not None and cancel.is_set():
+            raise OllamaError("Gestopt.") from None
+        reason = _reason(error, timeout)
+        if reason.startswith("timed out"):
+            raise OllamaError(silence_message(timeout), reason) from None
+        if not text and isinstance(error, (ConnectionRefusedError, socket.gaierror)):
+            raise OllamaError("Ollama is niet bereikbaar. Is Ollama gestart?", reason) from None
+        raise OllamaError("De verbinding met Ollama viel weg. Probeer het opnieuw.", reason) from None
+    finally:
+        finished.set()
+        if response is not None:
+            response.close()
+        connection.close()
     if schema is None:
-        return "".join(parts).strip()
-    text = "".join(parts)
+        return text.strip()
     try:
         return json.loads(text)
     except ValueError:   # spec 042, F6: the size, not the content

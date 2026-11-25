@@ -118,11 +118,14 @@ def chat(api_key: str, system: str, user: str, schema: dict | None, *, images: l
             output_config=output_config,
             messages=[{"role": "user", "content": content}, *history],
         ) as stream:
-            for _event in stream:
+            written = ""
+            for event in stream:
                 if cancel is not None and cancel.is_set():
                     raise AdviceError("Gestopt.")
+                delta = getattr(event, "delta", None) if getattr(event, "type", "") == "content_block_delta" else None
+                written += getattr(delta, "text", None) or ""
                 if progress:
-                    progress()
+                    progress(written)   # spec 040, F34, F35
             message = stream.get_final_message()
     except anthropic.AnthropicError as error:
         raise AdviceError(_message(error)) from None

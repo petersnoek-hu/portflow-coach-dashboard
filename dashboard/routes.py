@@ -776,6 +776,8 @@ def settings():
         ai_saved=request.args.get("model") == "ok",
         ai_laptop=ai_routes.ai_advice.laptop(current_app.config["DATABASE"]),   # spec 040, F29-F31
         ai_cores=ai_routes.ollama.cores(),
+        ai_wait_range=ai_routes.ollama.WAIT_MINUTES,                 # spec 040, F33
+        ai_wait_default=ai_routes.ollama.DEFAULT_WAIT,
         ai_laptop_saved=request.args.get("laptop") == "ok",
     )
 

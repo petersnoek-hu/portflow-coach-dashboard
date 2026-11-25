@@ -10,6 +10,7 @@ import json
 import re
 import sqlite3
 import threading
+import time
 from datetime import date, datetime, timezone
 
 from . import ai_log, claude_ai, db, evaluation_page, evidence, evidence_files, file_text, lef, ollama
@@ -119,7 +120,14 @@ def laptop(database: str) -> dict:
     context = db.get_setting(database, ollama.S_CONTEXT) or ollama.DEFAULT_CONTEXT
     if context not in ollama.CONTEXTS:
         context = ollama.DEFAULT_CONTEXT
-    return {"threads": threads, "context": context, "unload": db.get_setting(database, ollama.S_UNLOAD) == "1"}
+    try:
+        wait = int(db.get_setting(database, ollama.S_WAIT) or 0)
+    except ValueError:
+        wait = 0
+    low, high = ollama.WAIT_MINUTES
+    wait = wait if low <= wait <= high else ollama.DEFAULT_WAIT
+    return {"threads": threads, "context": context, "unload": db.get_setting(database, ollama.S_UNLOAD) == "1",
+            "wait": wait}
 
 
 def model_options(database: str) -> dict:
@@ -127,7 +135,7 @@ def model_options(database: str) -> dict:
     own = laptop(database)
     num_ctx, budget = ollama.CONTEXTS[own["context"]]
     return {"num_ctx": num_ctx, "budget": budget, "num_thread": own["threads"],
-            "keep_alive": 0 if own["unload"] else None}
+            "keep_alive": 0 if own["unload"] else None, "timeout": own["wait"] * 60}
 
 
 def settings(database: str) -> tuple[str, str]:
@@ -258,7 +266,7 @@ def collect(conn: sqlite3.Connection, database: str, token: str | None, request_
     total = len(all_evidence)
     for number, (evidence_id, e) in enumerate(all_evidence.items(), start=1):
         if progress:
-            progress(f"Bewijsstukken lezen ({number} van {total})")
+            progress(f"Bewijsstukken lezen ({number} van {total})", number, total)
         details, _ = detail(conn, student_id, evidence_id, token)
         if not details:
             names_only.append(e["name"])
@@ -500,6 +508,63 @@ def _history(row, question: str) -> list[dict]:
     return messages
 
 
+# Progress (F34, F35) ------------------------------------------------------------------------------------
+
+CHARS_PER_SKILL = 1800      # F34: about the length of the advice per skill (seen in the trials)
+ANSWER_CHARS = 800          # F34: about the length of an answer to a follow-up question
+PREVIEW_LINES = 6
+PREVIEW_CHARS = 420          # F35: about five lines in the box
+_KEY = {"onderbouwing": "", "ontbreekt": "Nog te laten zien: ", "verschil": "Vergeleken met jouw oordeel: "}
+
+
+def readable(raw: str, names: dict[str, str] | None = None, lines: int = PREVIEW_LINES) -> str:
+    """F35: the last lines of what the model is writing, as plain text: the JSON of the answer left
+    out, the names put back (F23)."""
+    text = raw or ""
+    if text.lstrip().startswith("{"):
+        text = re.sub(r'^\s*\{\s*"vaardigheden"\s*:\s*\[\s*', "", text)
+        text = re.sub(r'\{\s*"code"\s*:\s*"(\w*)"?\s*,?\s*', lambda m: f"\n{m.group(1)}: ", text)
+        text = re.sub(r'"niveau"\s*:\s*(\d)\s*,?\s*', r"niveau \1. ", text)
+        text = re.sub(r'"?\s*,?\s*"(onderbouwing|ontbreekt|verschil)"\s*:\s*"?',
+                      lambda m: "\n" + _KEY[m.group(1)], text)
+        text = re.sub(r'"?\s*\}\s*,?\s*', "\n", text)
+        text = re.sub(r"\]\s*\}?\s*$", "", text)
+        text = text.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+    shown = restore("\n".join([line.strip() for line in text.splitlines() if line.strip()][-lines:]), names or {})
+    if len(shown) > PREVIEW_CHARS:   # the newest part, from a word on
+        tail = shown[-PREVIEW_CHARS:]
+        shown = "…" + tail[tail.find(" ") + 1:] if " " in tail else "…" + tail
+    return shown
+
+
+def progress_view(job: dict, now: float) -> dict:
+    """F34: where the model is, as a phase, an estimated percentage and words; F35: the text."""
+    phase = job.get("phase", "collect")
+    total = duration(round(now - job.get("started_at", now)))
+    claude = job.get("service") == "claude"
+    if phase == "collect":
+        done, count = job.get("collect_done", 0), job.get("collect_total", 0)
+        percent = 2 + 8 * (done / count if count else 0)
+        label, detail = "Materiaal verzamelen", job.get("step", "")
+    elif phase == "read":
+        waited = now - job.get("phase_at", now)
+        percent = 10 + 30 * (1 - 2.718281828 ** (-waited / 90))
+        label = "Claude leest het materiaal" if claude else "Het model leest het materiaal"
+        detail = f"bezig sinds {duration(round(waited))}"
+        if not claude and job.get("timeout"):
+            detail += f"; het dashboard wacht hoogstens {round(job['timeout'] / 60)} min op een teken van leven"
+    else:
+        chars = job.get("chars", 0)
+        expected = max(1, job.get("expected_chars", ANSWER_CHARS))
+        percent = 40 + 58 * min(1.0, chars / expected)
+        label = "Antwoord schrijven" if job.get("kind") == "question" else "Advies schrijven"
+        silent = round(now - job.get("last_at", now))
+        detail = (f"ongeveer {chars:,} tekens geschreven".replace(",", ".")
+                  + (f", laatste woord {duration(silent)} geleden" if silent >= 2 else ", schrijft nu"))
+    return {"percent": round(min(percent, 98)), "label": label, "detail": detail, "total": total,
+            "preview": readable(job.get("raw", ""), job.get("names")) if phase == "write" else ""}
+
+
 # Running in the background (F4) ------------------------------------------------------------------------
 
 class Jobs:
@@ -526,7 +591,8 @@ class Jobs:
             if job and job["state"] == "running":
                 return False
             self.jobs[request_id] = {"state": "running", "kind": "question", "step": "Antwoord wordt gemaakt…", "error": "",
-                                     "question": question, "cancel": threading.Event()}
+                                     "question": question, "cancel": threading.Event(), "phase": "read",
+                                     "started_at": time.time(), "phase_at": time.time()}
         threading.Thread(target=self._ask, args=(request_id, question), daemon=True).start()
         return True
 
@@ -546,8 +612,11 @@ class Jobs:
             history = _history(row, question_anon)
             started = time.monotonic()
 
-            def written(*_):
-                self._set(request_id, step=f"Antwoord wordt gemaakt… ({int(time.monotonic() - started)} s)")
+            self._set(request_id, names=names, expected_chars=ANSWER_CHARS, service=row["service"],
+                      timeout=model_options(self.database)["timeout"])
+
+            def written(text=""):   # F34, F35
+                self._wrote(request_id, text)
 
             phase = "het antwoord"
             if row["service"] == "claude":
@@ -563,7 +632,8 @@ class Jobs:
                         f"{options['num_ctx']} tokens{', daarna uit het geheugen' if options['keep_alive'] == 0 else ''})")
                 answer = ollama.chat(url, row["model"], system_prompt(self.database), row["prompt"], None, history=history,
                                      num_ctx=options["num_ctx"], num_thread=options["num_thread"],
-                                     keep_alive=options["keep_alive"], cancel=cancel, progress=written)
+                                     keep_alive=options["keep_alive"], timeout=options["timeout"], cancel=cancel,
+                                     progress=written)
             if not answer:
                 raise ollama.OllamaError("Het model gaf geen antwoord. Probeer het opnieuw.")
             add_turn(self.database, request_id, question, question_anon, answer, round(time.monotonic() - started))
@@ -594,7 +664,7 @@ class Jobs:
             label = f"{SERVICES[service]} · {model}" if service == "lokaal" else SERVICES[service]
             self.jobs[request_id] = {"state": "running", "kind": "advice", "step": "Materiaal verzamelen…", "error": "",
                                      "service": service, "choice": choice_key(service, model), "service_label": label,
-                                     "cancel": threading.Event()}
+                                     "cancel": threading.Event(), "phase": "collect", "started_at": time.time()}
         threading.Thread(target=self._run, args=(request_id, service, model, judgment), daemon=True).start()
         return True
 
@@ -608,6 +678,15 @@ class Jobs:
     def _set(self, request_id: int, **values) -> None:
         with self.lock:
             self.jobs[request_id].update(values)
+
+    def _wrote(self, request_id: int, text: str) -> None:
+        """F34, F35: the model wrote more; remember how much, when, and the text so far."""
+        now = time.time()
+        with self.lock:
+            job = self.jobs[request_id]
+            if job.get("phase") != "write":
+                job.update(phase="write", phase_at=now)
+            job.update(chars=len(text), last_at=now, raw=text[-20000:])
 
     def _log_end(self, topic: str, request_id: int, what: str, error: "ollama.OllamaError | None", cancel,
                  started: float | None, phase: str) -> None:
@@ -640,10 +719,10 @@ class Jobs:
                     raise ollama.OllamaError(f"Het model {model} staat niet in Ollama. Open de wizard AI-advies instellen.")
                 vision = "vision" in ollama.capabilities(url, model)
 
-            def step(text):
+            def step(text, done=None, total=None):
                 if cancel.is_set():
                     raise ollama.OllamaError("Gestopt.")
-                self._set(request_id, step=text)
+                self._set(request_id, step=text, **({"collect_done": done, "collect_total": total} if total else {}))
 
             phase = "het verzamelen van het materiaal"
             material = collect(conn, self.database, self.token_source(), request_id, date.today(), step, vision=vision)
@@ -657,12 +736,13 @@ class Jobs:
                      + ("" if service == "claude" else f"; {options['num_thread']} kernen, {options['num_ctx']} tokens"
                         + (", daarna uit het geheugen" if options["keep_alive"] == 0 else "")) + ")")
             step("Advies schrijven…")
-            import time
             phase = "het schrijven van het advies"
             started = time.monotonic()
+            self._set(request_id, phase="read", phase_at=time.time(), names=names, timeout=options["timeout"],
+                      expected_chars=CHARS_PER_SKILL * len(material["codes"]))   # F34
 
-            def written(*_):
-                self._set(request_id, step=f"Advies schrijven… ({int(time.monotonic() - started)} s)")
+            def written(text=""):   # F34, F35
+                self._wrote(request_id, text)
 
             if service == "claude":
                 answer = claude_ai.chat(api_key, system_prompt(self.database), text, schema(material["codes"], bool(judgment)), images=images,
@@ -670,7 +750,8 @@ class Jobs:
             else:
                 answer = ollama.chat(url, model, system_prompt(self.database), text, schema(material["codes"], bool(judgment)), images=[i["data"] for i in images],
                                      num_ctx=options["num_ctx"], num_thread=options["num_thread"],
-                                     keep_alive=options["keep_alive"], cancel=cancel, progress=written)
+                                     keep_alive=options["keep_alive"], timeout=options["timeout"], cancel=cancel,
+                                     progress=written)
             phase = "het controleren van het antwoord"
             save(self.database, request_id, model, check(answer, material["codes"]), counts, service,
                  round(time.monotonic() - started), text, names, judgment)
@@ -701,7 +782,8 @@ def trial(url: str, model: str, system: str = SYSTEM, options: dict | None = Non
     import time
     options = options or {}
     started = time.monotonic()
-    answer = ollama.chat(url, model, system, TRIAL, schema(["PL"], difference=False), num_ctx=4096, timeout=600,
-                         num_thread=options.get("num_thread"), keep_alive=options.get("keep_alive"))
+    answer = ollama.chat(url, model, system, TRIAL, schema(["PL"], difference=False), num_ctx=4096,
+                         timeout=options.get("timeout", 600), num_thread=options.get("num_thread"),
+                         keep_alive=options.get("keep_alive"))
     advice = check(answer, ["PL"])
     return {"seconds": round(time.monotonic() - started), "level": advice[0]["level"]}
