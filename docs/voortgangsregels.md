@@ -125,6 +125,17 @@ In de voortgangstabel (één rij per student, één kolom per vaardigheid OC …
 - De **kleur** van de cel hangt af van het aantal evaluaties (0, 1, 2 of meer), niet van het niveau. De kleuren staan in [design-system.md](design-system.md#niveaulabels).
 - Meer dan vier evaluaties per vaardigheid komt niet voor. Mocht het toch gebeuren, dan worden ze allemaal getoond en breekt de tabel niet.
 
+<a id="peilmomenten"></a>
+### Weergave met peilmomenten (HCAI)
+
+Kiest de gebruiker in Instellingen het kleurschema **HCAI: peilmomenten** ([spec 044](../features/044-kleurschema-niveaulabels/spec.md)), dan toont een cel per **peilmoment** één plek, elk in de kleur van dat peilmoment ([design-system.md](design-system.md#niveaulabels)):
+
+- De peilmomenten zijn per vaardigheid de beoordelingen in de semesterperiode op volgorde van datum: de eerste is peilmoment 1, de tweede peilmoment 2, enzovoort. Een uitgesloten beoordelaar en een verzoek dat nog niet als geheel is beoordeeld tellen niet als peilmoment (zoals bij [Welke evaluaties tellen](#welke-evaluaties-tellen)); een beoordeling **zonder niveau** wel.
+- Een plek toont het niveau, of `–` bij een beoordeling zonder niveau (bij HCAI: startniveau, 1 of 2, met feedback in de toelichting).
+- Er zijn altijd minstens **drie** plekken; een peilmoment dat nog niet is geweest, is een lege grijze plek. Een vierde (of later) peilmoment krijgt een vierde plek.
+- Een openstaande evaluatie staat op de eerstvolgende plek, als `?` in blauw.
+- Dit is alleen een **weergave**: wat meetelt voor "semester behaald", de signalen en de filters blijft zoals hierboven (een beoordeling zonder niveau telt niet mee).
+
 <a id="signalen"></a>
 ## Signalen: lege vaardigheden
 

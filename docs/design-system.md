@@ -114,6 +114,15 @@ Achtergrond- en tekstkleur van het label zelf (gemeten in het eerste ontwerp):
 - Het label groeit mee met de tekst. Het meest voorkomende geval (`1/2`) blijft compact. Een langere waarde zoals `0/1/1/2` mag de kolom breder maken of afbreken, maar wordt niet afgekapt.
 - De legenda boven de tabel toont: 0 evaluaties, 1 evaluatie, 2 evaluaties en openstaand, elk met een vinkje. Een uitgezet vinkje maakt die cellen wit met zwarte letters ([spec 001](../features/001-studentenoverzicht/spec.md), F23).
 
+**Kleurschema's** ([spec 044](../features/044-kleurschema-niveaulabels/spec.md)): in Instellingen › Kleuren in de tabellen kiest de gebruiker wat de kleuren betekenen, voor alle tabellen met vaardigheden tegelijk. De legenda volgt de keuze.
+
+| Schema | Kleuren |
+|---|---|
+| Geen kleuren | alle labels wit met een rand, ook een openstaande evaluatie (alleen de vette `?`) |
+| Geen kleuren, alleen blauw voor ingediend | alle labels wit, een cel met een openstaande evaluatie blauw |
+| Open-ICT: aantal evaluaties (standaard) | zoals hierboven: rood, geel, groen naar aantal; blauw voor openstaand |
+| HCAI: peilmomenten | per peilmoment een vakje ([voortgangsregels.md](voortgangsregels.md#peilmomenten)): 1e roze `#F6D9E6`/`#8A3B62`, 2e geel `#F2EAC1`/`#837031`, 3e groen `#DAE9DD`/`#406B52`, 4e oranje `#F8DFC8`/`#8A4F1C`; nog niet geweest grijs `#ECEEEA`; openstaand blauw |
+
 ### Vaardigheidscategorieën (uit LEF)
 
 Kleuren van de tegels op [lef.hu.nl](https://lef.hu.nl) (zie [`screenshots/vaardigheden-niveaus-LEF.png`](../screenshots/vaardigheden-niveaus-LEF.png)). Worden gebruikt in de **kolomkoppen** van het studentenoverzicht: een dunne gekleurde streep of achtergrond per categorie boven OC … KPM, PL … SW en FO … RE. (Dit staat niet in het ontwerp.)

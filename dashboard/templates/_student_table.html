@@ -11,12 +11,21 @@
     {# F23: a tick per legend item; switched off, those cells become white with black text. #}
     <form method="post" action="{{ url_for('pages.save_colours') }}" class="legend" id="colour-form" aria-label="Legenda en kleuren">
       <input type="hidden" name="next" value="{{ request.full_path }}">
-      {% for kind, sample, label in [("n0", "-/-", "0 evaluaties"), ("n1", "1", "1 evaluatie"), ("n2", "1/2", "2 evaluaties"), ("pending", "1/?", "openstaand")] %}
+      {# Spec 044, F3: the legend of the chosen colour scheme. #}
+      {% set legend = {"none": [],
+                       "blue": [("pending", "1/?", "openstaand")],
+                       "openict": [("n0", "-/-", "0 evaluaties"), ("n1", "1", "1 evaluatie"), ("n2", "1/2", "2 evaluaties"), ("pending", "1/?", "openstaand")],
+                       "hcai": [("pm1", "–", "1e peilmoment"), ("pm2", "3", "2e"), ("pm3", "3", "3e"), ("pm4", "4", "4e"), ("pending", "?", "openstaand")]}[level_scheme or "openict"] %}
+      {% for kind, sample, label in legend %}
       <label class="legend-item">
         <input type="checkbox" name="kleur" value="{{ kind }}" {% if kind not in t.colours_off %}checked{% endif %}>
-        {% if kind == "pending" %}<span class="level has-pending legend-sample">1/<b class="pending">?</b></span>{% else %}<span class="level level-{{ kind }} legend-sample">{{ sample }}</span>{% endif %}
+        {% if kind == "pending" %}<span class="level has-pending legend-sample">{% if sample != "?" %}1/{% endif %}<b class="pending">?</b></span>
+        {% elif kind.startswith("pm") %}<span class="level moment moment-{{ kind }} legend-sample">{{ sample }}</span>
+        {% else %}<span class="level level-{{ kind }} legend-sample">{{ sample }}</span>{% endif %}
         {{ label }}
       </label>
+      {% else %}
+      <span class="muted legend-none">Geen kleuren (Instellingen › Kleuren in de tabellen)</span>
       {% endfor %}
       <button class="button button-secondary button-compact js-hide" type="submit">Toepassen</button>
     </form>

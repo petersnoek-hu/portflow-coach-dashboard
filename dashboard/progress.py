@@ -90,6 +90,9 @@ def panel_args(evaluations: list[Evaluation], pending: Pending | None = None) ->
 class Cell:
     skill: str
     evaluations: list[Evaluation] = field(default_factory=list)
+    # Spec 044, F4-F6: every assessment in the period, also without a level (HCAI: start, 1 or 2),
+    # in order of date: the peilmomenten. Only for showing; what counts stays `evaluations`.
+    moments: list[Evaluation] = field(default_factory=list)
     pending: Pending | None = None
     no_access: bool = False
     early_semester: bool = False     # semester 1, 2 or unknown: an empty cell is grey
@@ -127,10 +130,24 @@ class Cell:
         return "grey" if self.early_semester else "n0"
 
     @property
+    def slots(self) -> list[dict]:
+        """Spec 044, F4: the cell in the scheme HCAI: per peilmoment a place, at least three (four or
+        more when there were more); a place has `kind` pm1 ... pm4 (a fifth or later: pm4), 'pending'
+        (the open request, on the next free place) or 'empty', and the text to show."""
+        result = [{"kind": f"pm{min(i, 4)}", "text": m.level if m.level not in (None, "") else "–",
+                   "level": m.level or "", "moment": i, "date": m.date, "assessor": m.assessor}
+                  for i, m in enumerate(self.moments, start=1)]
+        if self.pending:
+            result.append({"kind": "pending", "text": "?", "moment": len(result) + 1})
+        while len(result) < 3:
+            result.append({"kind": "empty", "text": "", "moment": len(result) + 1})
+        return result
+
+    @property
     def panel(self) -> dict | None:
         """Spec 037, F3: the arguments of the side panel for this cell: the requests of its evaluations
         (and of the open one), and loose evaluations without a request. None for an empty cell."""
-        return panel_args(self.evaluations, self.pending)
+        return panel_args(self.evaluations or self.moments, self.pending)
 
     @property
     def sort_key(self) -> tuple[int, int]:
@@ -156,6 +173,11 @@ def _counts(row: dict, excluded: set[str], start: date, end: date) -> bool:
         and in_period(row.get("date") or "", start, end)
         and row["skill"] in SKILLS
     )
+
+
+def _is_moment(row: dict, excluded: set[str], start: date, end: date) -> bool:
+    """Spec 044, F4-F6: a peilmoment (scheme HCAI): like `_counts`, but a level is not needed."""
+    return _counts(dict(row, level=row.get("level") or "-"), excluded, start, end)
 
 
 def student_progress(
@@ -185,11 +207,14 @@ def student_progress(
         if row["kind"] == "self" and row.get("review_request_id") is not None and row.get("date"):
             handed_in.setdefault((row["review_request_id"], row["skill"]), row["date"])
     for row in ordered:
+        day = row.get("date") or ""
+        submitted = handed_in.get((row.get("review_request_id"), row["skill"]), day)
+        evaluation = Evaluation(row["level"] or "", day, row.get("assessor"), submitted, row.get("review_request_id"),
+                                row.get("id"))
         if _counts(row, excluded, start, end):
-            day = row.get("date") or ""
-            submitted = handed_in.get((row.get("review_request_id"), row["skill"]), day)
-            cells[row["skill"]].evaluations.append(Evaluation(
-                row["level"], day, row.get("assessor"), submitted, row.get("review_request_id"), row.get("id")))
+            cells[row["skill"]].evaluations.append(evaluation)
+        if _is_moment(row, excluded, start, end):   # spec 044: also without a level
+            cells[row["skill"]].moments.append(evaluation)
 
     # Open requests (voortgangsregels.md#openstaand).
     assessed_dates: dict[str, list[str]] = {skill: [] for skill in SKILLS}

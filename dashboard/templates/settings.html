@@ -123,6 +123,26 @@
   {% include "_ai_log.html" %}{# spec 042 #}
 </section>
 
+{# Spec 044, F1: what the colours of the level labels in the tables mean. #}
+<section class="card" id="kleuren">
+  <h2>Kleuren in de tabellen</h2>
+  <p class="muted">Geldt voor de tabellen met vaardigheden op Overzicht, Evaluaties, de pagina van een student en de pagina van een evaluatie.</p>
+  <form method="post" action="{{ url_for('pages.save_level_scheme') }}" class="scheme-form">
+    {% set samples = {"none": [("plain", "1/2"), ("plain", "1/?")], "blue": [("plain", "1/2"), ("pending", "1/?")],
+                      "openict": [("n0", "-/-"), ("n1", "2"), ("n2", "1/2"), ("pending", "1/?")],
+                      "hcai": [("pm1", "–"), ("pm2", "3"), ("pm3", "3"), ("pm4", "4"), ("pending", "?")]} %}
+    {% for key, (label, _) in schemes.items() %}
+    <label class="scheme-choice"><input type="radio" name="schema" value="{{ key }}" {% if key == level_scheme %}checked{% endif %}>
+      <span class="scheme-label">{{ label }}</span>
+      <span class="scheme-samples">{% for kind, text in samples[key] %}<span class="level scheme-sample sample-{{ kind }}">{{ text }}</span>{% endfor %}</span>
+      {% if key == "hcai" %}<span class="muted scheme-note">1e peilmoment roze, 2e geel, 3e groen, 4e oranje; een peilmoment zonder niveau als –</span>{% endif %}
+    </label>
+    {% endfor %}
+    <div><button class="button button-secondary" type="submit">Opslaan</button>
+      {% if scheme_saved %}<span class="ai-ok" role="status">✓ Opgeslagen</span>{% endif %}</div>
+  </form>
+</section>
+
 <section class="card" id="semesterperiode">
   <h2>Semesterperiode</h2>
   <p class="muted">Alleen evaluaties binnen deze periode tellen mee in het studentenoverzicht.

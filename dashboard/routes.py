@@ -98,6 +98,7 @@ def shell_context():
         "skill_names": SKILL_NAMES,
         "skill_category": CATEGORY,
         "to_review_count": requests_to_review.open_count(get_db()),   # spec 030, F6
+        "level_scheme": overview_data.level_scheme(get_db()),          # spec 044, F1
         "update_available": current_app.extensions["updater"].available(),   # spec 020, U2
         "can_update": current_app.extensions["updater"].can_update(),        # spec 020, U5
         "app_version": VERSION,                                              # spec 020, R1
@@ -246,8 +247,18 @@ def save_list_columns():
 @bp.post("/studenten/kleuren")
 def save_colours():
     """F23: which legend colours are shown; the choice is kept."""
-    overview_data.save_colours_on(get_db(), request.form.getlist("kleur"))
+    conn = get_db()
+    kinds = overview_data.SCHEMES[overview_data.level_scheme(conn)][1]   # spec 044, F3
+    overview_data.save_colours_on(conn, request.form.getlist("kleur"), kinds)
     return redirect(_back_to_table())
+
+
+@bp.post("/instellingen/kleuren")
+def save_level_scheme():
+    """Spec 044, F1: what the colours of the level labels mean."""
+    if not overview_data.save_level_scheme(get_db(), request.form.get("schema", "")):
+        abort(400)
+    return redirect(url_for("pages.settings", kleuren="ok") + "#kleuren")
 
 
 def _done_or_back(error: str | None = None):
@@ -757,6 +768,7 @@ def settings():
         semester_error=request.args.get("fout", ""),
         reset_step=request.args.get("bevestig") if request.args.get("bevestig") in ("alles-verwijderen", "alles-verwijderen-2") else None,
         reset_summary=reset.summary(conn),
+        schemes=overview_data.SCHEMES, scheme_saved=request.args.get("kleuren") == "ok",   # spec 044, F1
         reset_busy=reset.is_busy(current_app._get_current_object()),
         reset_error=request.args.get("reset_fout", ""),
         confirm_word=reset.CONFIRM_WORD,

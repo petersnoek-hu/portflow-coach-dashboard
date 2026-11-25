@@ -1264,3 +1264,46 @@ tbody td .icon-button, tbody td select { vertical-align: middle; }
 .student-assessed .to-review-link:hover .to-review-student { text-decoration: underline; }
 /* The level given, neutral: in the tables the colour of a level label means the number of evaluations. */
 .assessed-level { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+/* Spec 044: colour schemes of the level labels (Instellingen › Kleuren in de tabellen). */
+.scheme-none .student-row .level:not(.level-na):not(.level-grey):not(.level-moments),
+.scheme-none .student-row .level .pending,
+.scheme-blue .student-row .level:not(.level-na):not(.level-grey):not(.has-pending):not(.level-moments) {
+  background: #fff; color: var(--text); box-shadow: inset 0 0 0 1px var(--border);
+}
+.scheme-none .student-row .level .pending { box-shadow: none; }
+/* HCAI: per peilmoment a place in its own colour (F4); always the same width, so columns line up */
+.level-moments { display: inline-flex; gap: 2px; min-width: 0; padding: 0; background: none; }
+.moment { display: inline-block; min-width: 18px; padding: 3px 4px; border-radius: 5px; font-weight: 600;
+  font-variant-numeric: tabular-nums; text-align: center; line-height: 1.25; }
+.moment-pm1 { background: #f6d9e6; color: #8a3b62; }
+.moment-pm2 { background: #f2eac1; color: #837031; }
+.moment-pm3 { background: #dae9dd; color: #406b52; }
+.moment-pm4 { background: #f8dfc8; color: #8a4f1c; }
+.moment-pending { background: #d6e2f5; color: #2f4f86; }
+.moment-empty { background: #eceeea; min-height: 1.25em; }
+.overview-table .moment { padding: 2px 4px; font-size: 13px; }
+.colour-off-pm1 .student-row .moment-pm1, .colour-off-pm2 .student-row .moment-pm2,
+.colour-off-pm3 .student-row .moment-pm3, .colour-off-pm4 .student-row .moment-pm4,
+.colour-off-pending .student-row .moment-pending { background: #fff; color: #000; box-shadow: inset 0 0 0 1px var(--border); }
+.colour-off-pm1 .legend-item input[value=pm1]:not(:checked) + .legend-sample,
+.colour-off-pm2 .legend-item input[value=pm2]:not(:checked) + .legend-sample,
+.colour-off-pm3 .legend-item input[value=pm3]:not(:checked) + .legend-sample,
+.colour-off-pm4 .legend-item input[value=pm4]:not(:checked) + .legend-sample { background: #fff; color: #000; box-shadow: inset 0 0 0 1px var(--border); }
+.legend .moment.legend-sample { min-width: 22px; }
+.legend-none { font-size: 13px; }
+/* The choice in Instellingen (F1) */
+.scheme-form { display: flex; flex-direction: column; gap: 8px; }
+.scheme-choice { display: grid; grid-template-columns: auto minmax(220px, auto) 1fr; align-items: center; gap: 4px 10px; font-size: 14px; }
+.scheme-samples { display: inline-flex; gap: 4px; }
+.scheme-note { grid-column: 2 / -1; font-size: 12px; }
+.scheme-sample { min-width: 30px; font-size: 13px; padding: 2px 6px; }
+.sample-plain { background: #fff; box-shadow: inset 0 0 0 1px var(--border); }
+.sample-pending { background: #d6e2f5; color: #2f4f86; }
+.sample-n0 { background: #ebd5cb; color: #8e5a49; }
+.sample-n1 { background: #f2eac1; color: #837031; }
+.sample-n2 { background: #dae9dd; color: #406b52; }
+.sample-pm1 { background: #f6d9e6; color: #8a3b62; }
+.sample-pm2 { background: #f2eac1; color: #837031; }
+.sample-pm3 { background: #dae9dd; color: #406b52; }
+.sample-pm4 { background: #f8dfc8; color: #8a4f1c; }

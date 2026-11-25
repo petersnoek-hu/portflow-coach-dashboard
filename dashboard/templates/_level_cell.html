@@ -4,6 +4,24 @@
         <td class="col-skill" data-sort-value="{{ cell.count * 100 + cell.highest + 1 }}"{% if student_id is not none %} data-live="cell-{{ student_id }}-{{ code }}"{% endif %}>{# spec 041, F7 #}
           {# Spec 037, F3: a cell with evaluations opens the requests in the side panel. #}
           {% set panel = cell.panel if student_id is not none else none %}
+          {% if level_scheme == "hcai" and not cell.no_access %}{# spec 044, F4: per peilmoment a place #}
+          <{{ "a" if panel else "span" }} class="level level-moments"
+                {% if panel %}href="{{ url_for('pages.evaluation_panel', student_id=student_id, **panel) }}" data-feedback data-panel-title="Evaluaties"{% else %}tabindex="0"{% endif %}
+                aria-label="{{ code }}: {% for s in cell.slots %}{% if s.kind == 'empty' %}peilmoment {{ s.moment }} nog niet{% elif s.kind == 'pending' %}ingediend{% else %}peilmoment {{ s.moment }} {{ s.text }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}">
+            {%- for s in cell.slots %}<span class="moment moment-{{ s.kind }}">{% if s.kind == "pending" %}<b class="pending">?</b>{% else %}{{ s.text }}{% endif %}</span>{% endfor -%}
+          </{{ "a" if panel else "span" }}>
+          {% if cell.moments or cell.pending %}
+          <span class="level-details" role="tooltip">
+            <strong>{{ skill_names[code] }}</strong>
+            {% for e in cell.moments %}
+            <span>Peilmoment {{ loop.index }} · {% if e.level %}niveau {{ e.level }}{% else %}geen niveau ingevuld (startniveau, 1 of 2){% endif %} · {{ e.date|nl_date }} · {{ e.assessor }}</span>
+            {% endfor %}
+            {% if cell.pending %}
+            <span class="pending-line">? {{ cell.pending.title or "Evaluatieverzoek" }} · ingediend {{ cell.pending.date|nl_date }}</span>
+            {% endif %}
+          </span>
+          {% endif %}
+          {% else %}
           <{{ "a" if panel else "span" }} class="level level-{{ cell.colour }}{% if cell.pending %} has-pending{% endif %}"
                 {% if panel %}href="{{ url_for('pages.evaluation_panel', student_id=student_id, **panel) }}" data-feedback data-panel-title="Evaluaties"{% else %}tabindex="0"{% endif %}
                 aria-label="{{ code }}: {{ cell.text or 'nog geen evaluatie' }}">
@@ -21,6 +39,7 @@
             <span class="pending-line">? {{ cell.pending.title or "Evaluatieverzoek" }} · ingediend {{ cell.pending.date|nl_date }}</span>
             {% endif %}
           </span>
+          {% endif %}
           {% endif %}
         </td>
 {%- endmacro %}

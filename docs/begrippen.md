@@ -97,6 +97,7 @@ Het dashboard kent twee soorten gebruik. Iemand kan van het ene naar het andere 
 | **Doel (goal)** | Onderdeel van een portfolio; de tien vaardigheden zijn doelen. Beroepstaken komen voor als doel of als subcriterium onder een doel |
 | **Evaluatieverzoek (review request)** | Verzoek van een student om een of meer vaardigheden te beoordelen, met een titel en toelichting. Gaat naar een beoordelaar; status: niet begonnen, in uitvoering, ingediend, beoordeeld of geweigerd |
 | **Zelfevaluatie** | Het deel van een evaluatieverzoek dat de student zelf invult (rol `self`). Telt niet mee als evaluatie |
+| **Peilmoment** | Bij HCAI: een vast moment in het semester waarop alle tien de vaardigheden worden geëvalueerd; er zijn er drie, en een vierde na een herkansing. Bij niveau startniveau, 1 of 2 blijft het niveau leeg en staat er feedback in de toelichting. Zie [voortgangsregels.md](voortgangsregels.md#peilmomenten) |
 | **Feedback item** | Eén zelfevaluatie of beoordeling op een doel, met niveau, datum en beoordelaar |
 | **Beoordelaar** | Wie een evaluatie geeft. Telt alleen mee als die in de lijst met coaches en gildemeesters staat ([voortgangsregels.md](voortgangsregels.md#welke-evaluaties-tellen)) |
 | **Bewijsstuk (evidence)** | Bestand dat de student in een toelichting noemt ("@bestand"); te downloaden via de API |
@@ -131,6 +132,7 @@ De code is Engelstalig, de interface Nederlands. Gebruik deze vertalingen, zodat
 | Zelfevaluatie | `self_evaluation` |
 | Beoordelaar | `assessor` |
 | Feedbackvraag, opmerking, reactie | `feedback_request`, `remark` (in Portflow `comment`), `reply` |
+| Peilmoment, kleurschema | `moment`, `level_scheme` |
 | Coach of gildemeester in de beheerde lijst (een persoon met rollen) | `staff` (`staff_member`) |
 | Gegevens ophalen, verversen | `fetch`, `refresh` |
 | Openstaande evaluatie (`?`) | `pending_evaluation` |

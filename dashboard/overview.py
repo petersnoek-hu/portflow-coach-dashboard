@@ -22,7 +22,31 @@ LIST_COLUMNS = [("semester", "Semester"), ("project", "Project"), ("track", "Inv
                 ("guildmaster", "Gildemeester"), ("guildmasterfull", "Gildemeester (volledig)"),
                 ("portflow", "Portflow")]
 LIST_DEFAULT_HIDDEN = ["coachfull", "guildmasterfull"]   # spec 006, F21
-COLOUR_KINDS = ["n0", "n1", "n2", "pending"]
+COLOUR_KINDS = ["n0", "n1", "n2", "pending", "pm1", "pm2", "pm3", "pm4"]
+# Spec 044, F1: what the colours of the level labels mean; the legend items (F3) per scheme.
+S_SCHEME = "level_colour_scheme"
+SCHEMES = {
+    "none": ("Geen kleuren", []),
+    "blue": ("Geen kleuren, alleen blauw voor ingediend", ["pending"]),
+    "openict": ("Open-ICT: aantal evaluaties", ["n0", "n1", "n2", "pending"]),
+    "hcai": ("HCAI: peilmomenten", ["pm1", "pm2", "pm3", "pm4", "pending"]),
+}
+DEFAULT_SCHEME = "openict"
+
+
+def level_scheme(conn: sqlite3.Connection) -> str:
+    """Spec 044, F1: the chosen colour scheme (Open-ICT when nothing was chosen)."""
+    row = conn.execute("SELECT value FROM settings WHERE key = ?", (S_SCHEME,)).fetchone()
+    return row["value"] if row and row["value"] in SCHEMES else DEFAULT_SCHEME
+
+
+def save_level_scheme(conn: sqlite3.Connection, scheme: str) -> bool:
+    if scheme not in SCHEMES:
+        return False
+    with conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                     (S_SCHEME, scheme))
+    return True
 
 # Spec 006, F21: coach and guild master show the first name; the full name is a column of its own.
 EXTRA_COLUMNS = [("coach", "Coach"), ("coach_full", "Coach (volledig)"),
@@ -124,12 +148,15 @@ def colours_off(conn: sqlite3.Connection) -> list[str]:
         return []
 
 
-def save_colours_on(conn: sqlite3.Connection, on: list[str]) -> None:
-    """F23: store the kinds that are NOT ticked."""
+def save_colours_on(conn: sqlite3.Connection, on: list[str], kinds: list[str] | None = None) -> None:
+    """F23: store the kinds that are NOT ticked. Spec 044, F3: only the legend items of the current
+    scheme (`kinds`) change; the choice for the other schemes is kept."""
+    kinds = kinds if kinds is not None else COLOUR_KINDS
+    keep = [k for k in colours_off(conn) if k not in kinds]
     with conn:
         conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
                      "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                     (S_COLOURS_OFF, json.dumps([k for k in COLOUR_KINDS if k not in on])))
+                     (S_COLOURS_OFF, json.dumps(keep + [k for k in kinds if k not in on])))
 
 
 def list_columns(conn: sqlite3.Connection) -> list[tuple[str, str]]:
