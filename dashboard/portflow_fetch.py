@@ -205,6 +205,15 @@ class Fetcher:
             students[row["id"]]["portfolios"].append(row["portfolio_id"])
         return list(students.values())
 
+    def _students_behind(self) -> list[int]:
+        """Spec 041, F9: students with an open request to the user sent in after their last fetch."""
+        from .requests_to_review import students_behind
+        conn = db.connect(self.database)
+        try:
+            return students_behind(conn)
+        finally:
+            conn.close()
+
     def _student_ids(self) -> set[int]:
         conn = db.connect(self.database)
         try:
@@ -363,10 +372,13 @@ class Fetcher:
                 rest = [s["id"] for s in self._students(None)]
                 first_ids = [] if first else list(student_ids or [])
                 order = list(dict.fromkeys(first_ids + added + rest))
+            # Spec 030; spec 041, F9: the requests first, so the students with a new request to the
+            # user (also one that arrives in this round) are fetched too, after the others.
+            statuses = self._request_statuses(token)
+            order = list(dict.fromkeys(order + self._students_behind()))
             by_id = {s["id"]: s for s in self._students(order)}
             students = [by_id[i] for i in order if i in by_id]
             self.total = len(students)
-            statuses = self._request_statuses(token)
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
                 for student in students:
                     outcome, rows = self._fetch_student(token, student, statuses, pool)

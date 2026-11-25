@@ -100,7 +100,12 @@ def build(conn: sqlite3.Connection, request_id: int, today: date, start: date, e
         previous = queue[i - 1] if i > 0 else None
         following = queue[i + 1] if i + 1 < len(queue) else None
 
-    return {"request": request, "skills": skills, "codes": codes, "full_assessment": set(codes) >= set(SKILLS),
+    no_skills = None
+    if not codes and received is not None:   # spec 041, F10
+        from .requests_to_review import NO_SKILLS, no_skills_reason
+        no_skills = NO_SKILLS.get(no_skills_reason(conn, received["student_portflow_id"], received["created_at"]))
+    return {"request": request, "skills": skills, "codes": codes, "full_assessment": bool(codes) and set(codes) >= set(SKILLS),
+            "no_skills": no_skills,
             "previous": previous, "next": following, "queue_position": (queue.index(request_id) + 1, len(queue))
             if request_id in queue else None}
 

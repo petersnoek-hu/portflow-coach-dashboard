@@ -163,3 +163,67 @@ class TestEmptyAndCounter(ToReviewCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStudentsWithANewRequest(FetchTestCase):   # spec 041, F9
+    def goals_fetched(self):
+        return [c[1] for c in self.api.calls if c[0] == "goals"]
+
+    def setUp(self):
+        super().setUp()
+        from dashboard.portflow_fetch import S_LAST_FETCH
+        db.set_setting(self.database, S_LAST_FETCH, "2026-11-08T10:00:00+00:00")   # not the first round
+        self.on_screen = self.add_student("Lotte Bakker", [101], 11)
+        self.elsewhere = self.add_student("Noor Smit", [102], 12)
+        self.sql("UPDATE students SET fetched_at = '2026-11-08T10:00:00+00:00'")
+
+    def test_student_not_on_screen_with_a_new_request_is_fetched(self):   # F9 acceptance
+        self.api.invitations = [invitation(7, user_id=12, name="Noor Smit", created="2026-11-09T09:00:00.000Z")]
+        self.fetcher.start([self.on_screen], screen=True)
+        self.assertEqual(self.goals_fetched(), [101, 102])            # the screen first, then the request
+        self.api.calls.clear()
+        self.fetcher.start([self.on_screen], screen=True)              # now fetched after the request: up to date
+        self.assertEqual(self.goals_fetched(), [101])
+
+    def test_older_requests_and_other_statuses_do_not_add_a_student(self):   # F9
+        self.api.invitations = [invitation(7, user_id=12, created="2026-11-01T09:00:00.000Z"),         # before the fetch
+                                invitation(8, user_id=12, status="submitted", created="2026-11-09T09:00:00.000Z")]
+        self.fetcher.start([self.on_screen], screen=True)
+        self.assertEqual(self.goals_fetched(), [101])
+
+    def test_hidden_or_never_fetched_student_is_fetched_too(self):   # F9
+        self.sql("UPDATE students SET is_hidden = 1, fetched_at = NULL WHERE id = ?", (self.elsewhere,))
+        self.api.invitations = [invitation(7, user_id=12, created="2026-11-01T09:00:00.000Z")]
+        self.fetcher.start([self.on_screen], screen=True)
+        self.assertEqual(self.goals_fetched(), [101, 102])
+
+
+class TestWhyNoSkills(ToReviewCase):   # spec 041, F10
+    def test_not_fetched_since_the_request(self):   # F10 acceptance
+        conn = self.conn()
+        with conn:
+            conn.execute("UPDATE students SET fetched_at = ?", ((datetime.now() - timedelta(days=3)).astimezone().isoformat(),))
+        conn.close()
+        self.request(1, days_ago=1)
+        self.assertEqual(self.requests()[0]["no_skills"][0], "nog niet opgehaald")
+        self.assertIn("nog niet opgehaald", self.html())
+
+    def test_fetched_but_no_self_evaluation(self):   # F10 acceptance
+        self.request(1, days_ago=2)
+        conn = self.conn()
+        with conn:
+            conn.execute("UPDATE students SET fetched_at = ?", (datetime.now().astimezone().isoformat(),))
+        conn.close()
+        self.assertEqual(self.requests()[0]["no_skills"][0], "geen zelfevaluatie")
+        html = self.html()
+        self.assertIn("geen zelfevaluatie", html)
+        self.assertIn("geen zelfevaluatie per vaardigheid ingevuld", html)          # the explanation
+        page = self.client.get("/evaluaties/1").get_data(as_text=True)
+        self.assertIn("geen zelfevaluatie", page)
+
+    def test_with_skills_or_unknown_student(self):   # F10, spec 030 F3
+        self.request(1, days_ago=1, skills=("OC",))
+        self.request(2, days_ago=1, user_id=99, name="Iemand Anders")
+        by_id = {r["id"]: r for r in self.requests()}
+        self.assertIsNone(by_id[1]["no_skills"])
+        self.assertIsNone(by_id[2]["no_skills"])                                    # not in the dashboard: "–"

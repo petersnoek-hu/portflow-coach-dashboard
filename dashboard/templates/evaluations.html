@@ -91,6 +91,7 @@
       <span class="to-review-skills">
         {% if r.full_assessment %}<span class="mark-assessment">Assessment ingeleverd</span>
         {% elif r.skills %}{% for code in r.skills %}<span class="skill-code" title="{{ skill_names[code] }}">{{ code }}</span>{% endfor %}
+        {% elif r.no_skills %}<span class="no-skills" title="{{ r.no_skills[1] }}">{{ r.no_skills[0] }}</span>{# spec 041, F10 #}
         {% else %}<span class="muted">–</span>{% endif %}
       </span>
       <span class="to-review-date">{% if r.submitted %}ingediend {{ r.submitted.day }}-{{ r.submitted.month }}-{{ r.submitted.year }}{% endif %}</span>

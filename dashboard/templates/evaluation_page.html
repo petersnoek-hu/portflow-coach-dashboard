@@ -28,7 +28,8 @@
       </p>
       <p class="evaluation-skills" data-live="eval-skills">
         {% if data.full_assessment %}<span class="mark-assessment">Assessment ingeleverd</span>
-        {% else %}{% for code in data.codes %}<span class="skill-code" title="{{ skill_names[code] }}">{{ code }}</span>{% endfor %}{% endif %}
+        {% elif data.codes %}{% for code in data.codes %}<span class="skill-code" title="{{ skill_names[code] }}">{{ code }}</span>{% endfor %}
+        {% elif data.no_skills %}<span class="no-skills" title="{{ data.no_skills[1] }}">{{ data.no_skills[0] }}</span>{# spec 041, F10 #}{% endif %}
       </p>
     </div>
   </div>
