@@ -18,6 +18,7 @@ Controleer en meld de uitkomst kort:
 - `git status --short` is leeg (anders: stop en vraag of de wijzigingen eerst gecommit moeten worden);
 - de huidige branch is `main`, en `git fetch` gevolgd door `git status -sb` laat zien dat `main` niet achterloopt op `origin/main` (loopt hij voor, dan gaan die commits mee met de release: noem ze);
 - alle tests slagen: `.venv/bin/python -m unittest` (of `python -m unittest`). Faalt er een, stop dan.
+- de workflow **Tests** voor de laatste commit op `main` is geslaagd op macOS en Windows: `gh run list --workflow tests.yml --branch main --limit 1`. Loopt hij nog, wacht dan; is hij mislukt, stop dan en meld welke test op welk systeem faalde.
 
 ## 2. Wat is er veranderd, en welke versie?
 

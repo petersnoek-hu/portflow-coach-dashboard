@@ -17,7 +17,7 @@ Gebruikers installeren altijd de nieuwste release via de vaste adressen `https:/
 
 ## Stappenplan
 
-1. **Klaar om te releasen?** De werkmap is schoon (`git status`), je staat op `main`, `main` is gelijk aan GitHub (`git pull`), en alle tests slagen (`python -m unittest`).
+1. **Klaar om te releasen?** De werkmap is schoon (`git status`), je staat op `main`, `main` is gelijk aan GitHub (`git pull`), en alle tests slagen (`python -m unittest`). Kijk ook of de workflow **Tests** voor de laatste commit groen is (`gh run list --workflow tests.yml --limit 1`): die draait de tests bij elke push naar `main` op macOS en Windows, zodat een fout die alleen op Windows optreedt niet pas bij de release opvalt.
 2. **Wat is er veranderd?** Bekijk de commits sinds de vorige release (`git log --oneline vVORIGE..HEAD`) en de nieuwe regels in de logboeken van de specs (`git diff vVORIGE..HEAD -- features/`). Bij de eerste release is er geen vorige tag: neem dan alles.
 3. **Welk versienummer?** `MAJOR.MINOR.PATCH`:
    - **patch** (1.2.0 → 1.2.1): alleen fouten opgelost, niets nieuws;
