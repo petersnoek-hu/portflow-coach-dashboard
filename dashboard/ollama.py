@@ -9,6 +9,7 @@ import http.client
 import json
 import os
 import platform
+import queue
 import re
 import socket
 import sys
@@ -249,38 +250,62 @@ def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, i
         body["format"] = schema
     parsed = urlparse(url)
     connection = http.client.HTTPConnection(parsed.hostname, parsed.port or 80, timeout=timeout)
-    finished = threading.Event()
+    # The waiting happens in a separate thread that passes on what Ollama sends. This thread checks
+    # every half second whether the user stopped (F4), so stopping works at once on every system,
+    # also while Ollama is still silent (on Windows closing a socket does not wake a waiting read).
+    lines: "queue.Queue[tuple[str, object]]" = queue.Queue()
 
-    def watch():   # F4: close the connection when the user stops, also while Ollama is silent
-        while not finished.is_set():
-            if cancel is not None and cancel.wait(0.5):
-                try:
-                    if connection.sock is not None:
-                        connection.sock.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    pass
-                return
-            if cancel is None:
-                finished.wait(0.5)
-
-    text, part_done, response = "", False, None
-    watcher = threading.Thread(target=watch, daemon=True)
-    watcher.start()
-    try:
-        connection.request("POST", "/api/chat", json.dumps(body).encode(), {"Content-Type": "application/json"})
-        response = connection.getresponse()
-        if response.status >= 400:
+    def read():
+        try:
+            connection.request("POST", "/api/chat", json.dumps(body).encode(), {"Content-Type": "application/json"})
+            response = connection.getresponse()
             try:
-                detail = json.loads(response.read() or b"{}").get("error") or ""
-            except ValueError:
-                detail = ""
-            raise OllamaError(f"Ollama gaf een fout ({response.status}){': ' + detail if detail else ''}.",
-                              f"HTTP {response.status} op /api/chat")
-        for line in response:
+                if response.status >= 400:
+                    lines.put(("status", (response.status, response.read())))
+                    return
+                for line in response:
+                    lines.put(("line", line))
+            finally:
+                response.close()
+            lines.put(("end", None))
+        except BaseException as error:   # passed on to the waiting thread
+            lines.put(("error", error))
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    text, part_done = "", False
+    try:
+        while True:
+            try:
+                kind, value = lines.get(timeout=0.5)
+            except queue.Empty:
+                if cancel is not None and cancel.is_set():
+                    raise OllamaError("Gestopt.") from None
+                continue
             if cancel is not None and cancel.is_set():
                 raise OllamaError("Gestopt.")
+            if kind == "status":
+                status, raw = value
+                try:
+                    detail = json.loads(raw or b"{}").get("error") or ""
+                except ValueError:
+                    detail = ""
+                raise OllamaError(f"Ollama gaf een fout ({status}){': ' + detail if detail else ''}.",
+                                  f"HTTP {status} op /api/chat")
+            if kind == "error":
+                error = value
+                if not isinstance(error, (TimeoutError, OSError, http.client.HTTPException)):
+                    raise OllamaError("De verbinding met Ollama viel weg. Probeer het opnieuw.", type(error).__name__)
+                reason = _reason(error, timeout)
+                if reason.startswith("timed out"):
+                    raise OllamaError(silence_message(timeout), reason)
+                if not text and isinstance(error, (ConnectionRefusedError, socket.gaierror)):
+                    raise OllamaError("Ollama is niet bereikbaar. Is Ollama gestart?", reason)
+                raise OllamaError("De verbinding met Ollama viel weg. Probeer het opnieuw.", reason)
+            if kind == "end":
+                break
             try:
-                part = json.loads(line)
+                part = json.loads(value)
             except ValueError:
                 continue
             if part.get("error"):
@@ -291,22 +316,16 @@ def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, i
             if part.get("done"):
                 part_done = True
                 break
-    except OllamaError:
-        raise
-    except (TimeoutError, OSError, http.client.HTTPException) as error:
-        if cancel is not None and cancel.is_set():
-            raise OllamaError("Gestopt.") from None
-        reason = _reason(error, timeout)
-        if reason.startswith("timed out"):
-            raise OllamaError(silence_message(timeout), reason) from None
-        if not text and isinstance(error, (ConnectionRefusedError, socket.gaierror)):
-            raise OllamaError("Ollama is niet bereikbaar. Is Ollama gestart?", reason) from None
-        raise OllamaError("De verbinding met Ollama viel weg. Probeer het opnieuw.", reason) from None
     finally:
-        finished.set()
-        if response is not None:
-            response.close()
+        # Close the connection, so Ollama stops working on an answer nobody waits for any more.
+        try:
+            if connection.sock is not None:
+                connection.sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
         connection.close()
+        if not reader.is_alive():
+            reader.join()
     if schema is None:
         return text.strip()
     try:

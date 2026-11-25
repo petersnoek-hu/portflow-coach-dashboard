@@ -793,6 +793,17 @@ class TestWaitAndProgress(TestJobsAndPage):   # F33, F34, F35
         self.assertEqual(error.exception.message, "Gestopt.")
         self.assertLess(time.monotonic() - started, 3)
 
+    def test_stop_while_silent_also_when_closing_does_not_wake_the_read(self):   # F4 on Windows
+        import socket
+        cancel = threading.Event()
+        threading.Timer(0.3, cancel.set).start()
+        started = time.monotonic()
+        with mock.patch.object(socket.socket, "shutdown", lambda self, how: None), \
+                OllamaServer(delay=4) as server, self.assertRaises(ollama.OllamaError) as error:
+            ollama.chat(server.url, "m", "s", "u", None, timeout=60, cancel=cancel)
+        self.assertEqual(error.exception.message, "Gestopt.")
+        self.assertLess(time.monotonic() - started, 3)
+
     def test_progress_gets_the_text_so_far(self):   # F34, F35
         seen = []
         with OllamaServer(chunks=("Omdat ", "de afstemming")) as server:
