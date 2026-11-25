@@ -229,12 +229,13 @@ def collect(conn: sqlite3.Connection, database: str, token: str | None, request_
     r, student_id = data["request"], data["request"]["student_id"]
     note = conn.execute("SELECT note FROM received_requests WHERE review_request_id = ?", (request_id,)).fetchone()
     feedback_text = _feedback_texts(conn, student_id, start, end)
+    feedback_short = _feedback_texts(conn, student_id, start, end, short=True)   # F36
     extra = skill_prompts(database)   # F19
 
     head = [f'Evaluatieverzoek "{r["title"]}" van {r["student"]}, ingediend {r["submitted"]}.']
     if note and _plain(note["note"]):
         head.append("Toelichting van de student:\n" + _plain(note["note"]))
-    sections, contents, images, names_only = [], [], [], []
+    sections, parts, contents, images, names_only = [], [], [], [], []
     all_evidence = {}
     for s in data["skills"]:
         lines = [f"## Vaardigheid {s['code']} ({s['name']})",
@@ -245,21 +246,19 @@ def collect(conn: sqlite3.Connection, database: str, token: str | None, request_
                  "LEF-teksten (de maatstaf):\n" + _lef_plain(s["code"])]
         if s["code"] in extra:
             lines.append(f"Waar de beoordelaar bij {s['code']} in het bijzonder op wil letten:\n{extra[s['code']]}")
-        if s["earlier"]:
-            lines.append("Eerdere beoordelingen:\n" + "\n".join(
-                f"- niveau {e['level']} op {e['date']} door {e['author']} ({e['role']}): {_plain(e['text']) or '(geen tekst)'}"
-                for e in s["earlier"]))
-        else:
-            lines.append("Eerdere beoordelingen: geen.")
-        if s["evidence"]:
-            lines.append("Bewijsstukken bij deze vaardigheid (nieuwste eerst; de inhoud staat verderop):\n" + "\n".join(
-                f"- {e['name']} ({e['kind']}, toegevoegd {e['created']})" for e in s["evidence"]))
-        else:
-            lines.append("Bewijsstukken bij deze vaardigheid: geen.")
-        threads = [feedback_text[t["id"]] for t in s["threads"] if t["id"] in feedback_text]
-        if threads:
-            lines.append("Feedbackvragen, opmerkingen en reacties op deze bewijsstukken:\n" + "\n".join(threads))
-        sections.append("\n\n".join(lines))
+        # F36: earlier assessments and feedback can be shortened (oldest first): a full and a short form.
+        earlier = [{"full": f"- niveau {e['level']} op {e['date']} door {e['author']} ({e['role']}): "
+                            f"{_plain(e['text']) or '(geen tekst)'}",
+                    "short": f"- niveau {e['level']} op {e['date']} door {e['author']} ({e['role']}): (tekst weggelaten)"}
+                   for e in s["earlier"]]
+        evidence_line = ("Bewijsstukken bij deze vaardigheid (nieuwste eerst; de inhoud staat verderop):\n" + "\n".join(
+            f"- {e['name']} ({e['kind']}, toegevoegd {e['created']})" for e in s["evidence"])) if s["evidence"] \
+            else "Bewijsstukken bij deze vaardigheid: geen."
+        feedback = [{"full": feedback_text[t["id"]], "short": feedback_short[t["id"]]}
+                    for t in s["threads"] if t["id"] in feedback_text]   # newest first
+        part = {"core": lines, "earlier": earlier, "evidence": evidence_line, "feedback": feedback}
+        parts.append(part)
+        sections.append(_section(part, set()))
         for e in s["evidence"]:
             all_evidence.setdefault(e["id"], dict(e, skills=[]))["skills"].append(s["code"])
 
@@ -283,9 +282,11 @@ def collect(conn: sqlite3.Connection, database: str, token: str | None, request_
                     path, mime = files.shown_file(database, conn, token, student_id, details["portfolio_id"], f["id"])
                     data_bytes = path.read_bytes()
                     if len(data_bytes) <= MAX_IMAGE_BYTES and mime in ("image/png", "image/jpeg", "image/gif", "image/webp"):
+                        placeholder = f"[afbeelding {f['name']}: meegestuurd als afbeelding {len(images) + 1}]"
                         images.append({"name": f"{e['name']} – {f['name']}", "mime": mime,
-                                       "data": base64.b64encode(data_bytes).decode()})
-                        texts.append(f"[afbeelding {f['name']}: meegestuurd als afbeelding {len(images)}]")
+                                       "data": base64.b64encode(data_bytes).decode(), "placeholder": placeholder,
+                                       "dropped": f"[afbeelding {f['name']}: niet meegestuurd, te weinig ruimte]"})
+                        texts.append(placeholder)
                         continue
                 elif file_text.readable(f["mime"]):
                     raw = files.original_bytes(conn, token, student_id, details["portfolio_id"], f["id"])
@@ -303,12 +304,29 @@ def collect(conn: sqlite3.Connection, database: str, token: str | None, request_
 
     counts = overview(data)
     return {"codes": data["codes"], "student": r["student"], "head": "\n".join(head), "sections": sections,
-            "contents": contents, "images": images, "names_only": names_only, "counts": counts}
+            "parts": parts, "contents": contents, "images": images, "names_only": names_only, "counts": counts}
 
 
-def _feedback_texts(conn, student_id: int, start: date, end: date) -> dict[int, str]:
+def _section(part: dict, shortened: set) -> str:
+    """One skill as text; the earlier assessments and feedback in `shortened` ((kind, index)) only
+    with who, role and date (F36)."""
+    lines = list(part["core"])
+    if part["earlier"]:
+        lines.append("Eerdere beoordelingen:\n" + "\n".join(
+            e["short"] if ("earlier", i) in shortened else e["full"] for i, e in enumerate(part["earlier"])))
+    else:
+        lines.append("Eerdere beoordelingen: geen.")
+    lines.append(part["evidence"])
+    if part["feedback"]:
+        lines.append("Feedbackvragen, opmerkingen en reacties op deze bewijsstukken:\n" + "\n".join(
+            t["short"] if ("feedback", i) in shortened else t["full"] for i, t in enumerate(part["feedback"])))
+    return "\n\n".join(lines)
+
+
+def _feedback_texts(conn, student_id: int, start: date, end: date, short: bool = False) -> dict[int, str]:
     """F2: the feedback requests and (spec 043, F5) the remarks on the evidence, with their replies,
-    per top-level comment id; names are replaced later (F3)."""
+    per top-level comment id; names are replaced later (F3). With `short` (F36) without the texts."""
+    plain_text = (lambda _text: "(tekst weggelaten)") if short else globals()["plain_text"]
     from .feedback import ROLES, _remarks, _requests
     result = {}
     names = {r["evidence_id"]: r["name"] for r in conn.execute(
@@ -377,13 +395,66 @@ def save_judgment(database: str, request_id: int, judgment: dict) -> None:
         conn.close()
 
 
+CHARS_PER_TOKEN = 3          # F36: careful; plain Dutch text is about 4, text from files less
+IMAGE_TOKENS = 850           # F36: measured: 800x600 about 220, 1600x1200 about 830
+ANSWER_TOKENS = 1000         # F36: room for the answer: this plus ANSWER_TOKENS_PER_SKILL per skill
+ANSWER_TOKENS_PER_SKILL = 700
+
+
 def prompt(material: dict, names: dict[str, str], judgment: dict | None = None,
-           budget: int | None = None) -> tuple[str, list[dict], dict]:
-    """F3, F8, F25: the question for the model with the names replaced, within the budget, with the
-    assessor's own judgment. Returns (text, images as {'data', 'mime'}, counts)."""
-    fixed = anonymize(material["head"] + "\n\n" + "\n\n".join(material["sections"]), names)
-    room = max(0, (budget or BUDGET_CHARS) - len(fixed) - 2000)   # F8, F30
+           budget: int | None = None, max_tokens: int | None = None,
+           system_chars: int = 0) -> tuple[str, list[dict], dict]:
+    """F3, F8, F25: the question for the model with the names replaced, with the assessor's own
+    judgment. Returns (text, images as {'data', 'mime'}, counts).
+
+    With `max_tokens` (F36, a local model) everything is measured in tokens: the instruction
+    (`system_chars`), the fixed part, the contents of the evidence, the images and room for the
+    answer. What does not fit is left out in this order: images (the last first), the contents of
+    the evidence (F8), then the text of the oldest earlier assessments and feedback. Without it
+    (Claude) only the contents are limited, to `budget` characters (F8)."""
+    parts = material.get("parts") or []
+    images = list(material["images"])
+    tail = []
+    if judgment:
+        tail.append(anonymize(judgment_text(material["codes"], judgment), names))
+    tail.append("Geef nu per vaardigheid (" + ", ".join(material["codes"]) + ") het advies.")
+
+    def fixed_text(shortened: set) -> str:
+        sections = [_section(p, {(kind, rank) for (j, kind, rank) in shortened if j == i})
+                    for i, p in enumerate(parts)] if parts else material["sections"]
+        return anonymize(material["head"] + "\n\n" + "\n\n".join(sections), names)
+
+    shortened: set = set()
+    fixed = fixed_text(shortened)
+    tail_chars = sum(len(t) + 2 for t in tail)
     contents = [dict(c, text=anonymize(c["text"], names), name=anonymize(c["name"], names)) for c in material["contents"]]
+    dropped_images: list[str] = []
+    if max_tokens is None:
+        room = max(0, (budget or BUDGET_CHARS) - len(fixed) - 2000)   # F8, F30
+    else:
+        answer = ANSWER_TOKENS + ANSWER_TOKENS_PER_SKILL * len(material["codes"])
+        limit = max(0, (max_tokens - answer) * CHARS_PER_TOKEN - system_chars - tail_chars)   # characters for the rest
+        content_chars = sum(len(c["text"]) + len(c["name"]) + 20 for c in contents) + 100
+        image_chars = IMAGE_TOKENS * CHARS_PER_TOKEN
+        # 1. images, the last first (they keep their numbers)
+        while images and len(fixed) + content_chars + len(images) * image_chars > limit:
+            dropped = images.pop()
+            dropped_images.append(anonymize(dropped["name"], names))
+            for c in contents:
+                c["text"] = c["text"].replace(anonymize(dropped.get("placeholder", ""), names) or "\0",
+                                              anonymize(dropped.get("dropped", ""), names))
+        # 2. the contents of the evidence (F8), within what is left
+        room = limit - len(fixed) - len(images) * image_chars - 2000
+        # 3. the text of the oldest earlier assessments and feedback, until the fixed part fits
+        if room < 0:
+            ranked = sorted(((rank, i, kind) for i, p in enumerate(parts) for kind in ("earlier", "feedback")
+                             for rank in range(len(p[kind]))), reverse=True)   # newest is rank 0: oldest first
+            for rank, i, kind in ranked:
+                if len(fixed) + 2000 <= limit:
+                    break
+                shortened.add((i, kind, rank))
+                fixed = fixed_text(shortened)
+            room = max(0, limit - len(fixed) - 2000)
     # F8: per skill the same room, newest first; what does not fit goes with its name only.
     per_item = room // max(1, len(contents))
     shown, cut = [], []
@@ -398,17 +469,22 @@ def prompt(material: dict, names: dict[str, str], judgment: dict | None = None,
         text = text[:room - used]
         used += len(text)
         shown.append(f"### {c['name']} (bij {', '.join(c['skills'])})\n{text}")
-    parts = [fixed]
+    result = [fixed]
     if shown:
-        parts.append("# Inhoud van de bewijsstukken\n\n" + "\n\n".join(shown))
+        result.append("# Inhoud van de bewijsstukken\n\n" + "\n\n".join(shown))
     if cut:
-        parts.append("Van deze bewijsstukken past de inhoud niet; alleen de naam: " + ", ".join(cut))
-    if judgment:
-        parts.append(anonymize(judgment_text(material["codes"], judgment), names))
-    parts.append("Geef nu per vaardigheid (" + ", ".join(material["codes"]) + ") het advies.")
+        result.append("Van deze bewijsstukken past de inhoud niet; alleen de naam: " + ", ".join(cut))
+    if dropped_images:
+        result.append("Deze afbeeldingen zijn niet meegestuurd (te weinig ruimte): " + ", ".join(dropped_images))
+    result += tail
     counts = dict(material["counts"], cut=len(cut), names_only=[anonymize(n, names) for n in material["names_only"]],
-                  images=len(material["images"]))
-    return "\n\n".join(parts), [{"data": i["data"], "mime": i["mime"]} for i in material["images"]], counts
+                  images=len(images), images_dropped=len(dropped_images), shortened=len(shortened))   # F39
+    return "\n\n".join(result), [{"data": i["data"], "mime": i["mime"]} for i in images], counts
+
+
+def estimated_tokens(text: str, images: list, system_chars: int = 0) -> int:
+    """F36: the estimate used above, for the log and the tests."""
+    return (len(text) + system_chars) // CHARS_PER_TOKEN + len(images) * IMAGE_TOKENS
 
 
 def check(answer: dict, codes: list[str]) -> list[dict]:
@@ -518,6 +594,27 @@ def _history(row, question: str) -> list[dict]:
     return messages
 
 
+# Too much material for the model (F37, F38) ----------------------------------------------------------
+
+_TOO_LARGE = re.compile(r"request \((\d+) tokens\) exceeds the available context size \((\d+) tokens\)")
+CONTEXT_LABELS = {"weinig": "Weinig", "normaal": "Normaal", "veel": "Veel"}
+
+
+def too_large(error: "ollama.OllamaError") -> tuple[int, int] | None:
+    """F37: (asked, available) tokens when Ollama says the question does not fit, else None."""
+    found = _TOO_LARGE.search(f"{error.message} {error.detail}")
+    return (int(found.group(1)), int(found.group(2))) if found else None
+
+
+def too_large_message(options: dict) -> str:
+    """F38: the message when it still does not fit, with the chosen setting."""
+    chosen = next((CONTEXT_LABELS[k] for k, (num_ctx, _) in ollama.CONTEXTS.items() if num_ctx == options.get("num_ctx")),
+                  "deze")
+    advice = ("Kies Veel bij Instellingen › AI-advies › De laptop ontlasten, of probeer een ander model."
+              if chosen != "Veel" else "Probeer een ander model.")
+    return f"Het materiaal van dit verzoek past niet bij de instelling {chosen}. {advice}"
+
+
 # Progress (F34, F35) ------------------------------------------------------------------------------------
 
 CHARS_PER_SKILL = 1800      # F34: about the length of the advice per skill (seen in the trials)
@@ -560,7 +657,7 @@ def progress_view(job: dict, now: float) -> dict:
         waited = now - job.get("phase_at", now)
         percent = 10 + 30 * (1 - 2.718281828 ** (-waited / 90))
         label = "Claude leest het materiaal" if claude else "Het model leest het materiaal"
-        detail = f"bezig sinds {duration(round(waited))}"
+        detail = (job["note"] + " " if job.get("note") else "") + f"bezig sinds {duration(round(waited))}"   # F37
         if not claude and job.get("timeout"):
             detail += f"; het dashboard wacht hoogstens {round(job['timeout'] / 60)} min op een teken van leven"
     else:
@@ -740,7 +837,10 @@ class Jobs:
             material = collect(conn, self.database, self.token_source(), request_id, date.today(), step, vision=vision)
             names = replacements(conn, material["student"])
             options = model_options(self.database)   # F29-F31, fixed at the start of this advice (F32)
-            text, images, counts = prompt(material, names, judgment, options["budget"] if service != "claude" else None)
+            system = system_prompt(self.database)
+            local = service != "claude"
+            max_tokens = options["num_ctx"] if local else None   # F36: measured in tokens for a local model
+            text, images, counts = prompt(material, names, judgment, max_tokens=max_tokens, system_chars=len(system))
             # Spec 042: numbers only (F6)
             what += (f" ({len(material['codes'])} vaardighe{'id' if len(material['codes']) == 1 else 'den'}, "
                      f"{len(material['contents'])} bewijsstukken, {len(images)} afbeeldingen, {len(text)} tekens"
@@ -757,13 +857,33 @@ class Jobs:
                 self._wrote(request_id, text)
 
             if service == "claude":
-                answer = claude_ai.chat(api_key, system_prompt(self.database), text, schema(material["codes"], bool(judgment)), images=images,
+                answer = claude_ai.chat(api_key, system, text, schema(material["codes"], bool(judgment)), images=images,
                                         cancel=cancel, progress=written)
             else:
-                answer = ollama.chat(url, model, system_prompt(self.database), text, schema(material["codes"], bool(judgment)), images=[i["data"] for i in images],
-                                     num_ctx=options["num_ctx"], num_thread=options["num_thread"],
-                                     keep_alive=options["keep_alive"], timeout=options["timeout"], cancel=cancel,
-                                     progress=written)
+                def ask_local(text, images):
+                    return ollama.chat(url, model, system, text, schema(material["codes"], bool(judgment)),
+                                       images=[i["data"] for i in images], num_ctx=options["num_ctx"],
+                                       num_thread=options["num_thread"], keep_alive=options["keep_alive"],
+                                       timeout=options["timeout"], cancel=cancel, progress=written)
+                try:
+                    answer = ask_local(text, images)
+                except ollama.OllamaError as error:
+                    sizes = too_large(error)
+                    if sizes is None or cancel.is_set():
+                        raise
+                    # F37: once more with less material, in proportion to how much too large it was
+                    asked, room = sizes
+                    max_tokens = int(max_tokens * room / asked * 0.9)
+                    ai_log.add(self.database, "Advies", False, f"Verzoek {request_id}: te veel materiaal voor het model "
+                               f"({asked} van {room} tokens); opnieuw met minder", error.detail or error.message)
+                    text, images, counts = prompt(material, names, judgment, max_tokens=max_tokens, system_chars=len(system))
+                    self._set(request_id, phase="read", phase_at=time.time(), note="Te veel materiaal; opnieuw met minder…")
+                    try:
+                        answer = ask_local(text, images)
+                    except ollama.OllamaError as again:
+                        if too_large(again) is None:
+                            raise
+                        raise ollama.OllamaError(too_large_message(options), again.message) from None   # F38
             phase = "het controleren van het antwoord"
             save(self.database, request_id, model, check(answer, material["codes"]), counts, service,
                  round(time.monotonic() - started), text, names, judgment)

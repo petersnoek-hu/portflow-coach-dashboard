@@ -89,6 +89,8 @@ def _message(error: Exception) -> str:
     if isinstance(error, _sdk().RateLimitError):
         return "Te veel verzoeken of het tegoed is op. Probeer het later opnieuw of kijk in de Claude Console."
     if isinstance(error, _sdk().BadRequestError):
+        if "too long" in str(error).lower():   # spec 040, F38
+            return "Het materiaal van dit verzoek is te groot voor Claude. Probeer het lokale model, of een verzoek met minder bewijsstukken."
         return "Anthropic weigerde het verzoek (bijvoorbeeld te groot of geen tegoed)."
     if isinstance(error, _sdk().APIStatusError):
         return "Anthropic heeft een storing. Probeer het later opnieuw."

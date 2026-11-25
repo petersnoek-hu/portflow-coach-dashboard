@@ -8,7 +8,7 @@ import unittest
 import zipfile
 from unittest import mock
 
-from dashboard import ai_advice, ai_routes, db, file_text, ollama, reset
+from dashboard import ai_advice, ai_log, ai_routes, db, file_text, ollama, reset
 from tests.test_evaluation_page import PageCase
 
 
@@ -867,3 +867,123 @@ class TestWaitAndProgress(TestJobsAndPage):   # F33, F34, F35
         self.assertIn("Het model leest het materiaal", card)
         self.assertIn("een schatting", card)
         self.assertIn("Stoppen", card)
+
+
+def big_material(skills=("PL", "BD", "SW", "RE"), images=6, content_chars=30000, earlier=4, feedback=6, text_chars=1500):
+    """Invented material that is too large for "Normaal" (16,384 tokens)."""
+    parts = []
+    for code in skills:
+        parts.append({"core": [f"## Vaardigheid {code}", "LEF-teksten (de maatstaf):\n" + "L" * 3000],
+                      "earlier": [{"full": f"- niveau 1 op dag {i} door Joost Visser (coach): " + "E" * text_chars,
+                                   "short": f"- niveau 1 op dag {i} door Joost Visser (coach): (tekst weggelaten)"}
+                                  for i in range(earlier)],
+                      "evidence": "Bewijsstukken bij deze vaardigheid: geen.",
+                      "feedback": [{"full": f"- Opmerking {i} van Noor Smit (medestudent): " + "F" * text_chars,
+                                    "short": f"- Opmerking {i} van Noor Smit (medestudent): (tekst weggelaten)"}
+                                   for i in range(feedback)]})
+    pics = [{"name": f"Bord – foto{i}.png", "mime": "image/png", "data": "QUJD",
+             "placeholder": f"[afbeelding foto{i}.png: meegestuurd als afbeelding {i + 1}]",
+             "dropped": f"[afbeelding foto{i}.png: niet meegestuurd, te weinig ruimte]"} for i in range(images)]
+    contents = [{"name": "Sprintplanning", "skills": list(skills),
+                 "text": " ".join(p["placeholder"] for p in pics) + "\n" + "C" * content_chars}]
+    return {"codes": list(skills), "student": "Lotte Bakker", "head": "Evaluatieverzoek", "parts": parts,
+            "sections": [ai_advice._section(p, set()) for p in parts], "contents": contents, "images": pics,
+            "names_only": [], "counts": {"skills": len(skills)}}
+
+
+class TestFitsTheModel(unittest.TestCase):   # F36-F39
+    def fits(self, text, images, max_tokens, skills=4, system=len(ai_advice.SYSTEM)):
+        answer = ai_advice.ANSWER_TOKENS + ai_advice.ANSWER_TOKENS_PER_SKILL * skills
+        return ai_advice.estimated_tokens(text, images, system) + answer <= max_tokens
+
+    def test_normaal_fits_by_leaving_out_images_first(self):   # F36 acceptance
+        m = big_material()
+        text, images, counts = ai_advice.prompt(m, {}, max_tokens=16384, system_chars=len(ai_advice.SYSTEM))
+        self.assertTrue(self.fits(text, images, 16384))
+        self.assertGreater(counts["images_dropped"], 0)
+        self.assertEqual(counts["images"], len(images))
+        self.assertIn("niet meegestuurd, te weinig ruimte", text)              # the placeholder says so
+        self.assertIn("LEF-teksten (de maatstaf)", text)                        # never shortened
+
+    def test_images_go_before_the_contents(self):   # F36 order
+        m = big_material(images=6, content_chars=12000, earlier=0, feedback=0, text_chars=10)
+        text, images, counts = ai_advice.prompt(m, {}, max_tokens=12000, system_chars=0)
+        self.assertGreater(counts["images_dropped"], 0)
+        self.assertEqual(counts["cut"], 0)
+        self.assertNotIn("[…ingekort]", text)                                   # the contents are complete
+        self.assertEqual(counts["shortened"], 0)
+
+    def test_oldest_feedback_and_earlier_texts_are_shortened_last(self):   # F36 step 3
+        m = big_material(images=2, content_chars=1000, earlier=4, feedback=6, text_chars=3000)
+        text, images, counts = ai_advice.prompt(m, {}, max_tokens=16384, system_chars=len(ai_advice.SYSTEM))
+        self.assertTrue(self.fits(text, images, 16384))
+        self.assertEqual(images, [])                                             # images first
+        self.assertGreater(counts["shortened"], 0)
+        self.assertIn("Opmerking 5 van Noor Smit (medestudent): (tekst weggelaten)", text)   # the oldest
+        self.assertIn("Opmerking 0 van Noor Smit (medestudent): " + "F" * 50, text)          # the newest kept
+        self.assertEqual(text.count("L" * 3000), 4)                              # LEF texts complete
+
+    def test_without_max_tokens_as_before(self):   # Claude: F8 only
+        m = big_material()
+        text, images, counts = ai_advice.prompt(m, {})
+        self.assertEqual(len(images), 6)
+        self.assertEqual((counts["images_dropped"], counts["shortened"]), (0, 0))
+
+    def test_reading_the_message_of_ollama(self):   # F37
+        error = ollama.OllamaError("Ollama gaf een fout (400): request (20950 tokens) exceeds the available context "
+                                   "size (16384 tokens), try increasing it.", "HTTP 400 op /api/chat")
+        self.assertEqual(ai_advice.too_large(error), (20950, 16384))
+        self.assertIsNone(ai_advice.too_large(ollama.OllamaError("Ollama is niet bereikbaar.")))
+        self.assertIn("instelling Normaal", ai_advice.too_large_message({"num_ctx": 16384}))
+        self.assertIn("Kies Veel", ai_advice.too_large_message({"num_ctx": 16384}))
+        self.assertNotIn("Kies Veel", ai_advice.too_large_message({"num_ctx": 32768}))
+
+    def test_claude_too_long(self):   # F38 for Claude
+        from dashboard import claude_ai
+        error = claude_ai._sdk().BadRequestError.__new__(claude_ai._sdk().BadRequestError)
+        error.args = ("prompt is too long: 250000 tokens > 200000 maximum",)
+        self.assertIn("te groot voor Claude", claude_ai._message(error))
+
+
+class TestRetryWithLess(TestJobsAndPage):   # F37, F38
+    TOO_LARGE = "Ollama gaf een fout (400): request (20950 tokens) exceeds the available context size (16384 tokens)."
+
+    def test_once_more_with_less(self):   # F37
+        with FakeOllama() as fake:
+            original = ollama.chat
+            calls = []
+
+            def chat(url, model, system, user, schema, **kwargs):
+                calls.append(len(user))
+                if len(calls) == 1:
+                    raise ollama.OllamaError(self.TOO_LARGE, "HTTP 400 op /api/chat")
+                return original(url, model, system, user, schema, **kwargs)
+            ollama.chat = chat
+            self.client.post("/evaluaties/70/advies", data=JUDGMENT)
+            status = self.wait(self.app.extensions["ai_jobs"])
+        self.assertEqual(status["state"], "done")
+        self.assertEqual(len(calls), 2)
+        self.assertLessEqual(calls[1], calls[0])
+        lines = " ".join(r["text"] for r in ai_log.recent(self.conn))
+        self.assertIn("te veel materiaal voor het model (20950 van 16384 tokens); opnieuw met minder", lines)
+
+    def test_still_too_large_gives_a_clear_message(self):   # F38
+        with FakeOllama():
+            def chat(*args, **kwargs):
+                raise ollama.OllamaError(self.TOO_LARGE, "HTTP 400 op /api/chat")
+            ollama.chat = chat
+            self.client.post("/evaluaties/70/advies", data=JUDGMENT)
+            status = self.wait(self.app.extensions["ai_jobs"])
+            html = self.client.get("/evaluaties/70/advies").get_data(as_text=True)
+        self.assertEqual(status["state"], "error")
+        self.assertIn("past niet bij de instelling Veel", status["error"])
+        self.assertIn("past niet bij de instelling Veel", html)
+        self.assertNotIn("exceeds the available context", html)
+
+    def test_overview_says_what_was_left_out(self):   # F39
+        ai_advice.save(self.db_path, 70, "m", [], {"skills": 2, "evidence": 1, "files": 0, "earlier": 0, "feedback": 0,
+                                                 "cut": 0, "names_only": [], "images_dropped": 3, "shortened": 2})
+        with FakeOllama():
+            html = self.page().get_data(as_text=True)
+        self.assertIn("gingen 3 afbeeldingen niet mee", html)
+        self.assertIn("gingen 2 eerdere beoordeling(en) of feedbackbericht(en) mee zonder tekst", html)

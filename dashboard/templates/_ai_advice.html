@@ -45,6 +45,9 @@
     {% if advice and (advice.counts.names_only or advice.counts.cut) %}
     <p class="muted">Bij het vorige advies gingen {{ (advice.counts.names_only|length) + advice.counts.cut }} bewijsstuk(ken) mee met alleen de naam{% if advice.counts.names_only %}: {{ advice.counts.names_only|join(", ") }}{% endif %}.</p>
     {% endif %}
+    {% if advice and (advice.counts.images_dropped or advice.counts.shortened) %}{# F39 #}
+    <p class="muted">Om in het geheugen van het model te passen{% if advice.counts.images_dropped %} gingen {{ advice.counts.images_dropped }} afbeelding{{ "en" if advice.counts.images_dropped != 1 }} niet mee{% endif %}{% if advice.counts.images_dropped and advice.counts.shortened %}, en{% endif %}{% if advice.counts.shortened %} gingen {{ advice.counts.shortened }} eerdere beoordeling(en) of feedbackbericht(en) mee zonder tekst (de oudste){% endif %}.</p>
+    {% endif %}
   </details>
   {% endif %}
 
