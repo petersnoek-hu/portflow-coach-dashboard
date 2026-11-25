@@ -637,18 +637,20 @@ class Jobs:
             if not answer:
                 raise ollama.OllamaError("Het model gaf geen antwoord. Probeer het opnieuw.")
             add_turn(self.database, request_id, question, question_anon, answer, round(time.monotonic() - started))
-            self._set(request_id, state="done", step="Klaar")
+            end = {"state": "done", "step": "Klaar"}
         except ollama.OllamaError as error:
             failure = error
-            self._set(request_id, state="stopped" if cancel.is_set() else "error", error=error.message)
+            end = {"state": "stopped" if cancel.is_set() else "error", "error": error.message}
         except Exception as error:
             import logging
             logging.getLogger(__name__).exception("AI follow-up failed")
             failure = ollama.OllamaError("onverwachte fout in het dashboard", type(error).__name__)
-            self._set(request_id, state="error", error="Er ging iets mis bij het beantwoorden van de vraag.")
+            end = {"state": "error", "error": "Er ging iets mis bij het beantwoorden van de vraag."}
         finally:
             conn.close()
-            self._log_end("Vervolgvraag", request_id, what, failure, cancel, started, phase)
+        # Spec 042: the log line first, then the end state, so nothing is written after "done"/"stopped".
+        self._log_end("Vervolgvraag", request_id, what, failure, cancel, started, phase)
+        self._set(request_id, **end)
 
     def start(self, request_id: int, service: str = "lokaal", model: str | None = None,
               judgment: dict | None = None) -> bool:
@@ -755,18 +757,20 @@ class Jobs:
             phase = "het controleren van het antwoord"
             save(self.database, request_id, model, check(answer, material["codes"]), counts, service,
                  round(time.monotonic() - started), text, names, judgment)
-            self._set(request_id, state="done", step="Klaar")
+            end = {"state": "done", "step": "Klaar"}
         except ollama.OllamaError as error:
             failure = error
-            self._set(request_id, state="stopped" if cancel.is_set() else "error", error=error.message)
+            end = {"state": "stopped" if cancel.is_set() else "error", "error": error.message}
         except Exception as error:
             import logging
             logging.getLogger(__name__).exception("AI advice failed")
             failure = ollama.OllamaError("onverwachte fout in het dashboard", type(error).__name__)
-            self._set(request_id, state="error", error="Er ging iets mis bij het maken van het advies.")
+            end = {"state": "error", "error": "Er ging iets mis bij het maken van het advies."}
         finally:
             conn.close()
-            self._log_end("Advies", request_id, what, failure, cancel, started, phase)
+        # Spec 042: the log line first, then the end state, so nothing is written after "done"/"stopped".
+        self._log_end("Advies", request_id, what, failure, cancel, started, phase)
+        self._set(request_id, **end)
 
 
 # The trial question of the wizard (F12, step 4) ------------------------------------------------------------

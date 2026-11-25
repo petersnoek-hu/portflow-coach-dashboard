@@ -201,14 +201,14 @@ class Pull:
             with self.lock:
                 self.state["error"] = error.message
         finally:
-            with self.lock:
-                self.state["running"] = False
-            if log:
+            if log:   # spec 042: the log line first, then "not running" any more
                 seconds = round(time.monotonic() - started)
                 if error_seen:
                     log(False, f"Downloaden van {model} mislukt na {seconds} s: {error_seen.message}", error_seen.detail)
                 else:
                     log(True, f"{model} gedownload in {seconds} s")
+            with self.lock:
+                self.state["running"] = False
 
     def status(self) -> dict:
         with self.lock:
