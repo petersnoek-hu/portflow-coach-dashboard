@@ -43,7 +43,7 @@ def get_json(path: str, token: str, timeout: float = TIMEOUT_S) -> tuple[int, ob
 
 def check_token(token: str) -> int:
     """Live check of a token; 200 means it works."""
-    status, _ = get_json("/dashboard", token)
+    status, _ = get_json("/capabilities", token)
     return status
 
 
