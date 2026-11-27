@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import urlparse
 
-DEFAULT_CANVAS_URL = "https://canvas.hu.nl/courses/51659/external_tools/1134"
+DEFAULT_CANVAS_URL = "https://canvas.hu.nl/accounts/1/external_tools/1134"
 TOKEN_HOST_SUFFIXES = ("portflow.io", "hu.nl", "drieam.app")
 PORTFOLIO_ID_GRACE_S = 10
 
