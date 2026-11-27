@@ -41,7 +41,7 @@ scripts in deze repo verkrijgen het bearer-token daarom door een echte browserse
 te starten en het token te onderscheppen:
 
 1. Open een (Chrome-)browser met een persistent profiel naar de LTI-tool in Canvas:
-   `https://canvas.hu.nl/courses/51659/external_tools/1134`
+   `https://canvas.hu.nl/accounts/1/external_tools/1134`
 2. De gebruiker logt in via de instellings-SSO (HU) als dat nog nodig is.
 3. Canvas laadt de Portflow-tool in een iframe (`*.drieam.app`). Die iframe-app doet
    zelf XHR/fetch-requests naar `https://portfolio.drieam.app/api/v1/...` met een

@@ -896,7 +896,7 @@ def _ask_new_token() -> str:
 #   5. Lees het eigen portfolio-ID uit de startgegevens van de Portflow-pagina (data-react-props)
 #      en sla het op als PORTFLOW_OWN_PORTFOLIO_ID.
 
-CANVAS_URL = "https://canvas.hu.nl/courses/51659/external_tools/1134"
+CANVAS_URL = "https://canvas.hu.nl/accounts/1/external_tools/1134"
 TOKEN_HOST_SUFFIXES = ("portflow.io", "hu.nl", "drieam.app")
 BROWSER_TOKEN_TIMEOUT_S = 300
 # Seconden dat na het vinden van de token nog op het portfolio-ID gewacht wordt

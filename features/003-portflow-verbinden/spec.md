@@ -82,7 +82,7 @@ Inspiratie: de console-app ([`docs/portflow-console-app.py`](../../docs/portflow
   - *Acceptatie:* bij "Verbonden" toont het paneel naam, vervaltijd en "Verbinding verbreken".
 - [x] **F14 – Live bijwerken.** De status werkt zichzelf bij zonder de pagina te verversen: elke 2 seconden tijdens inloggen of verversen, anders elke minuut (via `app.js` en een status-endpoint).
   - *Acceptatie:* na het sluiten van het inlogvenster wordt de bovenbalk binnen 2 seconden groen, zonder herladen.
-- [x] **F15 – Instellingen.** Een sectie **"Portflow-koppeling"** in Instellingen toont dezelfde gegevens en knoppen als het paneel, plus het veld **Canvas-adres van de Portflow-tool** (standaard `https://canvas.hu.nl/courses/51659/external_tools/1134`) en het vinkje **"Zichtbaar verversen"** (F8).
+- [x] **F15 – Instellingen.** Een sectie **"Portflow-koppeling"** in Instellingen toont dezelfde gegevens en knoppen als het paneel, plus het veld **Canvas-adres van de Portflow-tool** (standaard `https://canvas.hu.nl/accounts/1/external_tools/1134`) en het vinkje **"Zichtbaar verversen"** (F8).
   - *Acceptatie:* het Canvas-adres aanpassen en opslaan → de volgende inlogpoging opent dat adres.
 
 ### Installatie en fouten
